@@ -12,8 +12,7 @@ use commands::*;
 use tauri::Manager;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+fn main() {
     // Initialize logging
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
