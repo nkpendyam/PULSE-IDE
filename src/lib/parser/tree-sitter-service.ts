@@ -20,7 +20,17 @@ export type SupportedLanguage =
   | 'html'
   | 'css'
   | 'yaml'
-  | 'markdown';
+  | 'markdown'
+  | 'java'
+  | 'cpp'
+  | 'ruby'
+  | 'php'
+  | 'swift'
+  | 'kotlin'
+  | 'c'
+  | 'sql'
+  | 'toml'
+  | 'bash';
 
 // Language configuration
 export interface LanguageConfig {
@@ -143,6 +153,66 @@ export const LANGUAGE_CONFIGS: Record<SupportedLanguage, LanguageConfig> = {
     grammarPackage: 'tree-sitter-markdown',
     aliases: ['md', 'markdown'],
   },
+  java: {
+    name: 'Java',
+    extensions: ['.java'],
+    grammarPackage: 'tree-sitter-java',
+    aliases: ['java'],
+  },
+  cpp: {
+    name: 'C++',
+    extensions: ['.cpp', '.cxx', '.cc', '.hpp', '.hxx', '.hh'],
+    grammarPackage: 'tree-sitter-cpp',
+    aliases: ['cpp', 'cxx', 'hpp'],
+  },
+  c: {
+    name: 'C',
+    extensions: ['.c', '.h'],
+    grammarPackage: 'tree-sitter-c',
+    aliases: ['c'],
+  },
+  ruby: {
+    name: 'Ruby',
+    extensions: ['.rb', '.rake', '.gemspec'],
+    grammarPackage: 'tree-sitter-ruby',
+    aliases: ['rb', 'ruby'],
+  },
+  php: {
+    name: 'PHP',
+    extensions: ['.php', '.phtml', '.php3', '.php4', '.php5'],
+    grammarPackage: 'tree-sitter-php',
+    aliases: ['php'],
+  },
+  swift: {
+    name: 'Swift',
+    extensions: ['.swift'],
+    grammarPackage: 'tree-sitter-swift',
+    aliases: ['swift'],
+  },
+  kotlin: {
+    name: 'Kotlin',
+    extensions: ['.kt', '.kts'],
+    grammarPackage: 'tree-sitter-kotlin',
+    aliases: ['kt', 'kts'],
+  },
+  sql: {
+    name: 'SQL',
+    extensions: ['.sql'],
+    grammarPackage: 'tree-sitter-sql',
+    aliases: ['sql'],
+  },
+  toml: {
+    name: 'TOML',
+    extensions: ['.toml'],
+    grammarPackage: 'tree-sitter-toml',
+    aliases: ['toml'],
+  },
+  bash: {
+    name: 'Bash',
+    extensions: ['.sh', '.bash', '.zsh'],
+    grammarPackage: 'tree-sitter-bash',
+    aliases: ['sh', 'bash', 'zsh'],
+  },
 };
 
 /**
@@ -256,6 +326,16 @@ export class TreeSitterService {
       css: '/grammars/tree-sitter-css.wasm',
       yaml: '/grammars/tree-sitter-yaml.wasm',
       markdown: '/grammars/tree-sitter-markdown.wasm',
+      java: '/grammars/tree-sitter-java.wasm',
+      cpp: '/grammars/tree-sitter-cpp.wasm',
+      c: '/grammars/tree-sitter-c.wasm',
+      ruby: '/grammars/tree-sitter-ruby.wasm',
+      php: '/grammars/tree-sitter-php.wasm',
+      swift: '/grammars/tree-sitter-swift.wasm',
+      kotlin: '/grammars/tree-sitter-kotlin.wasm',
+      sql: '/grammars/tree-sitter-sql.wasm',
+      toml: '/grammars/tree-sitter-toml.wasm',
+      bash: '/grammars/tree-sitter-bash.wasm',
     };
 
     const url = grammarUrls[language];
