@@ -54,37 +54,12 @@
     "targets": "all",
     "windows": {
       "digestAlgorithm": "sha256",
-      "nsis": {
-        "installerIcon": "icons/icon.ico",
-        "license": "../LICENSE",
-        "installMode": "currentUser",
-        "languages": ["English", "SimpChinese", "TradChinese", "Japanese", "Korean", "German", "French", "Spanish"],
-        "displayLanguageSelector": true
-      },
       "wix": {
-        "language": ["en-US", "zh-CN", "zh-TW", "ja-JP", "ko-KR", "de-DE", "fr-FR", "es-ES"]
+        "language": "en-US"
       }
     },
     "macOS": {
-      "minimumSystemVersion": "10.13",
-      "dmg": {
-        "appPosition": {
-          "x": 180,
-          "y": 170
-        },
-        "applicationFolderPosition": {
-          "x": 480,
-          "y": 170
-        },
-        "windowPosition": {
-          "x": 200,
-          "y": 120
-        },
-        "windowSize": {
-          "width": 660,
-          "height": 400
-        }
-      }
+      "minimumSystemVersion": "10.13"
     },
     "linux": {
       "deb": {
@@ -166,12 +141,6 @@
         "https://releases.kyroide.dev/{{target}}/{{arch}}/{{current_version}}"
       ],
       "pubkey": "",
-      "dialog": {
-        "title": "Kyro IDE Update",
-        "body": "A new version of Kyro IDE is available. Would you like to download and install it now?",
-        "updateButton": "Update Now",
-        "cancelButton": "Later"
-      },
       "windows": {
         "installMode": "passive"
       }
