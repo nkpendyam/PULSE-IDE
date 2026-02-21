@@ -130,3 +130,68 @@ Platform Support:
 - Windows: x86_64-pc-windows-msvc (MSI, NSIS installers)
 - macOS: aarch64-apple-darwin, x86_64-apple-darwin (DMG, APP)
 - Linux: x86_64-unknown-linux-gnu (AppImage, DEB, RPM)
+
+---
+Task ID: 5
+Agent: Tree-sitter Implementation
+Task: Implement Tree-sitter Integration for Code Intelligence
+
+Work Log:
+- Installed web-tree-sitter@0.26.5 package for WebAssembly-based parsing
+- Created comprehensive Tree-sitter parser module with 5 files:
+
+1. **tree-sitter-service.ts** (~450 lines)
+   - Core parser service with WASM initialization
+   - Support for 12 languages: TypeScript, TSX, JavaScript, JSX, Python, Rust, Go, JSON, HTML, CSS, YAML, Markdown
+   - Incremental parsing support (re-parses only changed parts)
+   - AST query capabilities with Tree-sitter queries
+   - Tree caching for efficient re-parsing
+   - Node walking and range-based node retrieval
+
+2. **syntax-highlighter.ts** (~620 lines)
+   - Converts Tree-sitter highlights to Monaco editor tokens
+   - Comprehensive highlight capture mappings (80+ capture types)
+   - Language-specific highlight queries for TypeScript, JavaScript, Python, JSON, HTML, CSS
+   - Support for nested languages (JSX, embedded scripts)
+   - Custom theme mapping support
+   - Fallback highlighting when queries unavailable
+
+3. **code-intelligence.ts** (~580 lines)
+   - Find definitions in file with symbol-aware queries
+   - Find all references to symbols
+   - Extract symbols (classes, functions, variables, methods, etc.)
+   - Get scope at position with variable extraction
+   - Find matching brackets with bracket pair detection
+   - Document outline generation (hierarchical symbols)
+   - Symbol kind mappings for 5 languages
+
+4. **grammars.ts** (~500 lines)
+   - On-demand grammar loading
+   - LRU cache for loaded grammars (configurable max size)
+   - Language detection from file path (extension-based)
+   - Language detection from content (heuristic-based)
+   - Shebang detection for script files
+   - Support for nested language detection
+   - Grammar URL registration for custom grammars
+
+5. **index.ts** (~185 lines)
+   - Unified exports for all parser modules
+   - Convenience functions: initializeParserServices(), disposeParserServices(), parseFile()
+   - Re-exports all types for easy consumption
+
+Stage Summary:
+- Complete Tree-sitter integration module with 2,300+ lines of code
+- ESLint passes with 0 errors
+- Works in both browser and Node.js/Tauri environments
+- Grammar WASM files should be placed in public/grammars/ directory
+- Ready for integration with Monaco editor for enhanced code intelligence
+
+Features Implemented:
+- Multi-language parsing with incremental updates
+- Syntax highlighting with Monaco token format
+- Code navigation (go to definition, find references)
+- Symbol extraction and document outline
+- Scope analysis and variable tracking
+- Bracket matching
+- Automatic language detection
+- Grammar caching with LRU eviction
