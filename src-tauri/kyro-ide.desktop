@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.1.0
+Name=Kyro IDE
+GenericName=Integrated Development Environment
+Comment=AI-Powered Privacy-First IDE
+Exec=kyro-ide %F
+Icon=kyro-ide
+Terminal=false
+Type=Application
+Categories=Development;IDE;TextEditor;
+Keywords=ide;code;editor;development;programming;ai;
+StartupNotify=true
+StartupWMClass=kyro-ide
+MimeType=text/plain;text/x-c;text/x-h;text/x-c++;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-makefile;text/x-python;text/x-shellscript;application/javascript;application/json;application/xml;
