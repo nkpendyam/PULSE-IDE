@@ -47,5 +47,15 @@ test
 prompt
 
 server.log
-# Skills directory
+
+# Uploads and temp
+/upload/
 /skills/
+
+# IDE
+.claude
+.z-ai-config
+.idea/
+.vscode/
+*.swp
+*.swo
