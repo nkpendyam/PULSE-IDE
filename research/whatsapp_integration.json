@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://business.whatsapp.com/products/business-platform",
+    "name": "WhatsApp Business Platform | Business messaging APIs",
+    "snippet": "Create memorable experiences. Leverage the API to deliver compelling conversational flows with interactive CTAs, dynamic product lists, rich media and more. Read more",
+    "host_name": "business.whatsapp.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://business.whatsapp.com/developers/developer-hub",
+    "name": "Developer Hub | WhatsApp Business",
+    "snippet": "Get started guide. Documentation to help you set up your environment, test, build and integrate the WhatsApp Business Platform into your stack. Read more\nStart building within minutes and send engaging, timely, high-quality messages to them today. Scale and integrate with your technology stack and build interactive experiences – no maintenance or upgrades needed. Free access to test numbers, code samples, webhooks, a sandbox and more.",
+    "host_name": "business.whatsapp.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.twilio.com/en-us/messaging/channels/whatsapp",
+    "name": "WhatsApp Business API",
+    "snippet": "Reach customers on WhatsApp through streamlined APIs that are officially supported by WhatsApp . Integrate WhatsApp messaging and calling today with Twilio.",
+    "host_name": "www.twilio.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/overview",
+    "name": "WhatsApp Business Platform - Meta for Developers - Facebook",
+    "snippet": "Meta Business Messaging allows your business to have conversations with your customers using Instagram Direct, Messenger, and WhatsApp .",
+    "host_name": "developers.facebook.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infobip.com/whatsapp-business/api",
+    "name": "WhatsApp Business API: Automate Customer Messaging",
+    "snippet": "Send automated WhatsApp messages , notifications, and updates, and receive customer inquiries using Infobip's WhatsApp API solution for businesses.",
+    "host_name": "www.infobip.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkmobility.com/en-gb/blog/how-to-get-started-with-whatsapp-business-api-in-2025",
+    "name": "How to Get Started with WhatsApp Business API in 2025",
+    "snippet": "To message users via WhatsApp Business API , you must obtain their consent. This can be done through: Website forms or checkboxes. SMS campaigns. Email prompts. Read more",
+    "host_name": "www.linkmobility.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wasenderapi.com",
+    "name": "Home - WasenderApi - Low Cost WhatsApp API for Developers",
+    "snippet": "WasenderApi provides a powerful and low cost WhatsApp API for developers to integrate messaging , automation into their applications .",
+    "host_name": "wasenderapi.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.gupshup.ai/whatsapp-api",
+    "name": "Elevate customer conversations with WhatsApp Business API",
+    "snippet": "Boost customer engagement with WhatsApp Business API via Gupshup Conversation Cloud. Integrate AI chat and voice, automate interactions, and streamline ...",
+    "host_name": "www.gupshup.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.facebook.com/docs/whatsapp/business-management-api/guides",
+    "name": "Guides - WhatsApp Business Management API - Meta for Developers",
+    "snippet": "Use the WhatsApp Business Management API to create new message templates, media message templates, or interactive message templates. Use the API to get and filter phone numbers associated with your WhatsApp Business Account.",
+    "host_name": "developers.facebook.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infobip.com/blog/whatsapp-business-api-setup",
+    "name": "WhatsApp Business API setup guide [step-by-step]",
+    "snippet": "Set up the WhatsApp Business API with Infobip. Follow this 2025 step-by-step guide covering requirements, onboarding, sender setup, and more.",
+    "host_name": "www.infobip.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

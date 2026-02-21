@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://code.visualstudio.com/docs/copilot/ai-powered-suggestions",
+    "name": "Inline suggestions from GitHub Copilot in VS Code",
+    "snippet": "GitHub Copilot acts as an AI-powered pair programmer, automatically offering inline suggestions to complete your code, comments, tests, and more. It provides ... Missing: 2024 | Show results with: 2024",
+    "host_name": "code.visualstudio.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/features/copilot",
+    "name": "GitHub Copilot · Your AI pair programmer",
+    "snippet": "Copilot in your editor does it all, from explaining concepts and completing code, to proposing edits and validating files with agent mode. Explore Copilot in ...",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://visualstudio.microsoft.com/github-copilot",
+    "name": "Visual Studio With GitHub Copilot - AI Pair Programming",
+    "snippet": "To generate a code suggestion, the Copilot extension begins by examining the code in your editor—focusing on the lines just before and after ... Missing: 2024 | Show results with: 2024",
+    "host_name": "visualstudio.microsoft.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://plugins.jetbrains.com/plugin/17718-github-copilot--your-ai-pair-programmer",
+    "name": "GitHub Copilot - Your AI Pair Programmer Plugin for JetBrains IDEs",
+    "snippet": "Code completions: You can receive auto-complete type suggestions from GitHub Copilot either by starting to write the code you want to use ...",
+    "host_name": "plugins.jetbrains.com",
+    "rank": 3,
+    "date": "Feb 15, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://saigontechnology.com/blog/ai-coding-assistant-tools",
+    "name": "10 Best AI Coding Assistant Tools in 2026 – Updated September 2026",
+    "snippet": "GitHub Copilot adds AI code generation, chat, and inline suggestions directly to your workflow. This code generation tool integrates with ...",
+    "host_name": "saigontechnology.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.digitalocean.com/resources/articles/github-copilot-vs-cursor",
+    "name": "GitHub Copilot vs Cursor : AI Code Editor Review for 2026",
+    "snippet": "Copilot excels in inline code completion, tight GitHub/IDE integration, and quick turnaround for common coding tasks. Cursor focuses on ...",
+    "host_name": "www.digitalocean.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://visualstudio.microsoft.com/vs",
+    "name": "Visual Studio IDE - AI for coding debugging and testing - Microsoft",
+    "snippet": "Copilot: your pair programmer. Speed up development with context-aware code completion suggestions for a single line or an entire code snippet.",
+    "host_name": "visualstudio.microsoft.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.codesubmit.io/blog/ai-code-tools",
+    "name": "AI Code Tools: Complete Guide for Developers in 2026",
+    "snippet": "AI-powered coding assistant providing real-time code suggestions directly in your IDE. Uses publicly available code from GitHub repositories.",
+    "host_name": "www.codesubmit.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.wearedevelopers.com/en/magazine/524/github-copilot-beyond-the-basics---10-ways-to-elevate-your-coding",
+    "name": "GitHub Copilot: Beyond the Basics – 10 Ways to Elevate Your Coding",
+    "snippet": "Key Features. Inline Code Suggestions: Get real-time code suggestions as you type. Multi-language Support: Works with several programming ...",
+    "host_name": "www.wearedevelopers.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.github.com/copilot/using-github-copilot/getting-code-suggestions-in-your-ide-with-github-copilot",
+    "name": "Getting code suggestions in your IDE with GitHub Copilot",
+    "snippet": "Introduction. This guide demonstrates how to get coding suggestions from GitHub Copilot in Visual Studio Code. To see instructions for other popular coding ... Missing: 2024 | Show results with: 2024",
+    "host_name": "docs.github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

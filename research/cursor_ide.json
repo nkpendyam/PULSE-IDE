@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://cursor.com",
+    "name": "Cursor: The best way to code with AI",
+    "snippet": "It's a demonstration of Cursor's IDE showing AI-powered coding assistance features. The interface is displayed over a subtle, solid brand background. Cursor.",
+    "host_name": "cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://towardsdatascience.com/vscode-is-the-best-ai-powered-ide",
+    "name": "Why I stopped Using Cursor and Reverted to VSCode",
+    "snippet": "May 2, 2025 — In December 2024, two key Cursor features made it stand out from the crowd. The first was the ability to use a number of different LLMs, unlike ...",
+    "host_name": "towardsdatascience.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://skywork.ai/blog/vibecoding/cursor-2-0-ultimate-guide-2025-ai-code-editing",
+    "name": "Cursor 2.0 Ultimate Guide 2025: AI-Powered Code Editing & Workflow",
+    "snippet": "Oct 30, 2025 — Master Cursor 2.0 with this complete 2025 guide to AI-powered code editing, Composer model, multi-agent workflows, secure team setups ...",
+    "host_name": "skywork.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/cursor-0-48-what-new-features-are-expected/63747",
+    "name": "Cursor 0.48 What new features are expected - Discussions",
+    "snippet": "Mar 13, 2025 — The AI would automatically determine the current need: whether to just simpilly answer a question, modify files, add specific file context, or ...",
+    "host_name": "forum.cursor.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@am.timing24/cursor-ide-tab-completion-in-2025-how-ai-writes-code-before-you-even-think-it-complete-9b442bfd2d8c",
+    "name": "Cursor IDE Tab Completion in 2025: How AI Writes Code Before You Even Think It",
+    "snippet": "Cursor's Tab Completion isn't just a feature — it's a productivity multiplier. In 2025, while other developers are still typing boilerplate ...",
+    "host_name": "medium.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/Cursor_(code_editor)",
+    "name": "Cursor (code editor)",
+    "snippet": "Cursor is an AI-assisted integrated development environment for Windows, macOS, and Linux. It is a fork of Visual Studio Code with additional AI features.\nCursor (code editor) ... Cursor is an AI-assisted integrated development environment for Windows, macOS, and Linux. It is a fork of Visual Studio Code with additional AI features. Cursor is proprietary software and developed by Anysphere, a San Francisco-based startup company founded in 2022. [2]",
+    "host_name": "en.wikipedia.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.builder.io/blog/cursor-advanced-features",
+    "name": "Cursor AI: 5 Advanced Features You're Not Using",
+    "snippet": "Dec 17, 2024 — Learn about advanced Cursor AI features: the Agent, custom rules, Notepads, bug finder & web search. Also covers AI commit messages ...",
+    "host_name": "www.builder.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ironhack.com/us/blog/the-web-developer-s-ai-toolkit-in-2025-cursor-claude-replit",
+    "name": "The Web Developer's AI Toolkit in 2025: Cursor, Claude, Replit",
+    "snippet": "Oct 3, 2025 — Cursor → Ideal if you want an AI-boosted IDE. ✓ Strengths: multi-file refactoring, precise completions, smooth VS Code integration ...",
+    "host_name": "www.ironhack.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://collabnix.com/cursor-ai-deep-dive-technical-architecture-advanced-features-best-practices-2025",
+    "name": "Cursor AI: Deep Dive into Features & Architecture",
+    "snippet": "Cursor AI has rapidly emerged as one of the most powerful AI-assisted development environments in 2025, serving billions of code completions daily to developers at Fortune 500 companies.",
+    "host_name": "collabnix.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://geekskai.com/blog/ai/cursor-ide-tutorial-ai-powered-development-best-practices",
+    "name": "Ultimate Cursor AI IDE Guide: Team Collaboration & Best",
+    "snippet": "Cursor integrates a full suite of AI-powered development tools while preserving a familiar editor experience. Its key features include: Predictive Code Completion (Tab-Tab): Cursor constantly predicts your next code edits. By pressing Tab, you can accept multi-line code completions or edits.",
+    "host_name": "geekskai.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

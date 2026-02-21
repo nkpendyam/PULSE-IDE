@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/16157",
+    "name": "[BUG] Instantly hitting usage limits with Max subscription #16157",
+    "snippet": "The effective usable time per week feels significantly shorter than what it was in late 2025. This makes it hard to rely on Claude Code as a ...",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://hyperdev.matsuoka.com/p/how-claude-code-got-better-by-protecting",
+    "name": "How Claude Code Got Better by Protecting More Context - Hyperdev",
+    "snippet": "Here's my working hypothesis: Claude Code has been progressively pushing its auto-compact threshold down—stopping earlier to preserve more ...",
+    "host_name": "hyperdev.matsuoka.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.sidetool.co/post/mastering-claude-code-insufficient-permissions-fix-auto-updates-2025",
+    "name": "Mastering Claude Code's Insufficient Permissions: Fix Auto-Updates",
+    "snippet": "When Claude Code auto-updates hit an “insufficient permissions” error, it usually means the software lacks rights to modify files in its ...",
+    "host_name": "www.sidetool.co",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/9424",
+    "name": "Weekly Usage Limits Making Claude Subscriptions Unusable #9424",
+    "snippet": "Found 3 possible duplicate issues: [Meta] Unexpected change in Claude usage limits as of 2025-09-29. (30+ reports) #9094 · [Bug] Anthropic API ...",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.instagram.com/reel/DPR4cxhkZoS",
+    "name": "New Claude Code Limits are BRUTAL! Last night I was  - Instagram",
+    "snippet": "1, 2025: \"New Claude Code Limits are BRUTAL! Last night I was hit with an alert that I was running out of usage on my Claude Code with less ...",
+    "host_name": "www.instagram.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.datastudios.org/post/anthropic-imposes-sudden-limits-on-claude-code-the-developer-community-rebels-against-the-platform",
+    "name": "Anthropic imposes sudden limits on Claude Code. The developer",
+    "snippet": "The sudden interruption of Claude Code's features, combined with the lack of clear explanations, risks marking a negative turning point in the ...",
+    "host_name": "www.datastudios.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/%40elliotJL/your-ai-has-infinite-knowledge-and-zero-habits-heres-the-fix-e279215d478d",
+    "name": "Claude Keeps Making the Same Mistakes. So I Started Writing",
+    "snippet": "The procedural layer Claude is missing. The Failure Modes. I spent a good part of 2025 building with Claude Code. Watching it succeed at mind ...",
+    "host_name": "medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1nsfz74/megathread_for_claude_performance_limits_and_bugs",
+    "name": "Megathread for Claude Performance, Limits and Bugs Discussion",
+    "snippet": "Claude does everything wrong, just no matter how clear to tell instructions and prompt, it does it wrong, gives out normal text as code and ... Usage Limits Discussion Megathread - beginning October 8, 2025 Usage Limits, Bugs and Performance Discussion Megathread - Reddit More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

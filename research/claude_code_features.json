@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://code.claude.com/docs/en/overview",
+    "name": "Claude Code overview - Claude Code Docs",
+    "snippet": "With MCP, Claude Code can read your design docs in Google Drive, update tickets in Jira, pull data from Slack, or use your own custom tooling.",
+    "host_name": "code.claude.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.anthropic.com/engineering/advanced-tool-use",
+    "name": "Introducing advanced tool use on the Claude Developer",
+    "snippet": "24-Nov-2025 — Claude can now discover, learn, and execute tools dynamically to enable agents that take action in the real world. Here's how.",
+    "host_name": "www.anthropic.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/anthropics/claude-code/issues/7228",
+    "name": "[FEATURE] Dynamic Tool Permissions with a canUseTool",
+    "snippet": "05-Sept-2025 — The current tool permission system for the Claude Code CLI, based on static allow / deny lists in settings.json , is excellent for establishing ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.claude.com/docs/en/cli-reference",
+    "name": "CLI reference - Claude Code Docs",
+    "snippet": "--permission-prompt-tool, Specify an MCP tool to handle permission prompts in non-interactive mode, claude -p --permission-prompt-tool mcp_auth_tool \"query\".",
+    "host_name": "code.claude.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.eesel.ai/blog/claude-code-mcp-tools",
+    "name": "A practical guide to Claude Code MCP tools in 2025",
+    "snippet": "13-Sept-2025 — You generally have two ways to configure your Claude Code MCP tools. The standard method is using the claude mcp add command in your terminal.",
+    "host_name": "www.eesel.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blakecrosley.com/en/guides/claude-code",
+    "name": "Claude Code CLI: The Definitive Technical Reference",
+    "snippet": "2 days ago — Master five core systems (configuration, permissions, hooks, MCP, and subagents) and you unlock force-multiplier productivity. Choose the model ...",
+    "host_name": "blakecrosley.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@expdal3/setup-mcp-tools-for-claude-code-for-windows-users-the-most-obfuscated-thing-no-one-mentioned-on-d501f59697db",
+    "name": "Setup MCP tools for Claude Code for Windows users",
+    "snippet": "Claude Code is powerful. It's built for devs who like control, and when you get past the setup quirks, it does exactly what you want it to — ...",
+    "host_name": "medium.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aws.amazon.com/blogs/machine-learning/supercharge-your-development-with-claude-code-and-amazon-bedrock-prompt-caching",
+    "name": "Supercharge your development with Claude Code and Amazon Bedrock prompt caching",
+    "snippet": "04-Jun-2025 — Consider permissions, memory and MCP servers for your organization. Security teams can configure managed permissions for what Claude Code is ...",
+    "host_name": "aws.amazon.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.claude.com/docs/en/permissions",
+    "name": "Configure permissions - Claude Code Docs",
+    "snippet": "Permissions control which tools Claude Code can use and which files or domains it can access. They apply to all tools (Bash, Read, Edit, WebFetch, MCP, and others).",
+    "host_name": "code.claude.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://deepwiki.com/anthropics/claude-code-action/5.3-tool-and-permission-configuration",
+    "name": "Tool and Permission Configuration | anthropics/claude-code",
+    "snippet": "This document explains how to configure Claude's tool access and GitHub permissions in the Claude Code Action. It covers the built-in MCP server system, tool allow/deny lists, and GitHub permission management.",
+    "host_name": "deepwiki.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

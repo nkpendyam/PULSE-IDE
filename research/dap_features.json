@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://microsoft.github.io/debug-adapter-protocol",
+    "name": "Official page for Debug Adapter Protocol",
+    "snippet": "The Debug Adapter Protocol (DAP) defines the abstract protocol used between a development tool (eg IDE or editor) and a debugger.\nWhat is the Debug Adapter Protocol? Adding a debugger for a new language to an IDE or editor is not only a significant effort, but it is also frustrating that this effort can not be easily amortized over multiple development tools, as each tool uses different APIs for implementing the same feature.",
+    "host_name": "microsoft.github.io",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/microsoft/debug-adapter-protocol/blob/main/overview.md",
+    "name": "debug-adapter-protocol/overview.md at main - GitHub",
+    "snippet": "The idea behind the Debug Adapter Protocol is to standardize an abstract protocol for how a development tool communicates with concrete debuggers.",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zed.dev/docs/debugger",
+    "name": "Debugger - Zed",
+    "snippet": "Debug code in Zed with the Debug Adapter Protocol (DAP). Breakpoints, stepping, variable inspection across multiple languages.",
+    "host_name": "zed.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/stop-re-inventing-debugger-how-debug-adapter-protocol-parmar-ph-d--azuof",
+    "name": "Stop Re-inventing the Debugger: How the Debug Adapter Protocol",
+    "snippet": "The Debug Adapter Protocol (DAP) defines an abstract protocol for how an IDE (the Client) communicates with a debugger (the Server). Instead of ...",
+    "host_name": "www.linkedin.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/help/clion/dap-support.html",
+    "name": "Debug Adapter Protocol | CLion Documentation - JetBrains",
+    "snippet": "Debug Adapter Protocol﻿ · Go to Settings | Build, Execution, Deployment | Debugger | DAP Debuggers and then click + to add a new DAP debugger.",
+    "host_name": "www.jetbrains.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://microsoft.github.io/debug-adapter-protocol//specification.html",
+    "name": "Debug Adapter Protocol - Microsoft Open Source",
+    "snippet": "The Debug Adapter Protocol defines the protocol used between an editor or IDE and a debugger or runtime. A machine-readable JSON schema can be found here.",
+    "host_name": "microsoft.github.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/blogs/2018/08/07/debug-adapter-protocol-website",
+    "name": "New home for the Debug Adapter Protocol - Visual Studio Code",
+    "snippet": "The idea behind the Debug Adapter Protocol is to standardize an abstract protocol for how the debugging component of a development tool communicates with ...",
+    "host_name": "code.visualstudio.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://lldb.llvm.org/use/lldbdap.html",
+    "name": "Getting started with lldb-dap - LLVM",
+    "snippet": "LLDB provides general, IDE-independent debugging features, such as: loading binaries / core dumps, interpreting debug info, setting breakpoints, pretty-printing ...",
+    "host_name": "lldb.llvm.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.graalvm.org/latest/tools/dap",
+    "name": "Debug Adapter Protocol - GraalVM",
+    "snippet": "Debug Adapter Protocol is to standardize the “communication” between the debugging component and a concrete debugger or runtime. Missing: IDE | Show results with: IDE",
+    "host_name": "www.graalvm.org",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://markaicode.com/gdb-dap-protocol-ide-integration",
+    "name": "GDB's DAP Protocol: Revolutionizing IDE Integration",
+    "snippet": "Learn how GDB's DAP protocol transforms debugging workflows by enabling seamless IDE integration, enhancing productivity for developers across platforms.",
+    "host_name": "markaicode.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

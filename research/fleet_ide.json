@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://blog.jetbrains.com/fleet/2025/12/the-future-of-fleet",
+    "name": "The Future of Fleet",
+    "snippet": "Dec 8, 2025 — Distribution will also end, so you will no longer be able to download Fleet from the Toolbox App or other channels starting December 22, 2025.",
+    "host_name": "blog.jetbrains.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/fleet",
+    "name": "JetBrains Fleet: More Than a Code Editor",
+    "snippet": "Fleet is a code editor designed for simplicity, combining a clean UI, AI capabilities, and an essential set of built-in features for most major languages.",
+    "host_name": "www.jetbrains.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.jetbrains.com/fleet/2024/12/introducing-fleets-new-islands-ui",
+    "name": "Introducing Fleet's New Islands UI",
+    "snippet": "Dec 18, 2024 — The new design visually separates the editor and tool panels, creating a cleaner and more focused workspace. This update not only gives Fleet a ...",
+    "host_name": "blog.jetbrains.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gamefromscratch.com/jetbrains-fleet-is-dead",
+    "name": "JetBrains Fleet is Dead",
+    "snippet": "Dec 9, 2025 — JetBrains Fleet IDE, a competitor to Visual Studio Code, is now dead and it will go away December 22nd, so Download now if interested.",
+    "host_name": "gamefromscratch.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.devclass.com/development/2025/02/13/jetbrains-abandons-fleet-ide-for-kotlin-multiplatform-raising-doubts-about-fleets-future/1622755",
+    "name": "JetBrains abandons Fleet IDE for Kotlin multiplatform raising doubts about Fleet's future",
+    "snippet": "Feb 13, 2025 — JetBrains is abandoning its plan to build an IDE for Kotlin Multiplatform (KMP) on Fleet, its next-generation IDE, in favour of improved KMP ...",
+    "host_name": "www.devclass.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://radyalabs.com/en/blog/jetbrains-fleet-new-integrated-development-environment-ide-will-it-replace-visual-studio-code-and-intellij-idea",
+    "name": "JetBrains Fleet, New Integrated Development Environment (IDE). Will it Replace Visual Studio Code and IntelliJ IDEA?",
+    "snippet": "Nov 25, 2022 — Fleet provides a polyglot experience, offering intelligent support for multiple languages ​​and technologies, with support for more planning ...",
+    "host_name": "radyalabs.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.jetbrains.com/fleet",
+    "name": "Fleet",
+    "snippet": "Fleet 1.42 is now available! New features Fleet now shows color previews as a completion popup. Version 1.42 also supports inline previews for single and ...",
+    "host_name": "blog.jetbrains.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@AlexanderObregon/a-comprehensive-introduction-to-jetbrains-fleet-a9e2e96d640e",
+    "name": "JetBrains Fleet: Powerful IDE Intro",
+    "snippet": "Fleet, their latest IDE, brings a lightweight, highly efficient, and inclusive workspace to the table, aimed at amplifying coding productivity.",
+    "host_name": "medium.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

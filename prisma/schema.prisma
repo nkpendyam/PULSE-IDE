@@ -1,0 +1,372 @@
+// PULSE Intelligent Runtime Platform - Database Schema
+// This schema defines the persistent storage for the runtime platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// KERNEL & SYSTEM STATE
+// ============================================
+
+/// Represents the current state of the runtime kernel
+model SystemState {
+  id              String   @id @default(cuid())
+  kernelState     String   @default("init") // init, active, paused, shutdown
+  monotonicClock  Int      @default(0)
+  lastHeartbeat   DateTime @default(now())
+  version         String   @default("1.0.0")
+  uptime          Int      @default(0) // seconds
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// System configuration key-value store
+model Configuration {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  category    String   @default("general")
+  description String?
+  isSecret    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================
+// EVENTS
+// ============================================
+
+/// Event log with full execution context
+model Event {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  eventType       String   // event type identifier
+  sourceId        String   // UUID of the source entity
+  sourceType      String   // kernel, module, agent, user
+  priority        Int      @default(0) // higher = more urgent
+  payload         String   // JSON encoded payload
+  executionCtx    String   // JSON encoded execution context
+  status          String   @default("pending") // pending, processed, failed
+  processedAt     DateTime?
+  result          String?  // JSON encoded result
+  retryCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([eventType])
+  @@index([sourceId])
+  @@index([status])
+  @@index([timestamp])
+}
+
+// ============================================
+// TASKS
+// ============================================
+
+/// Task queue for scheduled and executing tasks
+model Task {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  type            String   // computation, io, agent, model
+  priority        Int      @default(5)
+  status          String   @default("pending") // pending, running, completed, failed, cancelled
+  payload         String   // JSON encoded task data
+  result          String?  // JSON encoded result
+  error           String?
+  sourceId        String   // ID of the entity that created the task
+  sourceType      String   // kernel, module, agent, user
+  dependencies    String?  // JSON array of task IDs that must complete first
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  timeout         Int      @default(30000) // ms
+  retryCount      Int      @default(0)
+  maxRetries      Int      @default(3)
+  resourceBudget  String?  // JSON encoded resource limits
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([sourceId])
+  @@index([scheduledAt])
+}
+
+// ============================================
+// MODULES
+// ============================================
+
+/// Module registry for runtime extensions
+model Module {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  version         String
+  description     String?
+  entryPoint      String   // path to module entry
+  manifest        String   // JSON encoded manifest
+  permissions     String   // JSON array of required permissions
+  dependencies    String   // JSON array of module dependencies
+  status          String   @default("unloaded") // unloaded, loaded, active, error
+  isEnabled       Boolean  @default(true)
+  loadedAt        DateTime?
+  lastError       String?
+  resourceUsage   String?  // JSON encoded resource usage stats
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([isEnabled])
+}
+
+// ============================================
+// AGENTS
+// ============================================
+
+/// Agent registry for autonomous programs
+model Agent {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String   // reactive, deliberative, hybrid
+  description     String?
+  config          String   // JSON encoded agent configuration
+  status          String   @default("idle") // idle, planning, executing, waiting, error
+  health          String   @default("healthy") // healthy, degraded, unhealthy
+  lastHeartbeat   DateTime?
+  lastError       String?
+  taskCount       Int      @default(0)
+  successCount    Int      @default(0)
+  failureCount    Int      @default(0)
+  currentTask     String?  // current task ID
+  state           String?  // JSON encoded agent state
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([health])
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+/// Model provider registry
+model ModelProvider {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  type            String   // local, api, hybrid
+  provider        String   // zai, openai, anthropic, local
+  config          String   // JSON encoded provider config
+  capabilities    String   // JSON array of capabilities
+  status          String   @default("available") // available, busy, error, offline
+  priority        Int      @default(5)
+  latency         Int      @default(0) // average response time ms
+  costPerToken    Float?
+  isEnabled       Boolean  @default(true)
+  lastUsed        DateTime?
+  requestCount    Int      @default(0)
+  errorCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([isEnabled])
+}
+
+/// Model request history for routing decisions
+model ModelRequest {
+  id              String   @id @default(cuid())
+  providerId      String
+  modelType       String   // chat, completion, embedding, image
+  prompt          String   // truncated prompt for logging
+  response        String?  // truncated response
+  tokensUsed      Int      @default(0)
+  latency         Int      @default(0)
+  status          String   @default("success") // success, error, timeout
+  errorMessage    String?
+  complexity      Float?   // estimated complexity score
+  routedBy        String?  // router decision reason
+  createdAt       DateTime @default(now())
+
+  @@index([providerId])
+  @@index([createdAt])
+}
+
+// ============================================
+// RESOURCES & METRICS
+// ============================================
+
+/// System metrics snapshot
+model Metric {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  metricType      String   // cpu, memory, latency, queue_length, etc.
+  value           Float
+  unit            String   // percent, mb, ms, count
+  sourceId        String?  // entity that generated the metric
+  sourceType      String?  // kernel, module, agent
+  tags            String?  // JSON encoded additional tags
+  createdAt       DateTime @default(now())
+
+  @@index([metricType])
+  @@index([timestamp])
+  @@index([sourceId])
+}
+
+/// Resource budget allocation
+model ResourceBudget {
+  id              String   @id @default(cuid())
+  entityType      String   // module, agent, task
+  entityId        String
+  cpuLimit        Float    @default(100) // percentage
+  memoryLimit     Int      @default(512) // MB
+  timeLimit       Int      @default(30000) // ms
+  priority        Int      @default(5)
+  isEnabled       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([entityType, entityId])
+}
+
+// ============================================
+// LOGGING
+// ============================================
+
+/// Structured log entries
+model Log {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  level           String   // debug, info, warn, error, critical
+  message         String
+  sourceId        String?  // entity that generated the log
+  sourceType      String?  // kernel, module, agent
+  category        String?  // system, event, task, security
+  metadata        String?  // JSON encoded additional data
+  duration        Int?     // operation duration in ms
+  outcome         String?  // success, failure, partial
+  createdAt       DateTime @default(now())
+
+  @@index([level])
+  @@index([sourceId])
+  @@index([timestamp])
+}
+
+// ============================================
+// MEMORY & KNOWLEDGE
+// ============================================
+
+/// Long-term memory/knowledge storage
+model MemoryRecord {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  value           String   // JSON encoded value
+  type            String   // fact, rule, procedure, context
+  source          String?  // where this memory came from
+  importance      Float    @default(0.5) // 0-1 importance score
+  accessCount     Int      @default(0)
+  lastAccessed    DateTime?
+  expiresAt       DateTime?
+  tags            String?  // JSON array of tags
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([importance])
+}
+
+// ============================================
+// SECURITY
+// ============================================
+
+/// Permission/capability definitions
+model Permission {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  category        String   // system, storage, network, model
+  riskLevel       String   @default("low") // low, medium, high, critical
+  isEnabled       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@index([riskLevel])
+}
+
+/// Security policy rules
+model Policy {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  entityType      String   // module, agent, user
+  entityId        String?  // null for global policies
+  permissions     String   // JSON array of allowed permissions
+  constraints     String?  // JSON encoded constraints
+  priority        Int      @default(5)
+  isEnabled       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([entityType])
+  @@index([isEnabled])
+}
+
+/// Audit trail for security events
+model AuditLog {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  action          String   // grant, revoke, deny, access
+  entityType      String   // module, agent, user
+  entityId        String
+  permission      String?
+  resource        String?  // what was accessed
+  outcome         String   // allowed, denied, error
+  reason          String?
+  metadata        String?  // JSON encoded additional data
+  createdAt       DateTime @default(now())
+
+  @@index([entityType])
+  @@index([action])
+  @@index([timestamp])
+}
+
+// ============================================
+// RECOVERY
+// ============================================
+
+/// Failure records for recovery system
+model FailureRecord {
+  id              String   @id @default(cuid())
+  timestamp       DateTime @default(now())
+  entityType      String   // module, agent, task
+  entityId        String
+  failureType     String   // crash, timeout, resource_exhaustion, error
+  severity        String   // low, medium, high, critical
+  message         String?
+  stackTrace      String?
+  recoveryAction  String?  // restart, reload, skip, escalate
+  recoveredAt     DateTime?
+  recoveryStatus  String   @default("pending") // pending, recovered, failed
+  createdAt       DateTime @default(now())
+
+  @@index([entityType])
+  @@index([failureType])
+  @@index([timestamp])
+}
+
+/// Checkpoint for state recovery
+model Checkpoint {
+  id              String   @id @default(cuid())
+  entityType      String   // kernel, module, agent
+  entityId        String
+  state           String   // JSON encoded state
+  version         Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  @@unique([entityType, entityId])
+}

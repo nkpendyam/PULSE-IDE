@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.reddit.com/r/nextjs/comments/1lcwpi3/i_want_to_create_a_startup_around_telegram_api_is",
+    "name": "I want to create a startup around Telegram API. Is it good to use Nextjs for quick mvp and launch?",
+    "snippet": "Hello everyone,\n\nI want to create a saas startup using telegram APIs. I would monetize the telegram channel management through my saas. In this, i would ...",
+    "host_name": "www.reddit.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://bhairabeniwal.medium.com/write-a-simple-telegram-bot-in-next-js-2ed3814abc62",
+    "name": "Write a simple Telegram Bot in Next.js | by Bhaira Beniwal",
+    "snippet": "To create a bot, you will need to register for a Telegram Bot API token and use the API to build and deploy your bot. Telegram bots can be ...",
+    "host_name": "bhairabeniwal.medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.launchfa.st/blog/telegram-nextjs-app-router",
+    "name": "Create a Telegram Bot in Next.js App Router: A Step-by-Step Guide",
+    "snippet": "In this guide, you will learn how to use Grammy SDK to create a telegram bot in a Next.js application. You will go through the process of setting up a new Next.\nTo configure Telegram to invoke the /api/bot route to respond to user interactions with your bot, run the following command after updating it with your Telegram Bot Token and Vercel Deployment URL. In this guide, you learned how to integrate Grammy SDK to create your own Telegram Bot in Next.js.",
+    "host_name": "www.launchfa.st",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/diana_agliamutdinova_741a/your-first-telegram-mini-app-fast-deployment-with-nextjs-vercel-and-telegram-sdk-4063",
+    "name": "Fast Deployment with Next.js, Vercel and Telegram SDK",
+    "snippet": "11 Aug 2025 — In this guide, I'll show you how to build a Telegram Mini App for your bot: ⚙️ Create a Next.js project (BFF — backend for frontend) ...",
+    "host_name": "dev.to",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/mauriciobraz/next.js-telegram-sales",
+    "name": "mauriciobraz/next.js-telegram-sales: Telegram WebApp e-commerce using Next.js, Tailwind CSS, Recoil and Framer Motion.",
+    "snippet": "This is a template for quickly create Telegram Web Apps using Next.js and Tailwind CSS. Why Next.js? Next.js is easy and powerful, it also allows creating API ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.devgenius.io/write-a-simple-telegram-bot-in-next-js-b49379e77163",
+    "name": "Write a simple Telegram Bot in Next.js | by popEating - Dev Genius",
+    "snippet": "3 Sept 2022 — In this tutorial we will code a basic, but fully functional Telegram Bot that replies to users' interaction. We will start by creating the Bot ...\nIn this tutorial we will code a basic, but fully functional Telegram Bot that replies to users' interaction. We will start by creating the Bot itself, then we will implement the Next.js API route and we will connect it to the Telegram API, so that it will listen to user messages and react to them.",
+    "host_name": "blog.devgenius.io",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/77225271/how-to-solve-a-problem-with-telegram-bot-api-in-nextjs",
+    "name": "How to solve a problem with telegram bot api in nextjs",
+    "snippet": "same here, next dev works fine with webhookCallback(bot, 'std/http') , but fails by 10sec timeout in prod when next is running as a build ...",
+    "host_name": "stackoverflow.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://core.telegram.org/bots/api",
+    "name": "Telegram Bot API",
+    "snippet": "The Bot API is an HTTP-based interface created for developers keen on building bots for Telegram. To learn how to create and set up a bot, please consult our ...",
+    "host_name": "core.telegram.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/bitofuniverse/telegram-web-app-with-react-and-nextjs-440i",
+    "name": "Telegram Web App with React and Next.js",
+    "snippet": "6 Nov 2022 — Telegram Web App API provides user information, theme scheme, haptic feedback (only on mobile/laptop devices), access to video and audio streams.",
+    "host_name": "dev.to",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/high5dev/how-to-send-messages-via-telegram-in-a-nextjs-application-1o93",
+    "name": "How to Send Messages via Telegram in a Next.js Application",
+    "snippet": "In this tutorial, we’ll show how to send messages directly to Telegram from a Next.js app using the Telegram Bot API. What is the Telegram Bot API? The Telegram Bot API allows developers to control bots and send messages via HTTP requests.",
+    "host_name": "dev.to",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

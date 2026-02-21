@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://windsurf.com",
+    "name": "Windsurf - The best AI for Coding",
+    "snippet": "A powerful, seamless, and collaborative flow. It is the most powerful way to code with AI. Cascade, an agent that codes, fixes and thinks 10 steps ahead.\nIt feels incredible to open a project with Windsurf for the first time, and it runs pytest, pylint, and radon in parallel, identifying all immediate issues within one second.",
+    "host_name": "windsurf.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://windsurf.com/editor",
+    "name": "Windsurf Editor",
+    "snippet": "Tomorrow's editor, today. Windsurf Editor is the first AI agent-powered IDE that keeps developers in the flow. Available today on Mac, Windows, and Linux.",
+    "host_name": "windsurf.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.windsurf.com",
+    "name": "Windsurf Docs: Welcome to Windsurf",
+    "snippet": "Download and install Windsurf IDE for Mac, Windows, or Linux. Import VS Code or Cursor settings, configure themes, and start coding with AI-powered assistance.",
+    "host_name": "docs.windsurf.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/Codeium/comments/1gqr21i/introducing_windsurf_the_first_agentic_ide_and",
+    "name": "Introducing Windsurf - The first agentic IDE, and then some - Reddit",
+    "snippet": "The Windsurf Editor is the first truly agentic IDE, with a collaborative agent called Cascade front-and-center that has deep codebase understanding. Codeium releases Windsurf, IDE (bolt killer?) : r/boltnewbuilders Rules for the AI in Windsurf (like the .cursorrules file) - Reddit More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.windsurf.com/plugins/getting-started",
+    "name": "Welcome to Windsurf Plugins",
+    "snippet": "Windsurf's AI features — Autocomplete, Chat, Command, and more — are now available.At any point, you can check your status by clicking the status bar widget at ...",
+    "host_name": "docs.windsurf.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3D8TcWGk1DJVs",
+    "name": "Windsurf Tutorial for Beginners (AI Code Editor) - Better than Cursor??",
+    "snippet": "... codeium. Windsurf Tutorial for Beginners (AI Code Editor) - Better than Cursor?? 219K views · 1 year ago. #aicodeeditor #codeium ...more. Tech ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.codecademy.com/article/how-to-build-an-app-with-windsurf-ai",
+    "name": "How To Build an App With Windsurf AI - Codecademy",
+    "snippet": "2. Turbo Mode · 3. Dead ...",
+    "host_name": "www.codecademy.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.analyticsvidhya.com/blog/2024/11/windsurf-editor",
+    "name": "Windsurf Editor: Revolutionizing Coding with AI-Powered Intelligence",
+    "snippet": "Explore Windsurf Editor features, transformation of the development process, and hands-on optimization for a productive coding experience.",
+    "host_name": "www.analyticsvidhya.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

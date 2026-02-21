@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://www.letta.com",
+    "name": "Letta - Platform for Stateful AI Agents",
+    "snippet": "Use the Letta API to build agents that can actually remember and learn about your users over time. Open source, production ready, and fully model-agnostic.\nOpen source, production ready, and fully model-agnostic. Letta Code is a memory-first coding harness, built on top of the Letta API. Instead of working in independent sessions, you work with a persisted agent that learns over time and is portable across models.",
+    "host_name": "www.letta.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/letta-ai/letta",
+    "name": "Letta: Platform for building stateful agents - open AI",
+    "snippet": "Letta is an open source project built by over a hundred contributors from around the world. There are many ways to get involved in the Letta OSS project!\nLetta Code supports skills and subagents, and bundles pre-built skills/subagents for advanced memory and continual learning. Letta is fully model-agnostic, though we recommend Opus 4.5 and GPT-5.2 for best performance (see our model leaderboard for our rankings).",
+    "host_name": "github.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.letta.com/concepts/memgpt",
+    "name": "MemGPT - Self-editing memory",
+    "snippet": "Because Letta was created out of the original MemGPT open source project , it's extremely easy to make MemGPT agents inside of Letta (the default Letta agent ...",
+    "host_name": "docs.letta.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@andysingal/letta-an-open-source-framework-for-building-stateful-llm-applications-8294ae9c5e92",
+    "name": "Letta: An Open-Source Framework for Building Stateful",
+    "snippet": "Letta is an open-source framework designed for the development of stateful large language model (LLM) applications.",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1glzob6/tutorial_on_building_agent_with_memory_using_letta",
+    "name": "Tutorial on building agent with memory using Letta",
+    "snippet": "The course covers both the memory management research (e.g. MemGPT) behind Letta , as well as an introduction to using the OSS agents framework.",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.deeplearning.ai/short-courses/llms-as-operating-systems-agent-memory",
+    "name": "LLMs as Operating Systems: Agent Memory",
+    "snippet": "How to create and interact with a MemGPT agent using the Letta framework , and how to build and edit its core and archival memory. How core memory is designed ...",
+    "host_name": "www.deeplearning.ai",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.letta.com/blog/ai-agents-stack",
+    "name": "The AI agents stack",
+    "snippet": "14 Nov 2024 — The MemGPT open source project is now part of Letta . Product. Release ... Letta Code is the #1 model-agnostic open source agent on the leading AI ...",
+    "host_name": "www.letta.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.felicis.com/insight/letta",
+    "name": "Letta: Bringing Memory to AI agents",
+    "snippet": "23 Sept 2024 — Since its release, the MemGPT open source project has achieved 13K+ Github stars. Download it here. Letta co-founders Charles Packer and Sarah ...",
+    "host_name": "www.felicis.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://aiagentstore.ai/ai-agent/letta-ai",
+    "name": "Letta AI - AI Agent",
+    "snippet": "Letta AI is an open-source platform designed to enable developers to create, deploy, and manage AI agents endowed with persistent memory and advanced reasoning ...",
+    "host_name": "aiagentstore.ai",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pypi.org/project/letta",
+    "name": "letta · PyPI",
+    "snippet": "Letta is the platform for building stateful agents: AI with advanced memory that can learn and self-improve over time. Requires Node.js 18+. When running the CLI tool, your agent help you code and do any task you can do on your computer.",
+    "host_name": "pypi.org",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

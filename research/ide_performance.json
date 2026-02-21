@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://gabletsolutions.medium.com/optimizing-code-for-performance-memory-management-profiling-and-refactoring-1734157b5800",
+    "name": "Optimizing Code for Performance: Memory Management",
+    "snippet": "Avoid Memory Leaks · Use Weak References ; 2. Profiling for Performance Bottlenecks · Use Profiling Tools · Monitor ... Read more",
+    "host_name": "gabletsolutions.medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://axissoftwaredynamics.com/optimizing-code-performance-tips-and-techniques",
+    "name": "Optimizing Code Performance: Tips and Techniques",
+    "snippet": "Mar 12, 2024 — Minimize Memory Usage . Efficient memory management is crucial for optimal code performance. Avoid unnecessary memory allocations and ... Read more",
+    "host_name": "axissoftwaredynamics.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ateamsoftsolutions.com/5-best-practices-for-mobile-app-performance-optimization-in-2024",
+    "name": "5 Best Practices for Mobile App Performance Optimization",
+    "snippet": "Jan 12, 2023 — Elevate your Mobile App Performance with our expert optimization services. Improve load times, increase engagement, and drive conversions.",
+    "host_name": "www.ateamsoftsolutions.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/topeogunleye/optimize-react-performance-in-2024-best-practices-4f99",
+    "name": "Optimize React Performance in 2024 — Best Practices",
+    "snippet": "Sep 2, 2024 — In this article, we're going to learn about eight essential tips for optimizing your React applications . These strategies will help you keep your projects ... Read more",
+    "host_name": "dev.to",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/2555402/c-performance-memory-optimization-guidelines",
+    "name": "C++ Performance/memory optimization guidelines",
+    "snippet": "2) In general, it is not a good idea to frequently (several ... Read more",
+    "host_name": "stackoverflow.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://proandroiddev.com/how-to-reduce-android-studio-memory-usage-339bc6e78850",
+    "name": "How to Reduce Android Studio Memory Usage",
+    "snippet": "Apr 22, 2025 — Some developers report that upping the IDE heap to 4 GB or even 8 GB dramatically improves responsiveness on large projects (Simple Steps for ... Read more",
+    "host_name": "proandroiddev.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.linkedin.com/pulse/optimizing-java-performance-best-practices-pedro-warick-lwkhc",
+    "name": "Optimizing Java Performance: Best Practices for High-",
+    "snippet": "1. Efficient Memory Management · ✓ 1.1 Use the Right Garbage Collector (GC ) · ✓ 1.2 Minimize Object Creation and Use Primitives · 2. Read more",
+    "host_name": "www.linkedin.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.stackademic.com/javascript-performance-optimization-in-2024-still-relevant-a4961a3e316e",
+    "name": "JavaScript Performance Optimization in 2024: Still Relevant?",
+    "snippet": "2. Lazy Loading JavaScript · 3. Optimize the Critical Rendering Path · 4. Avoid Memory Leaks · 5. Leverage Web ... Read more",
+    "host_name": "blog.stackademic.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://debugg.ai/resources/best-code-profiling-tools-for-developers-2024",
+    "name": "Best Code Profiling Tools for Developers in 2024",
+    "snippet": "Jul 4, 2025 — This article reviews powerful solutions like YourKit, VisualVM, Py-Spy, Perf, dotTrace, and modern profiling integrations in IDEs and cloud ... Read more",
+    "host_name": "debugg.ai",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-linux/2024-1/managing-performance-and-memory.html",
+    "name": "Managing Performance and Memory",
+    "snippet": "Resources · Disclosure Documentation · Feature Documentation · More ... Improving Performance with Threading Improving Performance for Small Size ... Read more",
+    "host_name": "www.intel.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
