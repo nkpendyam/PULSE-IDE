@@ -93,14 +93,14 @@ pub async fn fs_list_directory(path: String) -> Result<Vec<FileInfo>> {
             size: metadata.as_ref().map(|m| m.len()).unwrap_or(0),
             modified: metadata.as_ref().and_then(|m| {
                 m.modified().ok().map(|t| {
-                    chrono::DateTime::from(t)
+                    chrono::DateTime::<chrono::Local>::from(t)
                         .format("%Y-%m-%d %H:%M:%S")
                         .to_string()
                 })
             }),
             created: metadata.as_ref().and_then(|m| {
                 m.created().ok().map(|t| {
-                    chrono::DateTime::from(t)
+                    chrono::DateTime::<chrono::Local>::from(t)
                         .format("%Y-%m-%d %H:%M:%S")
                         .to_string()
                 })
@@ -242,12 +242,12 @@ pub async fn fs_get_file_info(path: String) -> Result<FileInfo> {
         is_file: path.is_file(),
         size: metadata.len(),
         modified: metadata.modified().ok().map(|t| {
-            chrono::DateTime::from(t)
+            chrono::DateTime::<chrono::Local>::from(t)
                 .format("%Y-%m-%d %H:%M:%S")
                 .to_string()
         }),
         created: metadata.created().ok().map(|t| {
-            chrono::DateTime::from(t)
+            chrono::DateTime::<chrono::Local>::from(t)
                 .format("%Y-%m-%d %H:%M:%S")
                 .to_string()
         }),
@@ -282,7 +282,7 @@ pub async fn fs_search_files(
             .build()
     } else {
         WalkBuilder::new(&root)
-            .max_depth(1)
+            .max_depth(Some(1))
             .hidden(!include_hidden)
             .build()
     };

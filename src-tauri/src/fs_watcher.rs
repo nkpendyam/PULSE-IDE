@@ -1,6 +1,6 @@
 //! File system watcher for Kyro IDE
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashMap;
 use std::path::Path;
@@ -34,7 +34,7 @@ pub async fn watch_directory<R: Runtime>(
     let app_handle = app.clone();
     
     let mut watcher = RecommendedWatcher::new(
-        move |res: Result<Event, notify::Error>| {
+        move |res: std::result::Result<Event, notify::Error>| {
             match res {
                 Ok(event) => {
                     let kind = match event.kind {
@@ -63,7 +63,7 @@ pub async fn watch_directory<R: Runtime>(
             }
         },
         notify::Config::default(),
-    ).map_err(|e| crate::error::Error::Unexpected(e.to_string()))?;
+    ).map_err(|e| Error::Unexpected(e.to_string()))?;
     
     let mode = if recursive {
         RecursiveMode::Recursive
@@ -72,7 +72,7 @@ pub async fn watch_directory<R: Runtime>(
     };
     
     watcher.watch(Path::new(path), mode)
-        .map_err(|e| crate::error::Error::Unexpected(e.to_string()))?;
+        .map_err(|e| Error::Unexpected(e.to_string()))?;
     
     watchers.insert(path.to_string(), watcher);
     
@@ -84,7 +84,7 @@ pub async fn unwatch_directory(path: &str) -> Result<()> {
     
     if let Some(mut watcher) = watchers.remove(path) {
         watcher.unwatch(Path::new(path))
-            .map_err(|e| crate::error::Error::Unexpected(e.to_string()))?;
+            .map_err(|e| Error::Unexpected(e.to_string()))?;
     }
     
     Ok(())
