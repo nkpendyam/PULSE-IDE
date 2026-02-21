@@ -25,8 +25,7 @@
         "center": true,
         "visible": true,
         "focus": true,
-        "tabbingIdentifier": "kyro-ide",
-        "theme": "dark"
+        "tabbingIdentifier": "kyro-ide"
       }
     ],
     "security": {
@@ -54,13 +53,9 @@
     "shortDescription": "AI-Powered Privacy-First IDE",
     "targets": "all",
     "windows": {
-      "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": "",
       "nsis": {
         "installerIcon": "icons/icon.ico",
-        "headerImage": "icons/header.bmp",
-        "sidebarImage": "icons/sidebar.bmp",
         "license": "../LICENSE",
         "installMode": "currentUser",
         "languages": ["English", "SimpChinese", "TradChinese", "Japanese", "Korean", "German", "French", "Spanish"],
@@ -71,14 +66,8 @@
       }
     },
     "macOS": {
-      "entitlements": null,
-      "exceptionDomain": "",
-      "frameworks": [],
-      "providerShortName": null,
-      "signingIdentity": null,
       "minimumSystemVersion": "10.13",
       "dmg": {
-        "background": "icons/dmg-background.png",
         "appPosition": {
           "x": 180,
           "y": 170
@@ -113,9 +102,7 @@
         "depends": ["webkit2gtk4.1", "gtk3", "openssl-libs", "libayatana-appindicator-gtk3"]
       }
     },
-    "externalBin": [],
-    "iOS": null,
-    "android": null
+    "externalBin": []
   },
   "plugins": {
     "shell": {
