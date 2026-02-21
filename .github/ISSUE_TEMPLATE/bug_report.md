@@ -1,53 +1,31 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: '[BUG] '
-labels: bug, needs-triage
+name: Bug Report
+about: Report a bug to help us improve Kyro IDE
+title: '[Bug] '
+labels: bug
 assignees: ''
 ---
 
-## 🐛 Bug Description
-
+## Describe the bug
 A clear and concise description of what the bug is.
 
-## 📋 Steps to Reproduce
-
+## To Reproduce
+Steps to reproduce the behavior:
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
 4. See error
 
-## 🎯 Expected Behavior
-
+## Expected behavior
 A clear and concise description of what you expected to happen.
 
-## 📸 Actual Behavior
-
-A clear and concise description of what actually happened.
-
-## 📷 Screenshots
-
+## Screenshots
 If applicable, add screenshots to help explain your problem.
 
-## 💻 Environment
+## Environment
+- OS: [e.g. Windows 11, macOS 14, Ubuntu 22.04]
+- Kyro IDE Version: [e.g. 1.0.0]
+- Browser (if web): [e.g. Chrome 120]
 
-- **OS**: [e.g., Windows 11, Ubuntu 22.04, macOS 14]
-- **Kyro IDE Version**: [e.g., 1.0.0]
-- **AI Model**: [e.g., Llama 3.2, GPT-4o]
-- **Installation Method**: [e.g., Installer, AppImage, Homebrew]
-
-## 📝 Logs
-
-```
-Paste relevant logs here (enable debug mode with RUST_LOG=debug if needed)
-```
-
-## 🔧 Additional Context
-
+## Additional context
 Add any other context about the problem here.
-
-## ✅ Checklist
-
-- [ ] I have searched the existing issues
-- [ ] I have tried the latest version
-- [ ] I have provided all required information
