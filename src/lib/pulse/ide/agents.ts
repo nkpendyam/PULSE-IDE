@@ -439,8 +439,8 @@ ${s.code}
     onStream?: (chunk: string) => void
   ): Promise<{ content: string; tokens?: number; actions?: AgentAction[] }> {
     try {
-      // Import AI service dynamically to avoid circular dependencies
-      const { aiService } = await import('../ai/ai-service');
+      // Import client-side AI service dynamically
+      const { aiClient } = await import('../../ai-client');
       
       // Build messages with system prompt
       const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
@@ -456,7 +456,7 @@ ${s.code}
                       model.includes('haiku') ? 'claude-3-haiku' :
                       'claude-3-sonnet';
 
-      const response = await aiService.chat(messages, modelId, {
+      const response = await aiClient.chat(messages, modelId, {
         maxTokens: 4096,
         temperature: 0.7
       });

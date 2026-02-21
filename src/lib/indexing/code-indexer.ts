@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { aiService } from '@/lib/pulse/ai/ai-service';
+import { aiClient } from '@/lib/ai-client';
 import { VectorStore, getVectorStore, VectorDocument, VectorMetadata } from './vector-store';
 import { SymbolIndex, getSymbolIndex, SymbolInfo, SymbolExtractor, getSymbolExtractor } from './symbol-index';
 
@@ -501,7 +501,7 @@ export class CodeIndexer extends EventEmitter {
   private async generateEmbedding(chunk: CodeChunk): Promise<number[] | null> {
     try {
       // Use AI service to generate semantic representation
-      const response = await aiService.chat([
+      const response = await aiClient.chat([
         {
           role: 'system',
           content: 'You are a code semantic analyzer. Extract key semantic concepts for code search embeddings.',

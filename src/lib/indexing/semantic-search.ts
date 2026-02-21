@@ -4,7 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { aiService } from '@/lib/pulse/ai/ai-service';
+import { aiClient } from '@/lib/ai-client';
 import { VectorStore, getVectorStore, VectorSearchResult, VectorDocument } from './vector-store';
 import { SymbolIndex, getSymbolIndex, SymbolInfo, SymbolKind } from './symbol-index';
 
@@ -434,7 +434,7 @@ export class SemanticSearchEngine extends EventEmitter {
   private async generatePseudoEmbedding(text: string): Promise<number[]> {
     // Use AI to get a semantic representation
     try {
-      const response = await aiService.chat([
+      const response = await aiClient.chat([
         {
           role: 'system',
           content: 'You are a code semantic analyzer. Extract key concepts from code or queries.',
@@ -750,7 +750,7 @@ export class SemanticSearchEngine extends EventEmitter {
 
     for (const result of results.slice(0, 3)) {
       try {
-        const response = await aiService.chat([
+        const response = await aiClient.chat([
           {
             role: 'system',
             content: 'Explain why this code result is relevant to the search query in one sentence.',

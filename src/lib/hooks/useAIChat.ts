@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { ChatMessage } from '@/components/chat/AIChatPanel';
-import { aiService, AIModel } from '@/lib/pulse/ai/ai-service';
+import { aiClient, AIModel } from '@/lib/ai-client';
 
 export interface UseAIChatOptions {
   initialMessages?: ChatMessage[];
@@ -52,7 +52,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   // Load available models
   const loadModels = useCallback(async () => {
     try {
-      const availableModels = await aiService.getModels();
+      const availableModels = await aiClient.getModels();
       setModels(availableModels);
     } catch (err) {
       console.error('Failed to load models:', err);
@@ -105,7 +105,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       const codeContext = context ? [{ ...context }] : undefined;
 
       // Call AI service
-      const response = await aiService.chatWithContext(
+      const response = await aiClient.chatWithContext(
         content,
         codeContext,
         conversationHistory.slice(0, -1) // Exclude current message as it's sent separately
