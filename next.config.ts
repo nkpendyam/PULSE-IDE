@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Use standalone for server-side rendering (works with Tauri bundled server)
-  output: "standalone",
+  // Static export for Tauri desktop app
+  output: "export",
+  // Output to 'out' folder for Tauri
+  distDir: "out",
   images: {
     unoptimized: true,
   },
@@ -10,12 +12,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  // Disable experimental features that might conflict
-  experimental: {
-    serverActions: {
-      allowedOrigins: ["localhost:3000"],
-    },
-  },
+  trailingSlash: true,
 };
 
 export default nextConfig;

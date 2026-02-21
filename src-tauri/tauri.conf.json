@@ -7,7 +7,7 @@
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:3000",
-    "frontendDist": "../.next"
+    "frontendDist": "../out"
   },
   "app": {
     "withGlobalTauri": true,
@@ -24,12 +24,11 @@
         "transparent": false,
         "center": true,
         "visible": true,
-        "focus": true,
-        "url": "http://localhost:3000"
+        "focus": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' https: data: blob:; connect-src 'self' https: ws: http://localhost:* http://127.0.0.1:*; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:"
     }
   },
   "bundle": {
@@ -43,7 +42,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "longDescription": "Kyro IDE is a free, open-source, privacy-first AI-powered development environment that delivers premium IDE features without the premium price tag.",
+    "longDescription": "Kyro IDE is a free, open-source, privacy-first AI-powered development environment.",
     "shortDescription": "AI-Powered Privacy-First IDE",
     "targets": "all",
     "windows": {
@@ -65,33 +64,19 @@
       "appimage": {
         "bundleMediaFramework": true
       }
-    },
-    "externalBin": []
+    }
   },
   "plugins": {
     "shell": {
       "open": true,
       "scope": [
-        {
-          "name": "git",
-          "cmd": "git",
-          "args": true
-        },
-        {
-          "name": "node",
-          "cmd": "node",
-          "args": true
-        },
-        {
-          "name": "bun",
-          "cmd": "bun",
-          "args": true
-        },
-        {
-          "name": "python",
-          "cmd": "python3",
-          "args": true
-        }
+        { "name": "git", "cmd": "git", "args": true },
+        { "name": "node", "cmd": "node", "args": true },
+        { "name": "bun", "cmd": "bun", "args": true },
+        { "name": "python", "cmd": "python3", "args": true },
+        { "name": "cargo", "cmd": "cargo", "args": true },
+        { "name": "go", "cmd": "go", "args": true },
+        { "name": "docker", "cmd": "docker", "args": true }
       ]
     },
     "updater": {
