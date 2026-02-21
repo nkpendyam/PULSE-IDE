@@ -107,7 +107,6 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit, onTitleChange }:
     fitAddon.fit();
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
-    setIsReady(true);
 
     // Initialize PTY
     ptyRef.current = new BrowserPseudoPTY(cwd);
@@ -195,8 +194,11 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit, onTitleChange }:
     };
     window.addEventListener('resize', handleResize);
 
-    // Initial fit after a short delay
-    setTimeout(() => fitAddon.fit(), 100);
+    // Mark ready after initialization
+    setTimeout(() => {
+      fitAddon.fit();
+      setIsReady(true);
+    }, 0);
 
     return () => {
       window.removeEventListener('resize', handleResize);

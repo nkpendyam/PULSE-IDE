@@ -514,13 +514,14 @@ export class MonacoInlineCompletionProvider {
    * Create Monaco InlineCompletionsProvider
    */
   createProvider(monaco: typeof Monaco): Monaco.languages.InlineCompletionsProvider {
-    const self = this;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const provider = this;
     
     return {
       displayName: 'Kyro AI Inline Completions',
       
       provideInlineCompletions: async (model, position, context, token) => {
-        if (!self.config.enabled) {
+        if (!provider.config.enabled) {
           return { items: [] };
         }
         
@@ -530,62 +531,62 @@ export class MonacoInlineCompletionProvider {
         }
         
         // Analyze context
-        const completionContext = self.contextAnalyzer.analyze(model, position);
+        const completionContext = provider.contextAnalyzer.analyze(model, position);
         
         // Skip if in comment and respecting comments
-        if (self.config.respectComments && completionContext.inComment) {
+        if (provider.config.respectComments && completionContext.inComment) {
           return { items: [] };
         }
         
         // Check minimum prefix length
-        if (completionContext.textBeforeCursor.trim().length < self.config.minPrefixLength) {
+        if (completionContext.textBeforeCursor.trim().length < provider.config.minPrefixLength) {
           return { items: [] };
         }
         
         // Check trigger conditions
-        const shouldTrigger = self.shouldTrigger(completionContext, context, monaco);
+        const shouldTrigger = provider.shouldTrigger(completionContext, context, monaco);
         if (!shouldTrigger && context.triggerKind !== monaco.languages.InlineCompletionTriggerKind.Explicit) {
           return { items: [] };
         }
         
         // Check cache
-        if (self.config.enableCache) {
-          const cached = self.cache.get(model, position);
+        if (provider.config.enableCache) {
+          const cached = provider.cache.get(model, position);
           if (cached && cached.length > 0) {
-            return self.createInlineCompletionResult(cached);
+            return provider.createInlineCompletionResult(cached);
           }
         }
         
         // Get completions with debounce
         return new Promise((resolve) => {
-          if (self.debounceTimer) {
-            clearTimeout(self.debounceTimer);
+          if (provider.debounceTimer) {
+            clearTimeout(provider.debounceTimer);
           }
           
-          self.debounceTimer = setTimeout(async () => {
+          provider.debounceTimer = setTimeout(async () => {
             if (token.isCancellationRequested) {
               resolve({ items: [] });
               return;
             }
             
-            self.setLoading(true);
+            provider.setLoading(true);
             
             try {
-              const suggestions = await self.getCompletions(model, position, completionContext);
+              const suggestions = await provider.getCompletions(model, position, completionContext);
               
-              if (suggestions.length > 0 && self.config.enableCache) {
-                self.cache.set(model, position, suggestions);
+              if (suggestions.length > 0 && provider.config.enableCache) {
+                provider.cache.set(model, position, suggestions);
               }
               
-              self.lastSuggestion = suggestions[0] || null;
-              resolve(self.createInlineCompletionResult(suggestions));
+              provider.lastSuggestion = suggestions[0] || null;
+              resolve(provider.createInlineCompletionResult(suggestions));
             } catch (error) {
               console.error('Inline completion error:', error);
               resolve({ items: [] });
             } finally {
-              self.setLoading(false);
+              provider.setLoading(false);
             }
-          }, self.config.debounceMs);
+          }, provider.config.debounceMs);
         });
       },
       
@@ -594,9 +595,9 @@ export class MonacoInlineCompletionProvider {
       },
       
       handleItemDidShow: (completions, itemIndex) => {
-        const suggestion = self.lastSuggestion;
+        const suggestion = provider.lastSuggestion;
         if (suggestion) {
-          self.eventEmitter.emit('suggestionShown', suggestion);
+          provider.eventEmitter.emit('suggestionShown', suggestion);
         }
       },
     };
