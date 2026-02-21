@@ -4,17 +4,20 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
+import { SearchAddon } from 'xterm-addon-search';
+import { Unicode11Addon } from 'xterm-addon-unicode11';
 import 'xterm/css/xterm.css';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Terminal as TerminalIcon, ChevronDown, SplitSquareHorizontal } from 'lucide-react';
+import { Plus, X, Terminal as TerminalIcon, ChevronDown, SplitSquareHorizontal, Maximize2, Minimize2, Copy, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { BrowserPseudoPTY, detectDefaultShell, getAvailableShells } from '@/lib/terminal/pty-service';
 
 export interface TerminalProfile {
   id: string;
@@ -39,14 +42,17 @@ interface TerminalInstanceProps {
   cwd?: string;
   onClose: (id: string) => void;
   onSplit?: (id: string) => void;
+  onTitleChange?: (title: string) => void;
 }
 
-function TerminalInstance({ id, profile, cwd, onClose, onSplit }: TerminalInstanceProps) {
+function TerminalInstance({ id, profile, cwd, onClose, onSplit, onTitleChange }: TerminalInstanceProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const ptyRef = useRef<BrowserPseudoPTY | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [exitCode, setExitCode] = useState<number | null>(null);
+  const [isRunning, setIsRunning] = useState(true);
 
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
@@ -55,13 +61,14 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit }: TerminalInstan
       cursorBlink: true,
       cursorStyle: 'block',
       fontSize: 13,
-      fontFamily: 'JetBrains Mono, Menlo, Monaco, monospace',
+      fontFamily: 'JetBrains Mono, Menlo, Monaco, "Cascadia Code", monospace',
       theme: {
         background: '#0c0c0c',
         foreground: '#cccccc',
         cursor: '#ffffff',
         cursorAccent: '#000000',
         selectionBackground: 'rgba(255, 255, 255, 0.3)',
+        selectionForeground: '#000000',
         black: '#000000',
         red: '#cd0000',
         green: '#00cd00',
@@ -81,77 +88,104 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit }: TerminalInstan
       },
       allowTransparency: true,
       scrollback: 10000,
+      convertEol: true,
+      windowsMode: false,
     });
 
     const fitAddon = new FitAddon();
     const webLinksAddon = new WebLinksAddon();
+    const searchAddon = new SearchAddon();
+    const unicode11Addon = new Unicode11Addon();
 
     xterm.loadAddon(fitAddon);
     xterm.loadAddon(webLinksAddon);
+    xterm.loadAddon(searchAddon);
+    xterm.loadAddon(unicode11Addon);
     xterm.open(terminalRef.current);
+    xterm.unicode.activeVersion = '11';
 
     fitAddon.fit();
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
     setIsReady(true);
 
+    // Initialize PTY
+    ptyRef.current = new BrowserPseudoPTY(cwd);
+
     // Welcome message
-    xterm.writeln(`\x1b[1;36mKyro IDE Terminal\x1b[0m - ${profile.name}`);
-    xterm.writeln(`Profile: ${profile.shell}`);
-    xterm.writeln(`Working Directory: ${cwd || '~'}`);
+    xterm.writeln('\x1b[1;36m╭───────────────────────────────────────╮\x1b[0m');
+    xterm.writeln('\x1b[1;36m│\x1b[0m       \x1b[1;32mKyro IDE Terminal\x1b[0m            \x1b[1;36m│\x1b[0m');
+    xterm.writeln('\x1b[1;36m│\x1b[0m   \x1b[90mPrivacy-First AI-Powered IDE\x1b[0m     \x1b[1;36m│\x1b[0m');
+    xterm.writeln('\x1b[1;36m╰───────────────────────────────────────╯\x1b[0m');
     xterm.writeln('');
-    xterm.write('$ ');
+    xterm.writeln(`  \x1b[90mShell:\x1b[0m ${profile.name} (${profile.shell})`);
+    xterm.writeln(`  \x1b[90mDirectory:\x1b[0m ${cwd || ptyRef.current.getCwd()}`);
+    xterm.writeln(`  \x1b[90mType 'help' for available commands\x1b[0m`);
+    xterm.writeln('');
+    xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
+
+    let currentLine = '';
 
     // Handle input
-    let currentLine = '';
-    let history: string[] = [];
-    let historyIndex = -1;
+    xterm.onData(async (data) => {
+      if (!ptyRef.current || !isRunning) return;
 
-    xterm.onKey(({ key, domEvent }) => {
-      const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
-
-      if (domEvent.keyCode === 13) { // Enter
+      // Handle special keys
+      if (data === '\r') { // Enter
         xterm.writeln('');
         
         if (currentLine.trim()) {
-          history.push(currentLine);
-          historyIndex = history.length;
+          const output = await ptyRef.current.execute(currentLine);
           
-          // Process command
-          const [cmd, ...args] = currentLine.trim().split(' ');
-          processCommand(xterm, cmd, args, cwd);
+          // Handle clear command
+          if (output.includes('\x1b[2J')) {
+            xterm.clear();
+            xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
+          } else if (output) {
+            xterm.writeln(output);
+            xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
+          } else {
+            xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
+          }
+        } else {
+          xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
         }
         
         currentLine = '';
-        xterm.write('$ ');
-      } else if (domEvent.keyCode === 8) { // Backspace
+      } else if (data === '\x7f') { // Backspace
         if (currentLine.length > 0) {
           currentLine = currentLine.slice(0, -1);
           xterm.write('\b \b');
         }
-      } else if (domEvent.keyCode === 38) { // Up arrow
-        if (historyIndex > 0) {
-          historyIndex--;
-          const historyLine = history[historyIndex];
-          clearLine(xterm, currentLine);
-          currentLine = historyLine;
-          xterm.write(currentLine);
-        }
-      } else if (domEvent.keyCode === 40) { // Down arrow
-        if (historyIndex < history.length - 1) {
-          historyIndex++;
-          const historyLine = history[historyIndex];
-          clearLine(xterm, currentLine);
-          currentLine = historyLine;
-          xterm.write(currentLine);
-        } else {
-          historyIndex = history.length;
-          clearLine(xterm, currentLine);
-          currentLine = '';
-        }
-      } else if (printable) {
-        currentLine += key;
-        xterm.write(key);
+      } else if (data === '\x1b[A') { // Up arrow
+        const historyLine = ptyRef.current.navigateHistory('up', currentLine);
+        clearLine(xterm, currentLine);
+        currentLine = historyLine;
+        xterm.write(currentLine);
+      } else if (data === '\x1b[B') { // Down arrow
+        const historyLine = ptyRef.current.navigateHistory('down', currentLine);
+        clearLine(xterm, currentLine);
+        currentLine = historyLine;
+        xterm.write(currentLine);
+      } else if (data === '\x1b[C') { // Right arrow
+        xterm.write(data);
+      } else if (data === '\x1b[D') { // Left arrow
+        xterm.write(data);
+      } else if (data === '\x03') { // Ctrl+C
+        xterm.writeln('^C');
+        currentLine = '';
+        xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
+      } else if (data === '\x04') { // Ctrl+D
+        xterm.writeln('\x1b[33mGoodbye!\x1b[0m');
+        setExitCode(0);
+        setIsRunning(false);
+      } else if (data === '\x0c') { // Ctrl+L (clear)
+        xterm.clear();
+        xterm.write(`\x1b[1;34m${ptyRef.current.getCwd()}\x1b[0m $ `);
+        if (currentLine) xterm.write(currentLine);
+      } else if (data.charCodeAt(0) >= 32) { // Printable characters
+        currentLine += data;
+        xterm.write(data);
       }
     });
 
@@ -161,12 +195,16 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit }: TerminalInstan
     };
     window.addEventListener('resize', handleResize);
 
+    // Initial fit after a short delay
+    setTimeout(() => fitAddon.fit(), 100);
+
     return () => {
       window.removeEventListener('resize', handleResize);
       xterm.dispose();
       xtermRef.current = null;
+      ptyRef.current = null;
     };
-  }, [profile, cwd]);
+  }, [profile, cwd, isRunning]);
 
   // Resize on container size change
   useEffect(() => {
@@ -174,6 +212,18 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit }: TerminalInstan
       const timer = setTimeout(() => fitAddonRef.current?.fit(), 100);
       return () => clearTimeout(timer);
     }
+  }, []);
+
+  const handleCopy = useCallback(() => {
+    const selection = xtermRef.current?.getSelection();
+    if (selection) {
+      navigator.clipboard.writeText(selection);
+    }
+  }, []);
+
+  const handleClear = useCallback(() => {
+    xtermRef.current?.clear();
+    xtermRef.current?.write(`\x1b[1;34m${ptyRef.current?.getCwd() || '~'}\x1b[0m $ `);
   }, []);
 
   return (
@@ -189,7 +239,7 @@ function TerminalInstance({ id, profile, cwd, onClose, onSplit }: TerminalInstan
           <span className={exitCode === 0 ? 'text-green-500' : 'text-red-500'}>
             Process exited with code {exitCode}
           </span>
-          <Button size="sm" variant="ghost" className="h-5 text-xs" onClick={() => setExitCode(null)}>
+          <Button size="sm" variant="ghost" className="h-5 text-xs" onClick={() => { setExitCode(null); setIsRunning(true); }}>
             Restart
           </Button>
         </div>
@@ -204,59 +254,23 @@ function clearLine(xterm: XTerm, currentLine: string) {
   }
 }
 
-function processCommand(xterm: XTerm, cmd: string, args: string[], cwd?: string) {
-  switch (cmd) {
-    case 'help':
-      xterm.writeln('Available commands:');
-      xterm.writeln('  help        - Show this help message');
-      xterm.writeln('  clear       - Clear the terminal');
-      xterm.writeln('  ls          - List files (mock)');
-      xterm.writeln('  pwd         - Print working directory');
-      xterm.writeln('  echo        - Print text');
-      xterm.writeln('  date        - Show current date');
-      xterm.writeln('  whoami      - Show current user');
-      break;
-    case 'clear':
-      xterm.clear();
-      return;
-    case 'ls':
-      xterm.writeln('\x1b[34msrc\x1b[0m  \x1b[34mpublic\x1b[0m  package.json  tsconfig.json  README.md');
-      break;
-    case 'pwd':
-      xterm.writeln(cwd || '/home/project');
-      break;
-    case 'echo':
-      xterm.writeln(args.join(' '));
-      break;
-    case 'date':
-      xterm.writeln(new Date().toString());
-      break;
-    case 'whoami':
-      xterm.writeln('developer');
-      break;
-    case 'exit':
-      xterm.writeln('\x1b[33mTerminal session ended. Press Enter to restart.\x1b[0m');
-      break;
-    default:
-      xterm.writeln(`\x1b[31mCommand not found: ${cmd}\x1b[0m`);
-  }
-}
-
 export interface XTerminalProps {
   className?: string;
   cwd?: string;
 }
 
 export default function XTerminal({ className, cwd }: XTerminalProps) {
-  const [terminals, setTerminals] = useState<Array<{ id: string; profile: TerminalProfile }>>([
-    { id: 'terminal-1', profile: defaultProfiles[0] }
+  const [terminals, setTerminals] = useState<Array<{ id: string; profile: TerminalProfile; title: string }>>([
+    { id: 'terminal-1', profile: defaultProfiles[0], title: 'Bash' }
   ]);
   const [activeTerminal, setActiveTerminal] = useState('terminal-1');
   const [isSplit, setIsSplit] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const addTerminal = useCallback((profile?: TerminalProfile) => {
     const id = `terminal-${Date.now()}`;
-    setTerminals(prev => [...prev, { id, profile: profile || defaultProfiles[0] }]);
+    const newProfile = profile || defaultProfiles[0];
+    setTerminals(prev => [...prev, { id, profile: newProfile, title: newProfile.name }]);
     setActiveTerminal(id);
   }, []);
 
@@ -274,7 +288,7 @@ export default function XTerminal({ className, cwd }: XTerminalProps) {
   const activeTerminalData = terminals.find(t => t.id === activeTerminal);
 
   return (
-    <div className={cn('h-full flex flex-col bg-zinc-950', className)}>
+    <div className={cn('h-full flex flex-col bg-zinc-950', isMaximized && 'fixed inset-0 z-50', className)}>
       {/* Terminal Tabs */}
       <div className="flex items-center gap-1 px-2 py-1 bg-zinc-900 border-b border-zinc-800 shrink-0">
         {terminals.map(terminal => (
@@ -289,37 +303,28 @@ export default function XTerminal({ className, cwd }: XTerminalProps) {
             )}
           >
             <TerminalIcon className="h-3 w-3" />
-            <span>{terminal.profile.name}</span>
+            <span>{terminal.title}</span>
             {terminals.length > 1 && (
               <X
                 className="h-3 w-3 ml-1 hover:text-red-400"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeTerminal(terminal.id);
-                }}
+                onClick={(e) => { e.stopPropagation(); closeTerminal(terminal.id); }}
               />
             )}
           </button>
         ))}
         
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-zinc-400 hover:text-white"
-          onClick={() => addTerminal()}
-        >
+        <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-white" onClick={() => addTerminal()}>
           <Plus className="h-3 w-3" />
         </Button>
 
         <div className="flex-1" />
 
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-zinc-400 hover:text-white"
-          onClick={() => setIsSplit(!isSplit)}
-        >
+        <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-white" onClick={() => setIsSplit(!isSplit)}>
           <SplitSquareHorizontal className="h-3 w-3" />
+        </Button>
+
+        <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-white" onClick={() => setIsMaximized(!isMaximized)}>
+          {isMaximized ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
         </Button>
 
         {/* Profile Selector */}
