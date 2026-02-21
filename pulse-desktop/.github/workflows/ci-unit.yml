@@ -1,0 +1,130 @@
+name: CI - Unit Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-rust:
+    name: Test Rust (Runtime)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            runtime/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Check formatting
+        run: cargo fmt --check --manifest-path runtime/Cargo.toml
+      
+      - name: Clippy
+        run: cargo clippy --manifest-path runtime/Cargo.toml -- -D warnings
+      
+      - name: Run tests
+        run: cargo test --manifest-path runtime/Cargo.toml --release
+
+  test-model-proxy:
+    name: Test Rust (Model Proxy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            model-proxy/target
+          key: ${{ runner.os }}-cargo-proxy-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run tests
+        run: cargo test --manifest-path model-proxy/Cargo.toml --release
+
+  test-python:
+    name: Test Python (Agents)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd agents
+          pip install -e ".[dev]"
+      
+      - name: Run tests
+        run: |
+          cd agents
+          pytest --cov=src/pulse_agents --cov-report=xml
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: agents/coverage.xml
+
+  test-ui:
+    name: Test UI (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd ui
+          npm ci
+      
+      - name: Type check
+        run: |
+          cd ui
+          npm run type-check
+      
+      - name: Lint
+        run: |
+          cd ui
+          npm run lint
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Run cargo audit
+        run: |
+          cargo install cargo-audit
+          cargo audit
+      
+      - name: Run pip audit
+        run: |
+          pip install pip-audit
+          cd agents
+          pip-audit -r requirements.txt || true

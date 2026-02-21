@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://zed.dev/2025",
+    "name": "2025 Recap - Zed — Love your editor again",
+    "snippet": "Zed Gets Agentic   A complete overhaul of Zed's agent panel, including bespoke features like multibuffer review and agent following.\nAfter countless requests, a freshly written rendering backend, and much more, Zed is available on Windows. Zed is a high-performance, multiplayer code editor from the creators of Atom and Tree-sitter.",
+    "host_name": "zed.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zed.dev",
+    "name": "Zed — Love your editor again",
+    "snippet": "Zed is a minimal code editor crafted for speed and collaboration with humans and AI. Written from scratch in Rust to efficiently leverage multiple CPU cores ...",
+    "host_name": "zed.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@dakshsharma_59592/why-zed-is-the-new-best-code-editor-for-software-developers-a-game-changer-written-in-rust-6a2d4081445e",
+    "name": "Why Zed is the New Best Code Editor for Software Developers: A Game-Changer Written in Rust | by Daksh Sharma | Dec, 2025",
+    "snippet": "Zed is fast because it's written in Rust. It's powerful because it implements LSP, DAP, and MCP correctly. It's collaborative because ...",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://thenewstack.io/how-rust-based-zed-built-worlds-fastest-ai-code-editor",
+    "name": "How Rust-Based Zed Built World's Fastest AI Code Editor",
+    "snippet": "24 Jul 2025 — Rust-based Zed Industries partnered with Baseten to achieve 2x faster AI code completions through custom optimization. Jul 24th, 2025 5:00pm by ...\nBy 2024, Zed had built a solid foundation for the company’s performance-first editor, but it knew AI features were becoming essential.",
+    "host_name": "thenewstack.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zed.dev/blog/fastest-ai-code-editor",
+    "name": "The Fastest AI Code Editor — Zed's Blog",
+    "snippet": "7 May 2025 — The entire Zed code editor is open source under GPL version 3, and scratch-built in Rust all the way down to handcrafted GPU shaders and OS graphics API calls.",
+    "host_name": "zed.dev",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/zed-industries/zed/discussions/21450",
+    "name": "Default optimization level for Zed extensions · zed-industries zed · Discussion #21450",
+    "snippet": "Hi! I know about Zed editor from Reddit posts in the Rust subreddit. What I've learnt their that Zed's devs care a lot about the editor's performance ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://codeparrot.ai/blogs/exploring-zed-the-lightning-fast-code-editor-built-in-rust",
+    "name": "Exploring Zed: The Lightning-Fast Code Editor Built in Rust",
+    "snippet": "27 Feb 2025 — Zed represents a fresh approach to code editing - one that prioritizes performance, simplicity, and collaboration. By building on modern ...",
+    "host_name": "codeparrot.ai",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/ZedEditor/comments/1kxac8s/is_zed_performance_a_lie_rant",
+    "name": "Is zed performance a lie [rant] : r/ZedEditor",
+    "snippet": "Zed's claim is not about being more efficient, but about being able to squeeze out more performance from your hardware.",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

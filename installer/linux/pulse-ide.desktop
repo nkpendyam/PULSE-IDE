@@ -1,0 +1,23 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PULSE IDE
+GenericName=AI-Powered IDE
+Comment=Open Source AI-Powered Development Environment
+Exec=pulse-ide %F
+Icon=pulse-ide
+Terminal=false
+StartupNotify=true
+StartupWMClass=pulse-ide
+Categories=Development;IDE;TextEditor;
+Keywords=code;editor;development;ai;llm;programming;
+MimeType=text/plain;text/x-c;text/x-c++;text/x-java;text/x-python;text/x-javascript;text/x-typescript;application/json;
+Actions=new-window;new-file;
+
+[Desktop Action new-window]
+Name=New Window
+Exec=pulse-ide --new-window
+
+[Desktop Action new-file]
+Name=New File
+Exec=pulse-ide --new-file

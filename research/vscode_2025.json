@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://code.visualstudio.com/docs/copilot/overview",
+    "name": "GitHub Copilot in VS Code",
+    "snippet": "GitHub Copilot adds multi-agent development capabilities to Visual Studio Code. Plan your approach, then let AI agents implement and verify code changes across ...",
+    "host_name": "code.visualstudio.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/blogs/2025/11/04/openSourceAIEditorSecondMilestone",
+    "name": "Open Source AI Editor: Second Milestone",
+    "snippet": "As part of this refactoring, the GitHub Copilot extension will be deprecated by early 2026, which means it will be removed from the VS Code ...",
+    "host_name": "code.visualstudio.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.blog/changelog/2025-10-28-github-copilot-in-visual-studio-code-gets-upgraded",
+    "name": "GitHub Copilot in Visual Studio Code gets upgraded",
+    "snippet": "The following items released to VS Code Insiders and were announced at GitHub Universe 2025. Highlights. OpenAI Codex integration: Access ...\nGitHub Copilot in Visual Studio Code gets upgraded The following items released to VS Code Insiders and were announced at GitHub Universe 2025. Highlights OpenAI Codex integration: Access OpenAI Codex in VS Code Insiders with a Copilot Pro+ subscription. Agent Sessions view: Manage local and cloud agent sessions from a unified interface.",
+    "host_name": "github.blog",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.github.com/en/copilot/get-started/features",
+    "name": "GitHub Copilot features",
+    "snippet": "GitHub Copilot features · Inline suggestions · Copilot Chat · Copilot coding agent · Third-party coding agents (public preview) · Copilot CLI (public preview).",
+    "host_name": "docs.github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/GithubCopilot/comments/1lwk6ba/vs_code_june_2025_version_1102",
+    "name": "VS Code June 2025 (version 1.102) : r/GithubCopilot - Reddit",
+    "snippet": "Overview of VS Code June 2025 features ... Best would be to file a new feature request here https://github.com/microsoft/vscode/issues",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/updates/v1_105",
+    "name": "September 2025 (version 1.105) - Visual Studio Code",
+    "snippet": "The new Agent Sessions view in VS Code Insiders now supports the GitHub Copilot CLI. You can manage both local and cloud-based agent sessions ...",
+    "host_name": "code.visualstudio.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=vdBxfFVXnc0",
+    "name": "Get Started with GitHub Copilot in VS Code (2025) - YouTube",
+    "snippet": "If you want to learn how to use GitHub Copilot, the AI pair programmer that helps you write code faster and better, then this video is for ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/blogs/2025/02/24/introducing-copilot-agent-mode",
+    "name": "Introducing GitHub Copilot agent mode (preview)",
+    "snippet": "Copilot agent mode can create apps from scratch, perform refactorings across multiple files, write and run tests, and migrate legacy code to ...",
+    "host_name": "code.visualstudio.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.blog/changelog/2025-09-12-github-copilot-in-vs-code-august-release-v1-104",
+    "name": "GitHub Copilot in VS Code August release (v1.104)",
+    "snippet": "The August 2025 update to GitHub Copilot in Visual Studio Code (v1.104) brings greater flexibility, security, and productivity to AI-powered ...\nThe August 2025 update to GitHub Copilot in Visual Studio Code (v1.104) brings greater flexibility, security, and productivity to AI-powered development workflows. Highlights Auto model selection in Copilot Chat: Copilot can now automatically select AI models for you based on model availability, improving performance and reliability.",
+    "host_name": "github.blog",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features",
+    "name": "GitHub Copilot in VS Code cheat sheet",
+    "snippet": "Get a quick overview of the AI features in Visual Studio Code. GitHub Copilot provides AI-powered features to help you write code faster and with less effort.",
+    "host_name": "code.visualstudio.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

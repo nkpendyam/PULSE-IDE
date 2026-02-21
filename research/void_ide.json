@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://voideditor.com",
+    "name": "Void",
+    "snippet": "Void is an open source Cursor alternative. Write code with the best AI tools , use any model, and retain full control over your data. Download Beta GitHub. Read more\nVoid is an open source Cursor alternative. Write code with the best AI tools, use any model, and retain full control over your data.",
+    "host_name": "voideditor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@adityakumar2001/void-ide-the-comprehensive-guide-to-the-open-source-cursor-alternative-2a6b17cae235",
+    "name": "Void IDE: The Comprehensive Guide to the Open-Source",
+    "snippet": "Void comes equipped with a robust set of AI-powered features similar to what you'd find in Cursor, but with the added benefit of being open- ... Read more\nVoid comes equipped with a robust set of AI-powered features similar to what you’d find in Cursor, but with the added benefit of being open-source and privacy-focused:",
+    "host_name": "medium.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/voideditor/void",
+    "name": "voideditor/void",
+    "snippet": "Void is the open-source Cursor alternative. Use AI agents on your codebase, checkpoint and visualize changes , and bring any model or host locally. Read more\nVoid is the open-source Cursor alternative. Use AI agents on your codebase, checkpoint and visualize changes, and bring any model or host locally. Void sends messages directly to providers without retaining your data. This repo contains the full sourcecode for Void. If you're new, welcome!",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/LocalLLaMA/comments/1fjzohj/void_is_an_opensource_cursor_alternative",
+    "name": "Void is an open-source Cursor alternative : r/LocalLLaMA",
+    "snippet": "If you're considering a serious open source Cursor alternative, the only real one right now is PearAI (https://trypear.ai). I am co-leading it ... Read more",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infoq.com/news/2025/06/void-ide-beta-release",
+    "name": "The Void IDE, Open-Source Alternative to Cursor",
+    "snippet": "21 Jun 2025 — Void IDE offers a range of AI-centric features familiar to users of tools like Cursor. These include inline code editing, contextual AI chat , ... Read more",
+    "host_name": "www.infoq.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.ycombinator.com/companies/void",
+    "name": "Void: The open source Cursor alternative",
+    "snippet": "File system awareness : Void can answer questions about your entire codebase. · View and edit underlying prompts: Void lets you open up the hood and ... Read more\nTL;DR: Void is the open source Cursor alternative. It offers the AI features of modern AI coding tools, while allowing you to host your own AI model locally and keep your data private.",
+    "host_name": "www.ycombinator.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ai.plainenglish.io/void-an-open-source-cursor-windsurf-alternative-662f483c06e9",
+    "name": "Void — An Open-Source Cursor/Windsurf Alternative?",
+    "snippet": "29 May 2025 — Key Features : 1.) Security : Void doesn't send your messages through a private backend like Cursor or Windsurf. Cut out the middleman and ... Read more",
+    "host_name": "ai.plainenglish.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/vibe-coding/open-source-cursor-alternative-void-3055c1680c88",
+    "name": "Open Source Cursor Alternative Void - Medium",
+    "snippet": "Is there an alternative Open Source option to Cursor . If you enjoy Open Source projects then this post is for you! Reason for looking for Open ... Read more",
+    "host_name": "medium.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

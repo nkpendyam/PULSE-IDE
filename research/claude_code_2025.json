@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://code.claude.com/docs/en/overview",
+    "name": "Claude Code overview - Claude Code Docs",
+    "snippet": "The full-featured CLI for working with Claude Code directly in your terminal. Edit files, run commands, and manage your entire project from the command line.To ...",
+    "host_name": "code.claude.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://claude.com/product/claude-code",
+    "name": "Claude Code by Anthropic | AI Coding Agent, Terminal, IDE",
+    "snippet": "Work with Claude directly in your terminal. Claude explores your codebase context, answers questions, and make changes. It can even use all your CLI tools.",
+    "host_name": "claude.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.claude.com/docs/en/vs-code",
+    "name": "Visual Studio Code - Claude Code Docs",
+    "snippet": "The CLI automatically integrates with your IDE for features like diff viewing and diagnostic sharing. If using an external terminal, run /ide inside Claude ...",
+    "host_name": "code.claude.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/%40the.gigi/claude-code-deep-dive-basics-ca4a48003b02",
+    "name": "Claude Code Deep Dive - Basics. My way for studying anything is",
+    "snippet": "Claude Code is basically a super fancy CLI. It does a lot of magic with dynamic refreshing, status updates, syntax highlighting and all sorts of ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.eesel.ai/blog/claude-code-ide-integration",
+    "name": "A complete guide to Claude Code IDE integration in 2025",
+    "snippet": "Free · Business/Productivity Sep 18, 2025 · Key features and benefits · Automatic context sharing: Claude instantly knows which file you're looking at, what code you've highlighted, and can ...",
+    "host_name": "www.eesel.ai",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blakecrosley.com/en/guides/claude-code",
+    "name": "Claude Code CLI: The Definitive Technical Reference - Blake Crosley",
+    "snippet": "With MCP, Claude can query your production database, create Jira tickets, review GitHub PRs, check Sentry errors, and interact with any API your ...",
+    "host_name": "blakecrosley.com",
+    "rank": 5,
+    "date": "Feb 17, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.builder.io/blog/claude-code",
+    "name": "How I use Claude Code (+ my best tips)",
+    "snippet": "One feature I can't live without: message queuing. You can type multiple prompts and Claude will work through them intelligently. What I used to ...",
+    "host_name": "www.builder.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://uxdesign.cc/designing-with-claude-code-and-codex-cli-building-ai-driven-workflows-powered-by-code-connect-ui-f10c136ec11f",
+    "name": "Building AI-driven workflows powered by Claude Code and",
+    "snippet": "Codex CLI and Claude Code side‑by‑side terminals: Visual Studio Code ... 2025 updates, including features like Extended Collections, Slots, and ...",
+    "host_name": "uxdesign.cc",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.etixio.com/en/blog/ai-coding-agents-2025-claude-code-challengers",
+    "name": "AI coding agents 2025: Claude Code vs challengers | Etixio",
+    "snippet": "AI coding agents 2025 transform development with Claude Code, Gemini CLI and open source tools for faster, safer and more efficient ...",
+    "host_name": "www.etixio.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://levelup.gitconnected.com/i-tried-5-ai-coding-clis-for-30-days-november-2025-update-1c9f4e86d127",
+    "name": "I Tried 5 AI Coding CLIs for 30 Days (November 2025 Update)",
+    "snippet": "Claude Code now runs on Claude Sonnet 4.5 and Opus 4.5 by default. The difference is real. Complex refactoring feels smoother. Architecture ...",
+    "host_name": "levelup.gitconnected.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

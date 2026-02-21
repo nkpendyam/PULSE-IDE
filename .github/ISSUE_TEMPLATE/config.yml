@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://docs.kyroide.dev
+    about: Check the documentation for usage guides and API reference
+  - name: 💬 Discord Community
+    url: https://discord.gg/kyroide
+    about: Join our Discord for discussions and community support
+  - name: ❓ Ask a Question
+    url: https://github.com/nkpendyam/KYRO-IDE/discussions
+    about: Ask questions and discuss ideas in GitHub Discussions

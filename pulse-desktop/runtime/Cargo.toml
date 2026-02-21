@@ -1,0 +1,82 @@
+[package]
+name = "pulse-kernel"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["PULSE Team"]
+description = "PULSE Runtime Kernel - Central Authority"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+jsonschema = "0.17"
+
+# Database
+rusqlite = { version = "0.30", features = ["bundled"] }
+
+# UUID and IDs
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
+
+# Networking (JSON-RPC)
+jsonrpc-core = "18.0"
+jsonrpc-derive = "18.0"
+jsonrpc-http-server = "18.0"
+jsonrpc-ws-server = "18.0"
+
+# System info
+sysinfo = "0.30"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Cross-platform named pipes
+uds_windows = "1.1"
+
+# Process management
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.52", features = [
+    "Win32_Foundation",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+    "Win32_Security",
+    "Win32_System_ProcessStatus",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+nix = { version = "0.27", features = ["process", "signal", "sched"] }
+
+[dev-dependencies]
+tempfile = "3.9"
+criterion = "0.5"
+
+[[bin]]
+name = "pulse-kernel"
+path = "src/main.rs"
+
+[[bench]]
+name = "kernel_bench"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

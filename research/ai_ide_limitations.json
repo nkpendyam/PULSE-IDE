@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://www.augmentcode.com/tools/cursor-ai-limitations-why-multi-file-refactors-fail-in-enterprise",
+    "name": "Cursor AI Limitations: Why Multi-File Refactors Fail in Enterprise",
+    "snippet": "This guide examines the technical reasons behind Cursor AI limitations in multi-file scenarios, provides benchmarks for evaluating refactoring ...",
+    "host_name": "www.augmentcode.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/leena_malhotra/i-let-an-ai-agent-handle-a-multi-step-task-heres-where-it-broke-m31",
+    "name": "I Let an AI Agent Handle a Multi-Step Task. Here's Where It Broke",
+    "snippet": "Context window constraints are hard limits. Token limits create artificial boundaries in multi-step workflows. When context exceeds limits ...",
+    "host_name": "dev.to",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/%40addyosmani/my-llm-coding-workflow-going-into-2026-52fe1681325e",
+    "name": "My LLM coding workflow going into 2026 | by Addy Osmani - Medium",
+    "snippet": "LLMs are only as good as the context you provide — show them the relevant code, docs, and constraints. When working on a codebase, I make sure ...",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://martinfowler.com/articles/exploring-gen-ai/11-multi-file-editing.html",
+    "name": "Expanding the solution size with multi-file editing - Martin Fowler",
+    "snippet": "This new “multi-file editing” capability expands the scope of AI assistance from small, localized suggestions to larger implementations across multiple files.",
+    "host_name": "martinfowler.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3DEOIzFMdmox8",
+    "name": "15 Minutes to Fix Your AI Dev Workflow with OpenCode - YouTube",
+    "snippet": "Hit the context limit with your AI coding workflow? Stop overwhelming one agent with everything. In just 15 minutes, you'll have specialised ... Missing: file editing",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://intuitionlabs.ai/articles/openai-codex-app-ai-coding-agents",
+    "name": "OpenAI Codex App: A Guide to Multi-Agent AI Coding | IntuitionLabs",
+    "snippet": "By default, each agent is restricted to editing files only in the folder or Git branch where it is working (). Network access and other ...",
+    "host_name": "intuitionlabs.ai",
+    "rank": 5,
+    "date": "Feb 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.blog/changelog/2024-10-29-multi-file-editing-code-review-custom-instructions-and-more-for-github-copilot-in-vs-code-october-release-v0-22",
+    "name": "Multi-file editing, code review, custom instructions, and more for",
+    "snippet": "With multi-file editing, currently in preview, you can start an AI-powered code editing session where you can quickly iterate on code changes.",
+    "host_name": "github.blog",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.gocodeo.com/post/how-ai-coding-models-handle-context-switching-and-multi-file-refactoring",
+    "name": "How AI Coding Models Handle Context Switching and Multi-File",
+    "snippet": "Learn how AI coding models handle context switching and multi-file refactoring using semantic retrieval, AST-safe edits, and symbol graph ...",
+    "host_name": "www.gocodeo.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

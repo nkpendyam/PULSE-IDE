@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://blog.jetbrains.com/blog/2024/08/15/the-2024-2-versions-of-jetbrains-ides-are-here-with-enhanced-flcc-and-remote-development-the-new-ui-as-the-default-and-more",
+    "name": "The 2024.2 Versions of JetBrains IDEs Are Here With Enhanced Full",
+    "snippet": "JetBrains IDEs, .NET tools, and AI Assistant are ready to be updated to the 2024.2 versions, which introduce a plethora of new features and improvements.",
+    "host_name": "blog.jetbrains.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/idea/whatsnew/2024-2",
+    "name": "What's New in IntelliJ IDEA - 2024.2 - JetBrains",
+    "snippet": "IntelliJ IDEA 2024.2 introduces enhanced log management for Java and Kotlin. New features include highlighting for string literals and argument resolution, ...",
+    "host_name": "www.jetbrains.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blog.jetbrains.com/blog/2024/04/10/your-jetbrains-coding-tools-are-ready-to-be-updated-to-2024-1",
+    "name": "Your JetBrains Coding Tools are Ready to be Updated to 2024.1",
+    "snippet": "IntelliJ IDEA 2024.1 introduces support for Java 22, ensuring compatibility with the latest language features. · PyCharm 2024.1 · WebStorm 2024.1 ...",
+    "host_name": "blog.jetbrains.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/idea/whatsnew/2024-3",
+    "name": "What's New in IntelliJ IDEA 2024.3 - JetBrains",
+    "snippet": "User experience · Debugger · Build tools\nExplore IntelliJ IDEA's latest features and updates to elevate your professional Java and Kotlin development experience.",
+    "host_name": "www.jetbrains.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/go/whatsnew/2024-1",
+    "name": "What's New in GoLand 2024.1 - JetBrains",
+    "snippet": "GoLand 2024.1 introduces full line code completion, a new feature that autocompletes entire lines of code using locally-run, context-aware deep learning models.",
+    "host_name": "www.jetbrains.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/rider/whatsnew/2024-1",
+    "name": "What's New in Rider 2024.1 - JetBrains",
+    "snippet": "Blueprint debugger call stacks · Slate formatting and smart navigation · Smart Blueprint features · Perforce updates, Visual Studio interop, and more.",
+    "host_name": "www.jetbrains.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.facebook.com/100070347279551/posts/530207972667441",
+    "name": "JetBrains's post - Facebook",
+    "snippet": "The 2024.2 versions of JetBrains IDEs, .NET tools, and AI Assistant just landed! Update your coding tools now to get: Improved full line code ...",
+    "host_name": "www.facebook.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.developer-tech.com/news/jetbrains-2024-3-release-elevates-developer-experience",
+    "name": "JetBrains 2024.3 release elevates the developer experience",
+    "snippet": "GoLand 2024.3 improves developer workflows with new inspections, refined multiline completion, inline prompts, and upgraded support for the latest Go language ...\nBeyond these core improvements, each JetBrains IDE brings its own set of new features: IntelliJ IDEA 2024.3 sees enhancements such as improved alias handling in the data flow engine for Java and Kotlin, plus a code formatter that maintains blank lines for clearer readability.",
+    "host_name": "www.developer-tech.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

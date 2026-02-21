@@ -1,0 +1,54 @@
+# PULSE - Programmable Intelligent Runtime Platform
+# Configuration Manifest
+
+[project]
+name = "pulse"
+version = "1.0.0"
+description = "Programmable Intelligent Runtime Platform - Desktop Edition"
+license = "MIT"
+repository = "https://github.com/pulse/pulse"
+authors = ["PULSE Team"]
+
+[runtime]
+kernel_version = "1.0.0"
+api_version = "1"
+protocol = "json-rpc"
+socket_path = "pulse.sock"
+
+[models]
+# Local model configurations
+router_model = "mobilebert"           # Intent routing
+completion_model = "distilgpt2"       # Short completions  
+reasoning_model = "tinyllama-1.1b"    # Complex reasoning
+fallback_model = "external-api"       # External API fallback
+
+# Memory budgets (MB)
+max_ram_budget = 4096
+model_cache_size = 2048
+context_window = 32768
+
+[agents]
+default_timeout = 300000             # 5 minutes in ms
+max_concurrent = 4
+heartbeat_interval = 30000           # 30 seconds
+
+[security]
+default_policy = "review"            # off, review, agent
+require_capability_tokens = true
+sandbox_enabled = true
+
+[picoclaw]
+enabled = true
+bridge_port = 9876
+protocol = "json-rpc-ws"
+
+[storage]
+database = "sqlite"
+database_path = "pulse.db"
+artifacts_path = "artifacts/"
+checkpoints_path = "checkpoints/"
+
+[ui]
+theme = "dark"
+monaco_theme = "vs-dark"
+telemetry = false                     # Disabled by default for privacy

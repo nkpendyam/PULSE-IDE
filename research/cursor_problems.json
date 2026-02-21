@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://forum.cursor.com/t/2-0-has-lost-a-lot-of-functionality-i-can-no-longer-use-cursor/139203",
+    "name": "2.0 has lost a lot of functionality I can no longer use Cursor",
+    "snippet": "27-Oct-2025 — The new Agent Windows in version 2.0 now forcibly places the Primary Side Bar on the right, completely eliminating any possibility for me to ...",
+    "host_name": "forum.cursor.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/after-updating-cursor-to-version-2-1-42-most-models-disappeared/144797",
+    "name": "After updating Cursor to version 2.1.42, most models",
+    "snippet": "01-Dec-2025 — After updating Cursor to version 2.1.42, most models disappeared, custom models cannot be deleted, and connection errors occur.How can I fix ...",
+    "host_name": "forum.cursor.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/data-science-in-your-pocket/why-i-dont-use-cursor-ai-f6bc5729d978",
+    "name": "Why I don't use Cursor.ai?",
+    "snippet": "Despite its AI capabilities, Cursor.ai can be surprisingly slow , especially when working with larger codebases. The editor sometimes lags or ...",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/bug-report-multiple-features-missing-broken-in-cursor-0-46-0/52730",
+    "name": "[Bug Report] Multiple Features Missing/Broken in",
+    "snippet": "21-Feb-2025 — Issue 1: I've noticed that the Composer has been completely removed , leaving only three features : Edit, Agent, and Chat.",
+    "host_name": "forum.cursor.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/2-0-has-lost-a-lot-of-functionality-i-can-no-longer-use-cursor/139203?page=2",
+    "name": "2.0 has lost a lot of functionality I can no longer use Cursor",
+    "snippet": "28-Oct-2025 — We have this CONSTANT feature churn and redesign of the IDE , day in ... To answer your question, we have removed some low-utilized features ...",
+    "host_name": "forum.cursor.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/cursor-ide-complete-guide-2025-8d8d25407b97",
+    "name": "Cursor IDE Complete Guide 2025",
+    "snippet": "21-Nov-2025 — Happy coding with Cursor ! This post covers Cursor IDE and the features in the latest version of 2025 . Your support keeps this journey going ...",
+    "host_name": "pub.towardsai.net",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/cursor-docs-feature-still-broken/141454",
+    "name": "Cursor @Docs feature STILL BROKEN - Bug Reports",
+    "snippet": "06-Nov-2025 — The @Docs feature still does not work in Cursor . The agents, even though they sometimes seem to be referencing the docs, at least they say they ...",
+    "host_name": "forum.cursor.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/cursor/comments/1joapwk/the_exact_reason_why_newer_versions_of_cursor",
+    "name": "The exact reason why newer versions of CURSOR feels",
+    "snippet": "The claim that cursor now automatically searches the codebase when needed is FALSE or the method they are using behind the scenes is not optimized enough.",
+    "host_name": "www.reddit.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

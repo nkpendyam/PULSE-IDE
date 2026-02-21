@@ -1,0 +1,74 @@
+[
+  {
+    "url": "https://dev.to/woai3c/24-front-end-performance-optimization-tips-4a6c",
+    "name": "24 Front-end Performance Optimization Tips - DEV Community",
+    "snippet": "\"Lazy loading or on-demand loading is a great way to optimize a website or application. This approach actually separates your code at some ...",
+    "host_name": "dev.to",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://web.dev/articles/rendering-performance",
+    "name": "Rendering performance | Articles | web.dev",
+    "snippet": "Users notice if sites and apps don't run well, so optimizing rendering performance is crucial! Missing: editor techniques",
+    "host_name": "web.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/%40madhupgahlot1989/code-optimization-techniques-writing-efficient-and-clean-code-based-on-my-personal-experience-4092a2ed809d",
+    "name": "Code Optimization Techniques: Writing Efficient and Clean Code",
+    "snippet": "I learned that the less code you write, the fewer bugs you have to fix. This doesn't mean writing overly compact, hard-to-understand code. Missing: editor rendering",
+    "host_name": "medium.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/GraphicsProgramming/comments/1gz0pkd/what_are_some_optimizations_everyone_should_know",
+    "name": "What are some optimizations everyone should know about when",
+    "snippet": "Stay away from most point source lights. Basically reducing as much rasterization as possible utilizing tech such as mipmaps and polygonal LOD ... Tips and tricks for optimizing code performance : r/learnprogramming Unity Code Optimization. Improve performance and reduce garbage ... More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://gamedev.stackexchange.com/questions/66280/what-are-the-common-rendering-optimization-techniques-for-the-geometry-pass-in-a",
+    "name": "What are the common rendering optimization techniques for the",
+    "snippet": "Avoid branching in shaders. · Use inline functions for small functions. · Render lights that actually affect the final image. Missing: editor | Show results with: editor",
+    "host_name": "gamedev.stackexchange.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://axissoftwaredynamics.com/optimizing-code-performance-tips-and-techniques",
+    "name": "Optimizing Code Performance: Tips and Techniques",
+    "snippet": "In this blog, we will explore some essential tips and techniques to optimize your code and elevate your application's performance.",
+    "host_name": "axissoftwaredynamics.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Performance/CSS",
+    "name": "CSS performance optimization - Learn web development | MDN",
+    "snippet": "You should optimize the CSS to mitigate render-blocking and minimize the number of required reflows. This article walks you through key CSS performance ...",
+    "host_name": "developer.mozilla.org",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://codeburst.io/painting-and-rendering-optimization-techniques-in-browser-2e53a70e7ee",
+    "name": "Painting and Rendering Optimization Techniques in Browser",
+    "snippet": "Optimization techniques for browser painting and rendering. Here advanced concepts like render tree generation, CSSOM, DOM, Painting cycle, ... Missing: editor | Show results with: editor",
+    "host_name": "codeburst.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  }
+]

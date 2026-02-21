@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://github.com/flexpilot-ai/vscode-extension",
+    "name": "flexpilot-ai/vscode-extension - GitHub",
+    "snippet": "The Flexpilot VS Code extension is no longer actively maintained. We will still try to address any issues or pull requests, but will not be adding new features.",
+    "host_name": "github.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/1q3o52y/alternatives_to_vs_code",
+    "name": "Alternatives to VS Code ? : r/webdev - Reddit",
+    "snippet": "WebStorm is free for non-commercial use now and has everything PhpStorm has except PHP. It's great for HTML/CSS/JS projects. Looking for an Open Source IDE that does *NOT* have AI integration. We are compiling a big rated list of open source alternatives to ... More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://code.visualstudio.com/blogs/2025/05/19/openSourceAIEditor",
+    "name": "VS Code: Open Source AI Editor",
+    "snippet": "We will open source the GitHub Copilot Chat extension. It's the next step towards making VS Code an open source AI editor.",
+    "host_name": "code.visualstudio.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/composiodev/9-open-source-ai-coding-tools-that-every-developer-should-know-28l4",
+    "name": "9 open-source AI coding tools that every developer should know",
+    "snippet": "Composio is an open-source platform that offers third-party integrations for AI agents. It offers Linear, Slack, GitHub, Jira, Asana, and other integrations.",
+    "host_name": "dev.to",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.syncfusion.com/blogs/post/top-vs-code-extensions",
+    "name": "Top 20 VS Code Extensions to Supercharge Your Development",
+    "snippet": "GitLens is a fantastic open-source extension for VS Code that allows developers to visualize code authorship instantly. With GitLens, you ...",
+    "host_name": "www.syncfusion.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.freecodecamp.org/news/best-vscode-extensions",
+    "name": "Visual Studio Code Extensions to Boost Your Productivity in 2024",
+    "snippet": "The strength of GitHub Copilot lies in its integration with OpenAI, tapping into a vast repository of open-source code to provide contextually ...",
+    "host_name": "www.freecodecamp.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.builder.io/blog/best-ai-code-editors",
+    "name": "Best AI Code Editors in 2025 - Builder.io",
+    "snippet": "In this article, we'll explore the leading AI code editors of 2025, from traditional IDEs with powerful AI integrations to purpose-built AI-first editors.",
+    "host_name": "www.builder.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://strapi.io/blog/vs-code-extensions",
+    "name": "13 Essential VS Code Extensions for 2025 - Strapi",
+    "snippet": "Extensions like ESLint, Prettier, and GitLens form the foundation of an efficient web development setup; Specialized tools for database ...",
+    "host_name": "strapi.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://news.ycombinator.com/item%3Fid%3D41563958",
+    "name": "Show HN: Void, an open-source Cursor/GitHub Copilot alternative",
+    "snippet": "Void is the open-source, fully customizable tool we've been wanting. The hard part: we're building Void as a fork of vscode. The repo has great ...",
+    "host_name": "news.ycombinator.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://riteshkokam.hashnode.dev/best-ai-coding-tools-for-developers-in-2024",
+    "name": "Best AI Coding Tools for Developers in 2024 - Untitled Publication",
+    "snippet": "Cursor is a new IDE built from the ground up with AI integration in mind. It's essentially a fork of VS Code with powerful AI features baked in.",
+    "host_name": "riteshkokam.hashnode.dev",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

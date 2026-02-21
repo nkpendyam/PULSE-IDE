@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://medium.com/%40hilalkara.dev/cursor-ai-complete-guide-2025-real-experiences-pro-tips-mcps-rules-context-engineering-6de1a776a8af",
+    "name": "Cursor AI Guide (2025): MCPs, Rules, Tips & Real Results | Hilal Kara",
+    "snippet": "Cursor AI Guide 2025: MCP setup, project rules, memories, auto‑run, and prompt strategies.Learn workflows and best practices with real‑world ...",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://cursor.com/docs/context/mcp",
+    "name": "Model Context Protocol (MCP) | Cursor Docs",
+    "snippet": "MCP connects Cursor to external systems and data. Instead of explaining your project structure repeatedly, integrate directly with your tools. Missing: 2025 | Show results with: 2025",
+    "host_name": "cursor.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/return-the-custom-modes-features/144170",
+    "name": "Return the Custom Modes features - Cursor - Community Forum",
+    "snippet": "Being able to define a custom mode that only had access to a subset of my MCP tools was very useful. NightStars December 3, 2025, 2:25am 12.",
+    "host_name": "forum.cursor.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.mintmcp.com/blog/securing-servers-with-mcp",
+    "name": "Securing MCP servers in Cursor: configuration best practices",
+    "snippet": "Learn how to secure MCP servers in Cursor with configuration best practices to reduce risk and protect AI-driven development workflows.",
+    "host_name": "www.mintmcp.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://pub.towardsai.net/cursor-ide-complete-guide-2025-8d8d25407b97",
+    "name": "Cursor IDE Complete Guide 2025 - Towards AI",
+    "snippet": "One-click MCP server setup with OAuth support expands Cursor's capabilities for broader development tasks. Benefits: Connect to external data ...",
+    "host_name": "pub.towardsai.net",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/murataslan1/cursor-ai-tips",
+    "name": "Cursor AI Tips & Tricks - GitHub",
+    "snippet": "Cursor AI IDE tips, tricks & best practices - Keyboard shortcuts, Composer mode, .cursorrules examples, and Reddit community wisdom ...",
+    "host_name": "github.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://forum.cursor.com/t/add-the-ability-to-pre-configure-which-mcp-tools-are-enabled-disabled-via-the-mcp-json-configuration-file-eliminating-the-need-to-manually-enable-tools-in-the-ui-after-every-cursor-restart/148139",
+    "name": "Add the ability to pre-configure which MCP tools are enabled",
+    "snippet": "Add the ability to pre-configure which MCP tools are enabled/disabled via the mcp.json configuration file, eliminating the need to manually ...",
+    "host_name": "forum.cursor.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3Dl30Eb76Tk5s",
+    "name": "Cursor 2.0 - Full Tutorial for Beginners - YouTube",
+    "snippet": "Get started building MCP servers with Arcade.dev: https://arcade.dev.plug.dev/onVacVC In this video, I'll give you a full beginner's guide ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://research.checkpoint.com/2025/cursor-vulnerability-mcpoison",
+    "name": "Cursor IDE's MCP Vulnerability - Check Point Research - CPR",
+    "snippet": "Cursor uses a one-time approval model for MCPs: the first time a user encounters an MCP configuration, they are prompted to approve it. However, ...",
+    "host_name": "research.checkpoint.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.aifreeapi.com/en/posts/cursor-mcp-integration-guide-2025",
+    "name": "Cursor MCP Integration 2025: Complete Setup Guide & Cost",
+    "snippet": "This comprehensive guide walks you through everything you need to know about Cursor MCP integration—from understanding the protocol to ...",
+    "host_name": "www.aifreeapi.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

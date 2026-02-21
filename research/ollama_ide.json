@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://medium.com/%40walterdeane/running-a-local-llm-for-code-assistance-dea64748041a",
+    "name": "Running a Local LLM for Code Assistance | by Walter Deane - Medium",
+    "snippet": "Running a Local LLM for Code Assistance · 1. Install Homebrew (macOS only) · 2. Install Docker Desktop · 3. Install Ollama · 4. Pull a coding- ...",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://codewiz.info/blog/local-code-assistant",
+    "name": "Free AI Code Assistant with Ollama and Local LLM - CodeWiz",
+    "snippet": "Learn how to set up a powerful, free AI code assistant in VS Code and IntelliJ IDEA using Ollama and Continue plugin.",
+    "host_name": "codewiz.info",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://ollama.com/blog/continue-code-assistant",
+    "name": "An entirely open-source AI code assistant inside your editor - Ollama",
+    "snippet": "Continue enables you to easily create your own coding assistant directly inside Visual Studio Code and JetBrains with open-source LLMs.",
+    "host_name": "ollama.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://semaphore.io/blog/selfhosted-llm-coding-assistants",
+    "name": "A Guide to Self-Hosted LLM Coding Assistants - Semaphore",
+    "snippet": "This article covers self-hosted LLM coding assistants, evaluating models and integrating them with editor extensions.",
+    "host_name": "semaphore.io",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3DY3oe0QTSJgE",
+    "name": "FREE Local AI Coding FOREVER (Step-by-Step Tutorial) - YouTube",
+    "snippet": "In this step-by-step tutorial, I'll show you how to set up Claude Code with Ollama to get powerful AI-powered coding assistance running 100% ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "Feb 13, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.sitepoint.com/local-llm-code-completion-vs-code-ollama",
+    "name": "Set Up Local LLM Code Completion in VS Code with Ollama",
+    "snippet": "Learn how to set up local LLM code completion in VS Code using Ollama and the Continue extension. Keep your code private with fully offline ...",
+    "host_name": "www.sitepoint.com",
+    "rank": 5,
+    "date": "Feb 14, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://realpython.com/ollama-python",
+    "name": "How to Integrate Local LLMs With Ollama and Python",
+    "snippet": "Learn how to integrate your Python projects with local models (LLMs) using Ollama for enhanced privacy and cost efficiency.",
+    "host_name": "realpython.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Akshay-Dongare/Local-Coding-Assistant",
+    "name": "Building a Local Coding Assistant with Code Llama and Cody - GitHub",
+    "snippet": "To get your own personal, free, local and accurate coding assistant going, follow these steps. Open Visual Studio Code; Go to extensions tab: ctrl+shift+x ...",
+    "host_name": "github.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.jetbrains.com/help/ai-assistant/use-custom-models.html",
+    "name": "Use third-party and local models | AI Assistant - JetBrains",
+    "snippet": "Learn how to configure AI Assistant to use locally hosted models or models from third-party providers.",
+    "host_name": "www.jetbrains.com",
+    "rank": 8,
+    "date": "Feb 11, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://posit.co/blog/setting-up-local-llms-for-r-and-python",
+    "name": "Setting up local LLMs for R and Python - Posit",
+    "snippet": "Install Ollama locally: This is the tool that will manage and run your local AI LLMs. Connect to the local LLM in your code: Tell ellmer or ...",
+    "host_name": "posit.co",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

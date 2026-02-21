@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://firebase.google.com/docs/studio/idx-is-firebase-studio",
+    "name": "Project IDX is now part of Firebase Studio - Google",
+    "snippet": "AI coding assistance using Gemini models. · The ability to import existing repos and customize ...",
+    "host_name": "firebase.google.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.googleblog.com/start-building-with-project-idx-today",
+    "name": "Start Building with Project IDX Today",
+    "snippet": "May 14, 2024 — Project IDX already has support for AI-powered code completion, an assistive chat, and contextual code actions like “add comments'' and “explain ...",
+    "host_name": "developers.googleblog.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://idx.dev",
+    "name": "Project IDX",
+    "snippet": "Project IDX is an entirely web-based workspace for full-stack application development, complete with the latest generative AI from Gemini, and full-fidelity ...\nProject IDX is an entirely web-based workspace for full-stack application development, complete with the latest generative AI from Gemini, and full-fidelity app previews, powered by cloud emulators.",
+    "host_name": "idx.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://techcrunch.com/2024/05/14/project-idx-googles-next-gen-ide-is-now-in-open-beta",
+    "name": "Project IDX, Google's next-gen IDE, is now in open beta",
+    "snippet": "May 14, 2024 — To enable this, IDX includes many of what have now become standard features like code completion and a chat assistant sidebar, as well as ...",
+    "host_name": "techcrunch.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://dev.to/bst53/googles-project-idx-the-ultimate-tool-for-modern-development-1glo",
+    "name": "Google's Project IDX: The Ultimate Tool for Modern Development",
+    "snippet": "Nov 28, 2024 — Google's Project IDX is a browser-based integrated development environment (IDE) tailored for all types of development projects.\nGoogle’s Project IDX is a browser-based integrated development environment (IDE) tailored for all types of development projects. Built on Visual Studio Code’s framework, it integrates cutting-edge AI tools like Google’s Codey (PaLM 2) to streamline coding, testing, debugging, and deployment.",
+    "host_name": "dev.to",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://shaxadd.medium.com/exploring-google-project-idx-the-future-of-ai-powered-ides-its-like-vscode-on-steroids-bb6874a5cfd8",
+    "name": "Exploring Google Project IDX: The Future of AI-Powered IDEs — It's Like VSCode on Steroids - Shehzad Ahmed",
+    "snippet": "2. Real-Time Collaboration · 3. Intelligent Debugging · 4. Integrated DevOps · 5. Enhanced Security Features.",
+    "host_name": "shaxadd.medium.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.devclass.com/ai-ml/2024/05/15/google-project-idx-remote-development-environment-now-in-open-beta-but-without-ios-simulator/1620688",
+    "name": "Google Project IDX remote development environment now in open beta - but without iOS simulator - DevClass.com",
+    "snippet": "May 15, 2024 — Gemini, Google's AI model, is baked into Project IDX, providing AI code chat including the ability to generate code, explain code, translate ...",
+    "host_name": "www.devclass.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://en.wikipedia.org/wiki/Firebase_Studio",
+    "name": "Firebase Studio",
+    "snippet": "Firebase Studio (formerly known as Project IDX) is an online integrated development environment (IDE) developed by Google.",
+    "host_name": "en.wikipedia.org",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.googleblog.com/en/start-building-with-project-idx-today",
+    "name": "Start Building with Project IDX Today- Google Developers Blog",
+    "snippet": "Google I/O 2024 is in full swing, and we're sharing updates on how Project IDX fits into our mission to create an integrated workspace that can be used to ship full-stack, AI-powered apps across platforms.",
+    "host_name": "developers.googleblog.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.geeky-gadgets.com/google-project-idx-2024",
+    "name": "Google Project IDX: AI-Powered Development Tool for Coders",
+    "snippet": "Google’s Project IDX is a free, AI-powered, web-based development environment accessible through any browser, eliminating the need for complex installations. It supports popular...",
+    "host_name": "www.geeky-gadgets.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

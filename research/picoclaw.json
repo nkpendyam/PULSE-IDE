@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://medium.com/@reformsai/picoclaw-and-openclaw-are-not-infrastructure-the-10-ai-agent-myth-43d43e0726e3",
+    "name": "PicoClaw and OpenClaw Are Not Infrastructure: The $10 AI Agent Myth | by Mark | Feb, 2026",
+    "snippet": "PicoClaw and OpenClaw Are Not Infrastructure: The $10 AI Agent Myth GitHub stars are not a substitute for architecture.",
+    "host_name": "medium.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://picoclaw.net",
+    "name": "PicoClaw - Ultra-Lightweight AI Assistant | Go-Powered, Performance First",
+    "snippet": "Ultra-lightweight personal AI assistant built with Go. Memory usage under 10MB, multi-platform deployment, lightning-fast startup in under 1 second.",
+    "host_name": "picoclaw.net",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://knolli.ai/post/picoclaw-alternative",
+    "name": "Best PicoClaw Alternative: Safe & Secure Agentic AI",
+    "snippet": "2 days ago — PicoClaw is commonly used for tasks such as code assistance, content writing, data analysis, research, and personal productivity automation. Its ...",
+    "host_name": "knolli.ai",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.cnx-software.com/2026/02/10/picoclaw-ultra-lightweight-personal-ai-assistant-run-on-just-10mb-of-ram",
+    "name": "PicoClaw ultra-lightweight personal AI Assistant runs on just 10MB of RAM",
+    "snippet": "Feb 10, 2026 — PicoClaw is an ultra-lightweight personal AI Assistant designed to work on less than 10 MB RAM and suitable for resource-constrained ...",
+    "host_name": "www.cnx-software.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/rohitg00/awesome-openclaw",
+    "name": "rohitg00/awesome-openclaw",
+    "snippet": "OpenClaw is an agentic AI interface that: Runs locally on your own hardware (Mac Mini, VPS, Raspberry Pi, ESP32-S3, or serverless); Connects to 10+ messaging ...",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/topaitools/comments/1r3ux70/picoclaw_picoclaw_is_an_ultralightweight_ai",
+    "name": "PicoClaw Picoclaw is an ultra-lightweight AI assistant written in Go for low-memory, fast-startup local deployment : r/topaitools",
+    "snippet": "PicoClaw Picoclaw is an ultra-lightweight AI assistant written in Go for low-memory, fast-startup local deployment. topai.tools",
+    "host_name": "www.reddit.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.instagram.com/reel/DUqS5BrAjJD",
+    "name": "This tiny AI agent runs on 10MB of RAM and beats full computers. Wild. 🚀 Is this the end of",
+    "snippet": "PicoClaw uses tiny code size. We're talking about 1% compared to normal. Memory uses 10 megabytes of RAM versus OpenClaw which uses large and ...",
+    "host_name": "www.instagram.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://picoclaw.ai",
+    "name": "PicoClaw — Ultra-Lightweight AI Assistant | $10 Hardware",
+    "snippet": "PicoClaw is an open-source, ultra-lightweight personal AI assistant written in Go. Runs on $10 RISC-V hardware with under 10MB RAM and boots in 1 second. 99% less memory than OpenClaw. Supports Telegram, Discord, QQ & more.",
+    "host_name": "picoclaw.ai",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "http://picoclaw.net",
+    "name": "PicoClaw - Ultra-Lightweight AI Assistant | Go-Powered",
+    "snippet": "Ultra-lightweight personal AI assistant built with Go. Memory usage under 10MB, multi-platform deployment, lightning-fast startup in under 1 second. Integrated with Telegram, Discord, QQ, and more.",
+    "host_name": "picoclaw.net",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/sipeed/picoclaw",
+    "name": "PicoClaw: Ultra-Efficient AI Assistant in Go - GitHub",
+    "snippet": "🦐 PicoClaw is an ultra-lightweight personal AI Assistant inspired by nanobot, refactored from the ground up in Go through a self-bootstrapping process, where the AI agent itself drove the entire architectural migration and code optimization.",
+    "host_name": "github.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

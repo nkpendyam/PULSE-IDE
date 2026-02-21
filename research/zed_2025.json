@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://zed.dev/2025",
+    "name": "2025 Recap - Zed — Love your editor again",
+    "snippet": "Zed Gets Agentic   A complete overhaul of Zed's agent panel, including bespoke features like multibuffer review and agent following.",
+    "host_name": "zed.dev",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zed.dev",
+    "name": "Zed — Love your editor again",
+    "snippet": "Zed is a minimal code editor crafted for speed and collaboration with humans and AI. Written from scratch in Rust to efficiently leverage multiple CPU cores ...",
+    "host_name": "zed.dev",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://zed.dev/blog/fastest-ai-code-editor",
+    "name": "The Fastest AI Code Editor — Zed's Blog - Zed",
+    "snippet": "From the Zed Blog: Zed is now the world's fastest AI code editor. What's more, Zed's new AI features are also open-source, just like the ...",
+    "host_name": "zed.dev",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/%40dakshsharma_59592/why-zed-is-the-new-best-code-editor-for-software-developers-a-game-changer-written-in-rust-6a2d4081445e",
+    "name": "Why Zed is the New Best Code Editor for Software Developers",
+    "snippet": "Zed is fast because it's written in Rust. It's powerful because it implements LSP, DAP, and MCP correctly. It's collaborative because ...",
+    "host_name": "medium.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/webdev/comments/1ekt4n3/zed_performancedriven_minimalistic_code_editor",
+    "name": "Zed: Performance-driven, minimalistic code editor. What are  - Reddit",
+    "snippet": "Zed is a high-performance, multiplayer code editor from the creators of Atom and Tree-sitter. It's also open source. Vim in Zed: Improving the experience (The 2025 Roadmap) Moved to Zed from VS code and it feels great : r/ZedEditor More results from www.reddit.com",
+    "host_name": "www.reddit.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch%3Fv%3D2e7SkqzBAYk",
+    "name": "Zed - The 'Visual Studio Code Killer' - Now on Windows! - YouTube",
+    "snippet": "Zed is an exciting new code editor from the creators of Atom that is heavily focused on performance ... The Best Code Editors & IDEs in 2025. Missing: features | Show results with: features",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://news.ycombinator.com/item%3Fid%3D43912844",
+    "name": "Zed: High-performance AI Code Editor | Hacker News",
+    "snippet": "Zed is the first editor I've tried that actually feels as fast as Helix while also offering AI tooling. I like how integrated everything is.",
+    "host_name": "news.ycombinator.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://thenewstack.io/how-rust-based-zed-built-worlds-fastest-ai-code-editor",
+    "name": "How Rust-Based Zed Built World's Fastest AI Code Editor",
+    "snippet": "The Results: 2x Performance Improvement · 45% lower P90 latency · 3.6x higher throughput · 100% uptime · Over 2x faster edit prediction compared to ...",
+    "host_name": "thenewstack.io",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/zed-industries/zed/discussions/21450",
+    "name": "Default optimization level for Zed extensions #21450 - GitHub",
+    "snippet": "Implement some kind of (semi-)automatic review of Zed ...",
+    "host_name": "github.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.infoworld.com/article/4091082/hands-on-with-zed-the-ide-built-for-ai.html",
+    "name": "Hands-on with Zed: The IDE built for AI | InfoWorld",
+    "snippet": "Zed was designed from the ground up for machine-native speed and collaboration. Let's take a look at the newest IDE and text editor on the block ...",
+    "host_name": "www.infoworld.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

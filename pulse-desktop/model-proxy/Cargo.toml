@@ -1,0 +1,37 @@
+[package]
+name = "pulse-model-proxy"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["PULSE Team"]
+description = "PULSE Model Proxy - Lightweight model routing with hot-swap"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+thiserror = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+sysinfo = "0.30"
+reqwest = { version = "0.11", features = ["json"] }
+async-trait = "0.1"
+
+# Local model runtimes (optional)
+# ort = { version = "2.0", optional = true }  # ONNX Runtime
+# candle-core = { version = "0.4", optional = true }  # Candle
+
+[dev-dependencies]
+tempfile = "3.9"
+
+[[bin]]
+name = "pulse-model-proxy"
+path = "src/main.rs"
