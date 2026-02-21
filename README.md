@@ -228,42 +228,28 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000) to use Kyro IDE.
 
-### 📥 Download Installers
+### 🖥️ Desktop App (Tauri)
 
-Get pre-built installers from [GitHub Releases](https://github.com/nkpendyam/Kyro_IDE/releases):
+Build the desktop application locally:
 
-| Platform | Download |
-|----------|----------|
-| **Windows** | `.exe` (NSIS) or `.msi` |
-| **macOS (Apple Silicon)** | `.dmg` |
-| **macOS (Intel)** | `.dmg` |
-| **Linux** | `.AppImage` or `.deb` |
-
-**Installation:**
-
-```bash
-# Windows - Download and run the .exe installer
-Kyro-IDE_x64-setup.exe
-
-# macOS - Open the DMG and drag to Applications
-open Kyro-IDE_aarch64.dmg
-
-# Linux - Make AppImage executable and run
-chmod +x Kyro-IDE_*_amd64.AppImage
-./Kyro-IDE_*_amd64.AppImage
-```
-
-### Desktop App (Tauri)
-
-Build from source:
+**Prerequisites:**
+- Rust (1.70+) - Install from https://rustup.rs
+- Platform-specific dependencies (see [DESKTOP_BUILD.md](DESKTOP_BUILD.md))
 
 ```bash
 # Development mode
 bun run tauri:dev
 
-# Build production app
+# Build production installers
 bun run tauri:build
 ```
+
+**Output files:**
+- **Windows**: `src-tauri/target/release/bundle/msi/` (.msi installer)
+- **macOS**: `src-tauri/target/release/bundle/dmg/` (.dmg installer)
+- **Linux**: `src-tauri/target/release/bundle/appimage/` (.AppImage)
+
+See [DESKTOP_BUILD.md](DESKTOP_BUILD.md) for detailed instructions.
 
 ---
 
