@@ -1,5 +1,6 @@
 //! Error types for Kyro IDE
 
+use serde::{Serialize, Serializer};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -41,6 +42,16 @@ pub enum Error {
 
     #[error("Unexpected error: {0}")]
     Unexpected(String),
+}
+
+// Implement Serialize for Tauri commands
+impl Serialize for Error {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
 }
 
 impl From<Error> for String {
