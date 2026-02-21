@@ -7,7 +7,7 @@
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:3000",
-    "frontendDist": "../.next"
+    "frontendDist": "../out"
   },
   "app": {
     "withGlobalTauri": true,
@@ -24,8 +24,7 @@
         "transparent": false,
         "center": true,
         "visible": true,
-        "focus": true,
-        "tabbingIdentifier": "kyro-ide"
+        "focus": true
       }
     ],
     "security": {
@@ -35,8 +34,7 @@
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true,
       "menuOnLeftClick": false
-    },
-    "macOSPrivateApi": true
+    }
   },
   "bundle": {
     "active": true,
@@ -54,6 +52,10 @@
     "targets": "all",
     "windows": {
       "digestAlgorithm": "sha256",
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English", "SimpChinese", "TradChinese"]
+      },
       "wix": {
         "language": "en-US"
       }
@@ -63,18 +65,13 @@
     },
     "linux": {
       "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libssl3", "libayatana-appindicator3-1"],
-        "desktopTemplate": "kyro-ide.desktop",
-        "files": {
-          "/usr/share/icons/hicolor/32x32/apps/kyro-ide.png": "icons/32x32.png",
-          "/usr/share/icons/hicolor/128x128/apps/kyro-ide.png": "icons/128x128.png"
-        }
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0", "libssl3", "libayatana-appindicator3-1"]
       },
       "appimage": {
         "bundleMediaFramework": true
       },
       "rpm": {
-        "depends": ["webkit2gtk4.1", "gtk3", "openssl-libs", "libayatana-appindicator-gtk3"]
+        "depends": ["webkit2gtk4.1", "gtk3", "openssl-libs"]
       }
     },
     "externalBin": []
@@ -138,12 +135,9 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "https://releases.kyroide.dev/{{target}}/{{arch}}/{{current_version}}"
+        "https://github.com/nkpendyam/Kyro_IDE/releases/latest/download/{{target}}-{{arch}}.json"
       ],
-      "pubkey": "",
-      "windows": {
-        "installMode": "passive"
-      }
+      "pubkey": ""
     }
   }
 }
