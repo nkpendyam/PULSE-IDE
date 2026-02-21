@@ -7,7 +7,7 @@
     "beforeBuildCommand": "bun run build",
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:3000",
-    "frontendDist": "../out"
+    "frontendDist": "../.next"
   },
   "app": {
     "withGlobalTauri": true,
@@ -24,16 +24,12 @@
         "transparent": false,
         "center": true,
         "visible": true,
-        "focus": true
+        "focus": true,
+        "url": "http://localhost:3000"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' https: data: blob:; connect-src 'self' https: ws: http://localhost:* http://127.0.0.1:*; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:"
-    },
-    "trayIcon": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true,
-      "menuOnLeftClick": false
+      "csp": null
     }
   },
   "bundle": {
@@ -53,8 +49,7 @@
     "windows": {
       "digestAlgorithm": "sha256",
       "nsis": {
-        "installMode": "currentUser",
-        "languages": ["English", "SimpChinese", "TradChinese"]
+        "installMode": "currentUser"
       },
       "wix": {
         "language": "en-US"
@@ -69,9 +64,6 @@
       },
       "appimage": {
         "bundleMediaFramework": true
-      },
-      "rpm": {
-        "depends": ["webkit2gtk4.1", "gtk3", "openssl-libs"]
       }
     },
     "externalBin": []
@@ -86,8 +78,8 @@
           "args": true
         },
         {
-          "name": "npm",
-          "cmd": "npm",
+          "name": "node",
+          "cmd": "node",
           "args": true
         },
         {
@@ -96,48 +88,14 @@
           "args": true
         },
         {
-          "name": "node",
-          "cmd": "node",
-          "args": true
-        },
-        {
           "name": "python",
-          "cmd": "python",
-          "args": true
-        },
-        {
-          "name": "python3",
           "cmd": "python3",
-          "args": true
-        },
-        {
-          "name": "cargo",
-          "cmd": "cargo",
-          "args": true
-        },
-        {
-          "name": "rustc",
-          "cmd": "rustc",
-          "args": true
-        },
-        {
-          "name": "go",
-          "cmd": "go",
-          "args": true
-        },
-        {
-          "name": "docker",
-          "cmd": "docker",
           "args": true
         }
       ]
     },
     "updater": {
-      "active": true,
-      "endpoints": [
-        "https://github.com/nkpendyam/Kyro_IDE/releases/latest/download/{{target}}-{{arch}}.json"
-      ],
-      "pubkey": ""
+      "active": false
     }
   }
 }

@@ -1,17 +1,21 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Use static export for Tauri desktop app
-  // API routes will be handled by Tauri Rust backend
-  output: "export",
+  // Use standalone for server-side rendering (works with Tauri bundled server)
+  output: "standalone",
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
-  trailingSlash: true, // Better compatibility with static hosting
+  // Disable experimental features that might conflict
+  experimental: {
+    serverActions: {
+      allowedOrigins: ["localhost:3000"],
+    },
+  },
 };
 
 export default nextConfig;
