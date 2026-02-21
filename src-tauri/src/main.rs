@@ -9,9 +9,7 @@ mod error;
 mod fs_watcher;
 
 use commands::*;
-use error::Result;
 use tauri::Manager;
-use tauri_plugin_shell::ShellExt;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -34,21 +32,20 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_os::init())
-        
+
         // Setup
         .setup(|app| {
             let handle = app.handle();
-            
+
             // Initialize file watcher
-            fs_watcher::init(handle)?;
-            
-            // Setup menu bar
-            setup_menu(handle)?;
-            
+            if let Err(e) = fs_watcher::init(handle) {
+                tracing::warn!("Failed to initialize file watcher: {}", e);
+            }
+
             tracing::info!("Kyro IDE initialized successfully");
             Ok(())
         })
-        
+
         // Register commands
         .invoke_handler(tauri::generate_handler![
             // File system commands
@@ -63,7 +60,7 @@ pub fn run() {
             fs_exists,
             fs_get_file_info,
             fs_search_files,
-            
+
             // Git commands
             git_status,
             git_commit,
@@ -79,21 +76,21 @@ pub fn run() {
             git_blame,
             git_stash,
             git_stash_pop,
-            
+
             // Terminal commands
             terminal_create,
             terminal_write,
             terminal_resize,
             terminal_kill,
             terminal_list_shells,
-            
+
             // AI commands
             ai_chat,
             ai_complete,
             ai_get_models,
             ai_load_model,
             ai_unload_model,
-            
+
             // System commands
             system_info,
             system_open_url,
@@ -106,22 +103,4 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-/// Setup application menu bar
-fn setup_menu(app: &tauri::AppHandle) -> Result<()> {
-    #[cfg(target_os = "macos")]
-    {
-        use tauri::menu::{Menu, MenuItem};
-        
-        let app_menu = Menu::new(app)?;
-        let about_item = MenuItem::new(app, "About Kyro IDE", true, None::<&str>)?;
-        let settings_item = MenuItem::new(app, "Settings...", true, Some("Cmd+,"))?;
-        let quit_item = MenuItem::new(app, "Quit Kyro IDE", true, Some("Cmd+Q"))?;
-        
-        app_menu.append_items(&[&about_item, &settings_item, &quit_item])?;
-        app.set_menu(app_menu)?;
-    }
-    
-    Ok(())
 }
