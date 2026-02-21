@@ -228,7 +228,34 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000) to use Kyro IDE.
 
+### 📥 Download Installers
+
+Get pre-built installers from [GitHub Releases](https://github.com/nkpendyam/Kyro_IDE/releases):
+
+| Platform | Download |
+|----------|----------|
+| **Windows** | `.exe` (NSIS) or `.msi` |
+| **macOS (Apple Silicon)** | `.dmg` |
+| **macOS (Intel)** | `.dmg` |
+| **Linux** | `.AppImage` or `.deb` |
+
+**Installation:**
+
+```bash
+# Windows - Download and run the .exe installer
+Kyro-IDE_x64-setup.exe
+
+# macOS - Open the DMG and drag to Applications
+open Kyro-IDE_aarch64.dmg
+
+# Linux - Make AppImage executable and run
+chmod +x Kyro-IDE_*_amd64.AppImage
+./Kyro-IDE_*_amd64.AppImage
+```
+
 ### Desktop App (Tauri)
+
+Build from source:
 
 ```bash
 # Development mode
