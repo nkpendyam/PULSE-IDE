@@ -6,9 +6,37 @@
 ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge)
 
+[![CI/CD](https://github.com/nkpendyam/Kyro_IDE/actions/workflows/ci.yml/badge.svg)](https://github.com/nkpendyam/Kyro_IDE/actions/workflows/ci.yml)
+[![Release](https://github.com/nkpendyam/Kyro_IDE/actions/workflows/release.yml/badge.svg)](https://github.com/nkpendyam/Kyro_IDE/actions/workflows/release.yml)
+[![GitHub stars](https://img.shields.io/github/stars/nkpendyam/Kyro_IDE?style=social)](https://github.com/nkpendyam/Kyro_IDE/stargazers)
+[![Discord](https://img.shields.io/discord/placeholder?label=Discord&logo=discord)](https://discord.gg/kyro-ide)
+
 **A powerful, open-source AI-powered IDE that rivals Cursor, VS Code, and Zed**
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Architecture](#-architecture) • [Comparison](#-feature-comparison)
+[Features](#-features) • [Screenshots](#-screenshots) • [Quick Start](#-quick-start) • [Documentation](docs/API.md)
+
+</div>
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+### Main IDE Interface
+![Kyro IDE Main Interface](https://via.placeholder.com/1200x700/1a1a2e/ffffff?text=Kyro+IDE+Main+Interface)
+
+### AI Chat Panel
+![AI Chat Panel](https://via.placeholder.com/1200x700/1a1a2e/ffffff?text=AI+Chat+with+Multi-Agent+System)
+
+### Code Intelligence
+![Code Intelligence](https://via.placeholder.com/1200x700/1a1a2e/ffffff?text=Tree-sitter+Code+Intelligence)
+
+### Debugger
+![Debugger Panel](https://via.placeholder.com/1200x700/1a1a2e/ffffff?text=Multi-Language+Debugger)
+
+### Collaboration
+![Real-time Collaboration](https://via.placeholder.com/1200x700/1a1a2e/ffffff?text=CRDT+Collaboration)
 
 </div>
 
@@ -352,6 +380,28 @@ We welcome contributions! Please see our contributing guidelines:
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## 📚 Documentation
+
+| Resource | Link |
+|----------|------|
+| **API Documentation** | [docs/API.md](docs/API.md) |
+| **Contributing Guide** | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
+| **Security Policy** | [SECURITY.md](SECURITY.md) |
+
+---
+
+## 💬 Community
+
+| Platform | Link |
+|----------|------|
+| **GitHub Issues** | [Report a Bug](https://github.com/nkpendyam/Kyro_IDE/issues) |
+| **GitHub Discussions** | [Join the Discussion](https://github.com/nkpendyam/Kyro_IDE/discussions) |
+| **Discord** | [Join our Discord](https://discord.gg/kyro-ide) |
+| **Twitter/X** | [@KyroIDE](https://twitter.com/kyroide) |
 
 ---
 
