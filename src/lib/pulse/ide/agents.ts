@@ -438,11 +438,53 @@ ${s.code}
     history: { role: string; content: string }[],
     onStream?: (chunk: string) => void
   ): Promise<{ content: string; tokens?: number; actions?: AgentAction[] }> {
-    return {
-      content: 'Model integration pending. Connect to ModelGateway for actual responses.',
-      tokens: 0,
-      actions: []
-    };
+    try {
+      // Import AI service dynamically to avoid circular dependencies
+      const { aiService } = await import('../ai/ai-service');
+      
+      // Build messages with system prompt
+      const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+        { role: 'system', content: systemPrompt },
+        ...history.map(h => ({
+          role: h.role as 'user' | 'assistant',
+          content: h.content
+        }))
+      ];
+
+      // Determine the best model to use
+      const modelId = model.includes('opus') ? 'claude-3-opus' :
+                      model.includes('haiku') ? 'claude-3-haiku' :
+                      'claude-3-sonnet';
+
+      const response = await aiService.chat(messages, modelId, {
+        maxTokens: 4096,
+        temperature: 0.7
+      });
+
+      // Extract actions from response (code blocks with specific markers)
+      const actions: AgentAction[] = [];
+      const actionRegex = /<!-- ACTION: (\w+) -->([\s\S]*?)<!-- END_ACTION -->/g;
+      let match;
+      while ((match = actionRegex.exec(response.content)) !== null) {
+        actions.push({
+          type: match[1] as AgentAction['type'],
+          payload: match[2].trim()
+        });
+      }
+
+      return {
+        content: response.content,
+        tokens: response.tokens?.total,
+        actions
+      };
+    } catch (error) {
+      console.error('Agent model call failed:', error);
+      return {
+        content: `I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+        tokens: 0,
+        actions: []
+      };
+    }
   }
 
   endSession(sessionId: string): void {
