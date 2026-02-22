@@ -10,7 +10,7 @@ interface KyroState {
   projectPath: string | null; fileTree: FileNode | null; openFiles: OpenFile[]; activeFileIndex: number;
   editorContent: string; cursorPosition: { line: number; column: number }; selectedText: string;
   isOllamaRunning: boolean; models: ModelInfo[]; selectedModel: string; chatMessages: ChatMessage[]; isAiLoading: boolean;
-  terminalOutput: string; gitStatus: GitStatus | null;
+  terminalOutput: string; gitStatus: GitStatus | null; supportedLanguages: string[];
   sidebarWidth: number; chatWidth: number; showChat: boolean; showTerminal: boolean; terminalHeight: number;
   setProjectPath: (path: string | null) => void; setFileTree: (tree: FileNode | null) => void;
   openFile: (file: OpenFile) => void; closeFile: (path: string) => void; setActiveFile: (index: number) => void; updateFileContent: (path: string, content: string) => void;
@@ -18,12 +18,13 @@ interface KyroState {
   setOllamaStatus: (running: boolean) => void; setModels: (models: ModelInfo[]) => void; setSelectedModel: (model: string) => void;
   addChatMessage: (message: ChatMessage) => void; clearChatMessages: () => void; setAiLoading: (loading: boolean) => void;
   setTerminalOutput: (output: string) => void; appendTerminalOutput: (output: string) => void; setGitStatus: (status: GitStatus | null) => void;
+  setSupportedLanguages: (languages: string[]) => void;
   setSidebarWidth: (width: number) => void; setChatWidth: (width: number) => void; toggleChat: () => void; toggleTerminal: () => void; setTerminalHeight: (height: number) => void;
 }
 
 export const useKyroStore = create<KyroState>((set, get) => ({
   projectPath: null, fileTree: null, openFiles: [], activeFileIndex: -1, editorContent: '', cursorPosition: { line: 1, column: 1 }, selectedText: '',
-  isOllamaRunning: false, models: [], selectedModel: 'codellama:7b', chatMessages: [], isAiLoading: false, terminalOutput: '', gitStatus: null,
+  isOllamaRunning: false, models: [], selectedModel: 'codellama:7b', chatMessages: [], isAiLoading: false, terminalOutput: '', gitStatus: null, supportedLanguages: [],
   sidebarWidth: 260, chatWidth: 400, showChat: true, showTerminal: true, terminalHeight: 200,
   setProjectPath: (path) => set({ projectPath: path }), setFileTree: (tree) => set({ fileTree: tree }),
   openFile: (file) => {
@@ -46,5 +47,6 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   setOllamaStatus: (running) => set({ isOllamaRunning: running }), setModels: (models) => set({ models }), setSelectedModel: (model) => set({ selectedModel: model }),
   addChatMessage: (message) => set(state => ({ chatMessages: [...state.chatMessages, message] })), clearChatMessages: () => set({ chatMessages: [] }), setAiLoading: (loading) => set({ isAiLoading: loading }),
   setTerminalOutput: (output) => set({ terminalOutput: output }), appendTerminalOutput: (output) => set(state => ({ terminalOutput: state.terminalOutput + output })), setGitStatus: (status) => set({ gitStatus: status }),
+  setSupportedLanguages: (languages) => set({ supportedLanguages: languages }),
   setSidebarWidth: (width) => set({ sidebarWidth: width }), setChatWidth: (width) => set({ chatWidth: width }), toggleChat: () => set(state => ({ showChat: !state.showChat })), toggleTerminal: () => set(state => ({ showTerminal: !state.showTerminal })), setTerminalHeight: (height) => set({ terminalHeight: height }),
 }));

@@ -9,17 +9,53 @@ edition = "2021"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Tauri
 tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
+
+# Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# Async runtime
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.11", features = ["json"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "stream"] }
+
+# Terminal
 portable-pty = "0.8"
+
+# File watching
 notify = "6.1"
+
+# Git
 git2 = "0.18"
+
+# Tree-sitter for molecular LSP (multi-language parsing)
+tree-sitter = "0.20"
+
+# Concurrency
+dashmap = "5.5"
+parking_lot = "0.12"
+crossbeam = "0.8"
+
+# Utilities
+base64 = "0.21"
+sha2 = "0.10"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+env_logger = "0.10"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# LSP support
+lsp-types = "0.94"
 
 [features]
 default = ["custom-protocol"]

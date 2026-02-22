@@ -1,13 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Files, Search, GitBranch, Settings, FolderOpen } from 'lucide-react';
+import { Files, Search, GitBranch, Settings, FolderOpen, FileCode } from 'lucide-react';
 
-interface ActivityBarProps { activePanel: 'explorer' | 'search' | 'git'; onPanelChange: (panel: 'explorer' | 'search' | 'git') => void; onOpenFolder: () => void; }
+interface ActivityBarProps { 
+  activePanel: 'explorer' | 'search' | 'git' | 'symbols'; 
+  onPanelChange: (panel: 'explorer' | 'search' | 'git' | 'symbols') => void; 
+  onOpenFolder: () => void; 
+}
 
 export function ActivityBar({ activePanel, onPanelChange, onOpenFolder }: ActivityBarProps) {
   const items = [
     { id: 'explorer' as const, icon: Files, label: 'Explorer' },
+    { id: 'symbols' as const, icon: FileCode, label: 'Symbols' },
     { id: 'search' as const, icon: Search, label: 'Search' },
     { id: 'git' as const, icon: GitBranch, label: 'Source Control' },
   ];
