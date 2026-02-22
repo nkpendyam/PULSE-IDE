@@ -2,7 +2,7 @@
 //! A lightweight, fast, and intelligent development environment
 //!
 //! Features:
-//! - Molecular LSP: Tree-sitter based language support
+//! - Molecular LSP: Tree-sitter based language support with AI-powered completion
 //! - Swarm AI: Distributed AI inference with llama.cpp
 //! - Git-CRDT: Real-time collaboration with Git persistence
 //! - Virtual PICO: Mobile device as controller
@@ -24,6 +24,7 @@ mod symbolic_verify;
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use parking_lot::RwLock;
 
 fn main() {
     tauri::Builder::default()
@@ -39,7 +40,8 @@ fn main() {
             
             // Initialize AI client
             let ai_client = ai::AiClient::new();
-            app.manage(Arc::new(Mutex::new(ai_client)));
+            let ai_client_arc = Arc::new(Mutex::new(ai_client));
+            app.manage(ai_client_arc.clone());
             
             // Initialize file watcher
             let file_watcher = files::FileWatcher::new(window.clone());
@@ -51,7 +53,12 @@ fn main() {
             
             // Initialize molecular LSP
             let molecular_lsp = lsp::MolecularLsp::new();
-            app.manage(Arc::new(Mutex::new(molecular_lsp)));
+            let molecular_lsp_arc = Arc::new(RwLock::new(molecular_lsp));
+            app.manage(Arc::new(Mutex::new(lsp::MolecularLsp::new())));
+            
+            // Initialize AI completion engine
+            let completion_engine = lsp::completion_engine::AiCompletionEngine::new(molecular_lsp_arc);
+            app.manage(Arc::new(Mutex::new(completion_engine)));
             
             // Initialize Swarm AI engine (async)
             let app_handle = app.handle().clone();
@@ -79,6 +86,7 @@ fn main() {
             }
             
             log::info!("KYRO IDE initialized successfully");
+            log::info!("AI-powered completion engine ready (100ms budget)");
             
             Ok(())
         })
@@ -118,12 +126,18 @@ fn main() {
             commands::git::git_log,
             commands::git::git_branch,
             
-            // LSP operations
+            // LSP operations (basic)
             commands::lsp::detect_language,
             commands::lsp::extract_symbols,
             commands::lsp::get_completions,
             commands::lsp::get_diagnostics,
             commands::lsp::list_supported_languages,
+            
+            // LSP operations (AI-powered)
+            commands::lsp::get_ai_completions,
+            commands::lsp::update_file_symbols,
+            commands::lsp::get_completion_stats,
+            commands::lsp::get_completion_budget,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

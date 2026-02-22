@@ -5,16 +5,19 @@
 //! - Git persistence for history storage
 //! - AI-powered merge conflict resolution
 //! - Time-limited collaboration windows (5 min default)
+//! - WebSocket sync layer for peer communication
 
 pub mod yjs_adapter;
 pub mod git_persistence;
 pub mod ai_merge;
 pub mod awareness;
+pub mod websocket_sync;
 
 pub use yjs_adapter::YjsAdapter;
 pub use git_persistence::GitPersistence;
 pub use ai_merge::AiMergeResolver;
 pub use awareness::AwarenessProtocol;
+pub use websocket_sync::{CollaborationServer, CollaborationClient, CollaborationMessage};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

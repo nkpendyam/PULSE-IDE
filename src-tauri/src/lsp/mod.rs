@@ -1,6 +1,21 @@
 //! Molecular LSP System for KYRO IDE
 //! Uses tree-sitter for fast, incremental parsing across 40+ languages
 //! No external LSP processes needed for basic features
+//!
+//! ## AI-Powered Completion Flow
+//! 
+//! 1. User types: `fn fib(n: u32) -> u32 {`
+//! 2. Monaco detects completion request (Ctrl+Space)
+//! 3. KYRO routes to molecular_lsp.getCompletions
+//! 4. Molecular LSP processes in parallel:
+//!    - Symbol table (1ms): locals in scope
+//!    - Tree-sitter patterns (5ms): common patterns  
+//!    - WASM molecule (10ms): language-specific logic
+//!    - AI hints (50ms): neural suggestions
+//! 5. Results merged by confidence then recency
+//! 6. Returned to Monaco within 100ms budget
+
+pub mod completion_engine;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
