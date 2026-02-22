@@ -16,6 +16,7 @@
 //! 6. Returned to Monaco within 100ms budget
 
 pub mod completion_engine;
+pub mod wasm_loader;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
