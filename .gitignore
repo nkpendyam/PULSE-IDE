@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+src-tauri/target/
+.env*.local
+.env
+*.tsbuildinfo
+.DS_Store
+.idea/
+.vscode/
+download/
+upload/
