@@ -1,7 +1,7 @@
 [package]
 name = "kyro-ide"
 version = "0.1.0"
-description = "KYRO IDE - AI-Powered Code Editor"
+description = "KYRO IDE - AI-Powered Code Editor with Swarm AI"
 authors = ["KYRO Team"]
 edition = "2021"
 
@@ -53,9 +53,14 @@ log = "0.4"
 env_logger = "0.10"
 anyhow = "1.0"
 thiserror = "1.0"
+dirs = "5.0"
+which = "5.0"
 
 # LSP support
 lsp-types = "0.94"
+
+# Optional: libp2p for P2P swarm (commented out for initial build)
+# libp2p = { version = "0.52", features = ["tcp", "noise", "yamux", "gossipsub", "mdns", "kad"] }
 
 [features]
 default = ["custom-protocol"]
