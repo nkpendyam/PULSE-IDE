@@ -6,6 +6,17 @@
 //! - File access control (whitelist/blacklist)
 //! - Branch management (trunk-based development)
 //! - Sync enforcement (automatic merging)
+//! - Single-agent lock mechanism
+//!
+//! ## Critical Rules (STRICT MODE)
+//! 
+//! 1. ONE agent runs at a time - enforced by AgentLock
+//! 2. MAX 2GB memory - enforced by AgentGuardrails
+//! 3. MAX 30 minutes per task - enforced by scheduler
+//! 4. ONLY write to allowed paths - enforced by FileGuard
+//! 5. NEVER touch README.md or forbidden paths
+//! 6. Commit every 5 changes or 15 minutes
+//! 7. Merge to main every 10 commits or 2 hours
 
 pub mod guardrails;
 pub mod memory;
@@ -13,13 +24,15 @@ pub mod file_guard;
 pub mod branch_manager;
 pub mod sync_enforcer;
 pub mod scheduler;
+pub mod agent_lock;
 
 pub use guardrails::AgentGuardrails;
 pub use memory::AgentMemory;
-pub use file_guard::{FileGuardrails, FileAccess};
+pub use file_guard::{FileGuard, FileAccess, DEFAULT_ALLOWED_PATHS, FORBIDDEN_PATHS};
 pub use branch_manager::BranchManager;
 pub use sync_enforcer::SyncEnforcer;
-pub use scheduler::AgentScheduler;
+pub use scheduler::{AgentScheduler, AgentExecutionGuard, TaskPriority};
+pub use agent_lock::{AgentLock, AgentGuard, LOCK_FILE, MEMORY_DIR};
 
 use serde::{Deserialize, Serialize};
 

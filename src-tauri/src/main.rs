@@ -7,6 +7,7 @@
 //! - Git-CRDT: Real-time collaboration with Git persistence
 //! - Virtual PICO: Mobile device as controller
 //! - Symbolic Verify: Formal verification with Z3/Kani
+//! - Agent System: Controlled execution with strict guardrails
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -20,6 +21,7 @@ mod swarm_ai;
 mod git_crdt;
 mod virtual_pico;
 mod symbolic_verify;
+mod agents;
 
 use tauri::Manager;
 use std::sync::Arc;

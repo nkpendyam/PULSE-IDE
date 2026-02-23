@@ -59,6 +59,15 @@ which = "5.0"
 # LSP support
 lsp-types = "0.94"
 
+# Agent system dependencies
+rusqlite = { version = "0.31", features = ["bundled"] }
+regex = "1.10"
+sysinfo = "0.30"
+
+# Unix-specific (conditional)
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 # Optional: libp2p for P2P swarm (commented out for initial build)
 # libp2p = { version = "0.52", features = ["tcp", "noise", "yamux", "gossipsub", "mdns", "kad"] }
 
