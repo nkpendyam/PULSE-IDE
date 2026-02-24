@@ -70,6 +70,9 @@ mod collaboration;
 // ============ AI Inference (based on Candle) ============
 mod inference;
 
+// ============ Text Buffer (based on Ropey) ============
+mod buffer;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};

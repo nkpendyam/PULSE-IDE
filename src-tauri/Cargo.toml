@@ -135,6 +135,10 @@ wasmtime = { version = "20", optional = true, default-features = false, features
 # ============ CRDT (Collaboration) ============
 yrs = "0.18"  # Yjs Rust port (from y-crdt/y-crdt)
 automerge = { version = "0.5", optional = true }  # Alternative CRDT (optional)
+loro = "1.5"  # Loro CRDT (from loro-dev/loro) - rich text collaboration
+
+# ============ Text Buffer ============
+ropey = "1.6"  # UTF-8 text rope (from cessen/ropey)
 
 # ============ Additional Crypto ============
 blake3 = "1.5"
