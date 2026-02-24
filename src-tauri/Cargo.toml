@@ -87,7 +87,7 @@ tar = "0.4"
 flate2 = "1.0"
 
 # ============ WASM Runtime (Plugin System) ============
-wasmtime = { version = "20", optional = true, default-features = false, features = ["cranelift", "pooling-allocator"] }
+wasmtime = { version = "41", optional = true, default-features = false, features = ["cranelift", "pooling-allocator"] }
 
 # ============ Vector Database (RAG) ============
 # qdrant-client = { version = "1.7", optional = true }
