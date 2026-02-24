@@ -64,6 +64,12 @@ mod vscode_compat;
 // ============ Tower-LSP Integration ============
 mod lsp_tower;
 
+// ============ Collaboration (based on Conflux) ============
+mod collaboration;
+
+// ============ AI Inference (based on Candle) ============
+mod inference;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};
