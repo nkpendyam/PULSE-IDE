@@ -43,6 +43,7 @@ mod git_crdt;
 
 // ============ Platform Modules ============
 mod virtual_pico;
+mod telegram;
 
 // ============ Verification Modules ============
 mod symbolic_verify;
