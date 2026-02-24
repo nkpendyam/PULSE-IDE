@@ -55,7 +55,7 @@ jobs:
             libatk1.0-dev
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
