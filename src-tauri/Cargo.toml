@@ -41,12 +41,51 @@ git2 = "0.18"
 
 # ============ Tree-sitter (Language Parsing) ============
 tree-sitter = "0.20"
-# Language grammars (lazy-loaded)
-# tree-sitter-rust = "0.20"
-# tree-sitter-python = "0.20"
-# tree-sitter-javascript = "0.20"
-# tree-sitter-typescript = "0.20"
-# tree-sitter-go = "0.20"
+
+# Tree-sitter grammars (50+ languages from tree-sitter-grammars)
+# Core languages (always included)
+tree-sitter-rust = "0.20"
+tree-sitter-python = "0.20"
+tree-sitter-javascript = "0.20"
+tree-sitter-typescript = "0.20"
+tree-sitter-go = "0.20"
+tree-sitter-java = "0.20"
+tree-sitter-c = "0.20"
+tree-sitter-cpp = "0.20"
+tree-sitter-json = "0.20"
+tree-sitter-yaml = "0.20"
+tree-sitter-html = "0.20"
+tree-sitter-css = "0.20"
+tree-sitter-md = "0.1"
+tree-sitter-bash = "0.20"
+tree-sitter-sql = "0.20"
+
+# Additional languages (optional)
+tree-sitter-ruby = { version = "0.20", optional = true }
+tree-sitter-php = { version = "0.20", optional = true }
+tree-sitter-swift = { version = "0.20", optional = true }
+tree-sitter-kotlin = { version = "0.3", optional = true }
+tree-sitter-scala = { version = "0.20", optional = true }
+tree-sitter-lua = { version = "0.0.19", optional = true }
+tree-sitter-c-sharp = { version = "0.20", optional = true }
+tree-sitter-dart = { version = "0.0.4", optional = true }
+tree-sitter-elixir = { version = "0.2", optional = true }
+tree-sitter-erlang = { version = "0.2", optional = true }
+tree-sitter-haskell = { version = "0.14", optional = true }
+tree-sitter-ocaml = { version = "0.20", optional = true }
+tree-sitter-clojure = { version = "0.0.10", optional = true }
+tree-sitter-nim = { version = "0.0.12", optional = true }
+tree-sitter-zig = { version = "0.0.12", optional = true }
+tree-sitter-r = { version = "0.19", optional = true }
+tree-sitter-perl = { version = "0.0.11", optional = true }
+tree-sitter-julia = { version = "0.0.12", optional = true }
+tree-sitter-vue = { version = "0.0.6", optional = true }
+tree-sitter-svelte = { version = "0.0.13", optional = true }
+tree-sitter-toml = { version = "0.20", optional = true }
+tree-sitter-dockerfile = { version = "0.1", optional = true }
+tree-sitter-make = { version = "0.0.12", optional = true }
+tree-sitter-graphql = { version = "0.1", optional = true }
+tree-sitter-wgsl = { version = "0.0.12", optional = true }
 
 # ============ Concurrency ============
 dashmap = "5.5"
@@ -71,6 +110,7 @@ num_cpus = "1.16"
 
 # ============ LSP Support ============
 lsp-types = "0.95"
+tower-lsp = "0.20"  # LSP implementation framework (from ebkalderon/tower-lsp)
 
 # ============ Database (Agent Memory) ============
 rusqlite = { version = "0.31", features = ["bundled"] }
@@ -93,7 +133,8 @@ wasmtime = { version = "20", optional = true, default-features = false, features
 # qdrant-client = { version = "1.7", optional = true }
 
 # ============ CRDT (Collaboration) ============
-yrs = "0.18"  # Yjs Rust port
+yrs = "0.18"  # Yjs Rust port (from y-crdt/y-crdt)
+automerge = { version = "0.5", optional = true }  # Alternative CRDT (optional)
 
 # ============ Additional Crypto ============
 blake3 = "1.5"
@@ -141,11 +182,46 @@ linker = "x86_64-w64-mingw32-gcc"
 # ============ Features ============
 
 [features]
-default = ["custom-protocol", "embedded-llm"]
+default = ["custom-protocol", "embedded-llm", "core-languages"]
 custom-protocol = ["tauri/custom-protocol"]
+
+# Core languages (always included)
+core-languages = []
+
+# Extended language support (50+ languages)
+all-languages = [
+    "tree-sitter-ruby",
+    "tree-sitter-php",
+    "tree-sitter-swift",
+    "tree-sitter-kotlin",
+    "tree-sitter-scala",
+    "tree-sitter-lua",
+    "tree-sitter-c-sharp",
+    "tree-sitter-dart",
+    "tree-sitter-elixir",
+    "tree-sitter-erlang",
+    "tree-sitter-haskell",
+    "tree-sitter-ocaml",
+    "tree-sitter-clojure",
+    "tree-sitter-nim",
+    "tree-sitter-zig",
+    "tree-sitter-r",
+    "tree-sitter-perl",
+    "tree-sitter-julia",
+    "tree-sitter-vue",
+    "tree-sitter-svelte",
+    "tree-sitter-toml",
+    "tree-sitter-dockerfile",
+    "tree-sitter-make",
+    "tree-sitter-graphql",
+    "tree-sitter-wgsl",
+]
 
 # Embedded LLM (llama.cpp static linking)
 embedded-llm = []
+
+# Candle ML framework (alternative inference)
+candle-inference = []
 
 # WASM Plugin System
 wasm-plugins = ["wasmtime"]
@@ -162,8 +238,11 @@ vulkan = []
 # RAG System with Vector DB
 rag = []
 
+# Alternative CRDT backend
+crdt-automerge = ["automerge"]
+
 # Full Enterprise Features
-enterprise = ["wasm-plugins", "rag"]
+enterprise = ["wasm-plugins", "rag", "all-languages"]
 
 # Development/Debug Features
 debug-logging = ["log/max_level_debug", "log/max_level_trace"]

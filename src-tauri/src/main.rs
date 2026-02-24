@@ -58,6 +58,12 @@ mod telemetry;
 mod accessibility;
 mod benchmark;
 
+// ============ VS Code Compatibility ============
+mod vscode_compat;
+
+// ============ Tower-LSP Integration ============
+mod lsp_tower;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};
