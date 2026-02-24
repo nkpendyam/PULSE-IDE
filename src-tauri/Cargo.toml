@@ -1,76 +1,178 @@
 [package]
 name = "kyro-ide"
 version = "0.1.0"
-description = "KYRO IDE - AI-Powered Code Editor with Swarm AI"
-authors = ["KYRO Team"]
+description = "KRO_IDE - AI-Powered Code Editor with Embedded LLM, MCP Agents, and Zero-Dependency Distribution"
+authors = ["KRO_IDE Team"]
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/nkpendyam/Kyro_IDE"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-# Tauri
+# ============ Tauri (Desktop Shell) ============
 tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"  # For auto-updates
 
-# Serialization
+# ============ Serialization ============
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# Async runtime
-tokio = { version = "1", features = ["full"] }
+# ============ Async Runtime ============
+tokio = { version = "1", features = ["full", "test-util"] }
 tokio-tungstenite = "0.21"
 futures-util = "0.3"
 
-# HTTP client
-reqwest = { version = "0.11", features = ["json", "stream"] }
+# ============ HTTP Client ============
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
 
-# Terminal
+# ============ Terminal ============
 portable-pty = "0.8"
 
-# File watching
+# ============ File Watching ============
 notify = "6.1"
 
-# Git
+# ============ Git ============
 git2 = "0.18"
 
-# Tree-sitter for molecular LSP (multi-language parsing)
+# ============ Tree-sitter (Language Parsing) ============
 tree-sitter = "0.20"
+# Language grammars (lazy-loaded)
+# tree-sitter-rust = "0.20"
+# tree-sitter-python = "0.20"
+# tree-sitter-javascript = "0.20"
+# tree-sitter-typescript = "0.20"
+# tree-sitter-go = "0.20"
 
-# Concurrency
+# ============ Concurrency ============
 dashmap = "5.5"
 parking_lot = "0.12"
 crossbeam = "0.8"
+async-trait = "0.1"
 
-# Utilities
-base64 = "0.21"
+# ============ Utilities ============
+base64 = "0.22"
 sha2 = "0.10"
 uuid = { version = "1.6", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
-env_logger = "0.10"
+env_logger = "0.11"
 anyhow = "1.0"
 thiserror = "1.0"
 dirs = "5.0"
 which = "5.0"
+tempfile = "3.10"
+shellexpand = "3.1"
+num_cpus = "1.16"
 
-# LSP support
-lsp-types = "0.94"
+# ============ LSP Support ============
+lsp-types = "0.95"
 
-# Agent system dependencies
+# ============ Database (Agent Memory) ============
 rusqlite = { version = "0.31", features = ["bundled"] }
+
+# ============ Text Processing ============
 regex = "1.10"
+
+# ============ System Info ============
 sysinfo = "0.30"
 
-# Unix-specific (conditional)
+# ============ Archive Handling (for updates/plugins) ============
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+tar = "0.4"
+flate2 = "1.0"
+
+# ============ WASM Runtime (Plugin System) ============
+wasmtime = { version = "20", optional = true, default-features = false, features = ["cranelift", "pooling-allocator"] }
+
+# ============ Vector Database (RAG) ============
+# qdrant-client = { version = "1.7", optional = true }
+
+# ============ CRDT (Collaboration) ============
+yrs = "0.18"  # Yjs Rust port
+
+# ============ Additional Crypto ============
+blake3 = "1.5"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rand = "0.8"
+
+# ============ Platform-Specific ============
+
+# Unix-specific
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
-# Optional: libp2p for P2P swarm (commented out for initial build)
-# libp2p = { version = "0.52", features = ["tcp", "noise", "yamux", "gossipsub", "mdns", "kad"] }
+# Windows-specific
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winbase", "fileapi"] }
+
+# macOS-specific
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.25"
+
+# ============ Build Profile Optimizations ============
+
+[profile.dev]
+opt-level = 1
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# ============ Platform-Specific Static Linking ============
+
+# Linux MUSL static binary
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-gcc"
+
+# Windows MinGW static
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+
+# ============ Features ============
 
 [features]
-default = ["custom-protocol"]
+default = ["custom-protocol", "embedded-llm"]
 custom-protocol = ["tauri/custom-protocol"]
+
+# Embedded LLM (llama.cpp static linking)
+embedded-llm = []
+
+# WASM Plugin System
+wasm-plugins = ["wasmtime"]
+
+# CUDA GPU Acceleration
+cuda = []
+
+# Metal GPU Acceleration (macOS only)
+metal = []
+
+# Vulkan GPU Acceleration
+vulkan = []
+
+# RAG System with Vector DB
+rag = []
+
+# Full Enterprise Features
+enterprise = ["wasm-plugins", "rag"]
+
+# Development/Debug Features
+debug-logging = ["log/max_level_debug", "log/max_level_trace"]
+
+# ============ Workspace Members (Future) ============
+# [workspace]
+# members = [
+#     "crates/kro-editor",
+#     "crates/kro-ai",
+#     "crates/kro-collab",
+#     "crates/kro-plugins",
+# ]
