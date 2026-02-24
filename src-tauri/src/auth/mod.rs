@@ -4,20 +4,26 @@
 //! Based on patterns from jedisct1/rust-jwt-simple
 //! 
 //! Features:
-//! - User registration and login
+//! - User registration and login with Argon2 password hashing
 //! - JWT token generation and validation
 //! - Session management
 //! - Role-based access control (RBAC)
+//! - Rate limiting and brute-force protection
+//! - Audit logging
 
 pub mod jwt_handler;
 pub mod session;
 pub mod rbac;
 pub mod oauth;
+pub mod rate_limiter;
+pub mod audit;
 
 pub use jwt_handler::*;
 pub use session::*;
 pub use rbac::*;
 pub use oauth::*;
+pub use rate_limiter::*;
+pub use audit::*;
 
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
@@ -29,10 +35,24 @@ pub struct User {
     pub id: Uuid,
     pub username: String,
     pub email: String,
+    pub password_hash: String,
     pub role: UserRole,
     pub created_at: DateTime<Utc>,
     pub last_login: Option<DateTime<Utc>>,
     pub is_active: bool,
+    pub failed_login_attempts: u32,
+    pub locked_until: Option<DateTime<Utc>>,
+}
+
+impl User {
+    /// Check if account is locked due to failed attempts
+    pub fn is_locked(&self) -> bool {
+        if let Some(locked_until) = self.locked_until {
+            Utc::now() < locked_until
+        } else {
+            false
+        }
+    }
 }
 
 /// User roles for RBAC
@@ -54,7 +74,7 @@ impl Default for UserRole {
 /// Authentication configuration
 #[derive(Debug, Clone)]
 pub struct AuthConfig {
-    /// JWT secret key (should be loaded from environment)
+    /// JWT secret key (loaded from environment variable JWT_SECRET)
     pub jwt_secret: String,
     /// Token expiration time in seconds (default: 24 hours)
     pub token_expiration: u64,
@@ -64,17 +84,46 @@ pub struct AuthConfig {
     pub max_sessions: usize,
     /// Enable OAuth providers
     pub oauth_enabled: bool,
+    /// Max failed login attempts before lockout
+    pub max_failed_attempts: u32,
+    /// Account lockout duration in seconds
+    pub lockout_duration_secs: u64,
+    /// Rate limit: requests per minute per IP
+    pub rate_limit_per_minute: u32,
+}
+
+impl AuthConfig {
+    /// Create config from environment variables
+    pub fn from_env() -> Self {
+        Self {
+            jwt_secret: std::env::var("JWT_SECRET")
+                .unwrap_or_else(|_| {
+                    log::warn!("JWT_SECRET not set, using generated secret. THIS IS INSECURE FOR PRODUCTION!");
+                    format!("kyro-ide-{}-secret", Uuid::new_v4())
+                }),
+            token_expiration: std::env::var("JWT_EXPIRATION_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(86400),
+            refresh_expiration: std::env::var("JWT_REFRESH_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(604800),
+            max_sessions: 5,
+            oauth_enabled: std::env::var("OAUTH_ENABLED")
+                .ok()
+                .map(|s| s == "true")
+                .unwrap_or(false),
+            max_failed_attempts: 5,
+            lockout_duration_secs: 900, // 15 minutes
+            rate_limit_per_minute: 60,
+        }
+    }
 }
 
 impl Default for AuthConfig {
     fn default() -> Self {
-        Self {
-            jwt_secret: "kyro-ide-default-secret-change-in-production".to_string(),
-            token_expiration: 86400, // 24 hours
-            refresh_expiration: 604800, // 7 days
-            max_sessions: 5,
-            oauth_enabled: false,
-        }
+        Self::from_env()
     }
 }
 
@@ -83,6 +132,9 @@ pub struct AuthManager {
     config: AuthConfig,
     sessions: std::collections::HashMap<Uuid, Session>,
     users: std::collections::HashMap<Uuid, User>,
+    username_index: std::collections::HashMap<String, Uuid>,
+    rate_limiter: RateLimiter,
+    audit_log: AuditLog,
 }
 
 impl AuthManager {
@@ -91,32 +143,123 @@ impl AuthManager {
             config,
             sessions: std::collections::HashMap::new(),
             users: std::collections::HashMap::new(),
+            username_index: std::collections::HashMap::new(),
+            rate_limiter: RateLimiter::new(60), // 60 requests per minute
+            audit_log: AuditLog::new(),
         }
     }
 
-    /// Register a new user
+    /// Create with default configuration from environment
+    pub fn from_env() -> Self {
+        Self::new(AuthConfig::from_env())
+    }
+
+    /// Hash password using Argon2
+    fn hash_password(password: &str) -> String {
+        use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
+        
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        
+        argon2.hash_password(password.as_bytes(), &salt)
+            .map(|hash| hash.to_string())
+            .unwrap_or_else(|_| {
+                // Fallback to bcrypt if argon2 fails (shouldn't happen)
+                bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap()
+            })
+    }
+
+    /// Verify password against hash
+    fn verify_password(password: &str, hash: &str) -> bool {
+        // Try Argon2 first
+        use argon2::{Argon2, PasswordVerifier};
+        use argon2::password_hash::{PasswordHash, PasswordHasher};
+        
+        if let Ok(parsed_hash) = PasswordHash::new(hash) {
+            if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok() {
+                return true;
+            }
+        }
+        
+        // Fallback to bcrypt
+        bcrypt::verify(password, hash).unwrap_or(false)
+    }
+
+    /// Register a new user with hashed password
     pub fn register(&mut self, username: String, email: String, password: &str) -> anyhow::Result<User> {
+        // Check if username already exists
+        if self.username_index.contains_key(&username) {
+            anyhow::bail!("Username already exists");
+        }
+
         let user_id = Uuid::new_v4();
+        let password_hash = Self::hash_password(password);
+        
         let user = User {
             id: user_id,
-            username,
+            username: username.clone(),
             email,
+            password_hash,
             role: UserRole::Viewer,
             created_at: Utc::now(),
             last_login: None,
             is_active: true,
+            failed_login_attempts: 0,
+            locked_until: None,
         };
         
+        self.username_index.insert(username, user_id);
         self.users.insert(user_id, user.clone());
+        
+        // Audit log
+        self.audit_log.log(AuditAction::UserRegistered, user_id, None);
+        
         Ok(user)
     }
 
-    /// Authenticate user and generate tokens
-    pub fn login(&mut self, username: &str, password: &str) -> anyhow::Result<AuthTokens> {
+    /// Authenticate user and generate tokens (with rate limiting)
+    pub fn login(&mut self, username: &str, password: &str, client_ip: Option<&str>) -> anyhow::Result<AuthTokens> {
+        // Rate limiting check
+        let ip = client_ip.unwrap_or("unknown");
+        if !self.rate_limiter.check(ip) {
+            self.audit_log.log(AuditAction::RateLimited, Uuid::nil(), Some(ip.to_string()));
+            anyhow::bail!("Rate limit exceeded. Please try again later.");
+        }
+
         // Find user by username
-        let user = self.users.values()
-            .find(|u| u.username == username)
+        let user_id = self.username_index.get(username)
             .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
+        
+        let user = self.users.get_mut(user_id)
+            .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
+
+        // Check if account is locked
+        if user.is_locked() {
+            self.audit_log.log(AuditAction::LoginFailedLocked, user.id, Some(ip.to_string()));
+            anyhow::bail!("Account is temporarily locked due to too many failed attempts");
+        }
+
+        // Verify password
+        if !Self::verify_password(password, &user.password_hash) {
+            user.failed_login_attempts += 1;
+            
+            // Lock account after max failures
+            if user.failed_login_attempts >= self.config.max_failed_attempts {
+                user.locked_until = Some(Utc::now() + chrono::Duration::seconds(self.config.lockout_duration_secs as i64));
+                self.audit_log.log(AuditAction::AccountLocked, user.id, Some(ip.to_string()));
+                anyhow::bail!("Account locked due to too many failed attempts. Try again in {} minutes.", 
+                    self.config.lockout_duration_secs / 60);
+            }
+            
+            self.audit_log.log(AuditAction::LoginFailed, user.id, Some(ip.to_string()));
+            anyhow::bail!("Invalid credentials");
+        }
+
+        // Reset failed attempts on successful login
+        user.failed_login_attempts = 0;
+        user.locked_until = None;
+        user.last_login = Some(Utc::now());
+        let user = user.clone();
 
         // Generate tokens
         let access_token = jwt_handler::generate_token(
@@ -144,11 +287,14 @@ impl AuthManager {
 
         self.sessions.insert(session.id, session);
 
+        // Audit log
+        self.audit_log.log(AuditAction::LoginSuccess, user.id, Some(ip.to_string()));
+
         Ok(AuthTokens {
             access_token,
             refresh_token,
             expires_in: self.config.token_expiration,
-            user: user.clone(),
+            user,
         })
     }
 
@@ -180,6 +326,8 @@ impl AuthManager {
             &self.config.jwt_secret,
         )?;
 
+        self.audit_log.log(AuditAction::TokenRefreshed, user.id, None);
+
         Ok(AuthTokens {
             access_token: new_access_token,
             refresh_token: new_refresh_token,
@@ -191,6 +339,7 @@ impl AuthManager {
     /// Logout user (invalidate session)
     pub fn logout(&mut self, user_id: Uuid) -> anyhow::Result<()> {
         self.sessions.retain(|_, s| s.user_id != user_id);
+        self.audit_log.log(AuditAction::Logout, user_id, None);
         Ok(())
     }
 
@@ -199,9 +348,41 @@ impl AuthManager {
         self.users.get(&user_id)
     }
 
+    /// Get user by username
+    pub fn get_user_by_username(&self, username: &str) -> Option<&User> {
+        self.username_index.get(username)
+            .and_then(|id| self.users.get(id))
+    }
+
     /// Check if user has permission
     pub fn has_permission(&self, user: &User, permission: &Permission) -> bool {
         rbac::has_permission(&user.role, permission)
+    }
+
+    /// Get audit log entries
+    pub fn get_audit_log(&self, limit: usize) -> Vec<&AuditEntry> {
+        self.audit_log.get_entries(limit)
+    }
+
+    /// Change user role (admin only)
+    pub fn change_role(&mut self, admin_id: Uuid, user_id: Uuid, new_role: UserRole) -> anyhow::Result<()> {
+        // Verify admin
+        let admin = self.users.get(&admin_id)
+            .ok_or_else(|| anyhow::anyhow!("Admin not found"))?;
+        
+        if !matches!(admin.role, UserRole::Admin | UserRole::Owner) {
+            anyhow::bail!("Insufficient permissions");
+        }
+
+        let user = self.users.get_mut(&user_id)
+            .ok_or_else(|| anyhow::anyhow!("User not found"))?;
+        
+        user.role = new_role.clone();
+        
+        self.audit_log.log(AuditAction::RoleChanged, user_id, 
+            Some(format!("Changed to {:?}", new_role)));
+        
+        Ok(())
     }
 }
 
@@ -266,7 +447,10 @@ mod tests {
 
     #[test]
     fn test_user_registration() {
-        let config = AuthConfig::default();
+        let config = AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            ..Default::default()
+        };
         let mut manager = AuthManager::new(config);
         
         let user = manager.register(
@@ -277,6 +461,85 @@ mod tests {
         
         assert_eq!(user.username, "testuser");
         assert_eq!(user.role, UserRole::Viewer);
+        assert!(!user.password_hash.is_empty());
+        assert_ne!(user.password_hash, "password123"); // Should be hashed
+    }
+
+    #[test]
+    fn test_password_hashing() {
+        let password = "my_secure_password";
+        let hash = AuthManager::hash_password(password);
+        
+        assert_ne!(hash, password);
+        assert!(AuthManager::verify_password(password, &hash));
+        assert!(!AuthManager::verify_password("wrong_password", &hash));
+    }
+
+    #[test]
+    fn test_login_success() {
+        let config = AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            ..Default::default()
+        };
+        let mut manager = AuthManager::new(config);
+        
+        manager.register(
+            "testuser".to_string(),
+            "test@example.com".to_string(),
+            "password123",
+        ).unwrap();
+        
+        let tokens = manager.login("testuser", "password123", Some("127.0.0.1")).unwrap();
+        
+        assert!(!tokens.access_token.is_empty());
+        assert!(!tokens.refresh_token.is_empty());
+        assert_eq!(tokens.user.username, "testuser");
+    }
+
+    #[test]
+    fn test_login_wrong_password() {
+        let config = AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            max_failed_attempts: 3,
+            ..Default::default()
+        };
+        let mut manager = AuthManager::new(config);
+        
+        manager.register(
+            "testuser".to_string(),
+            "test@example.com".to_string(),
+            "password123",
+        ).unwrap();
+        
+        let result = manager.login("testuser", "wrong_password", Some("127.0.0.1"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_account_lockout() {
+        let config = AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            max_failed_attempts: 2,
+            lockout_duration_secs: 60,
+            ..Default::default()
+        };
+        let mut manager = AuthManager::new(config);
+        
+        manager.register(
+            "testuser".to_string(),
+            "test@example.com".to_string(),
+            "password123",
+        ).unwrap();
+        
+        // First failed attempt
+        let _ = manager.login("testuser", "wrong1", Some("127.0.0.1"));
+        // Second failed attempt - should lock
+        let _ = manager.login("testuser", "wrong2", Some("127.0.0.1"));
+        
+        // Even correct password should fail now
+        let result = manager.login("testuser", "password123", Some("127.0.0.1"));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("locked"));
     }
 
     #[test]
@@ -284,5 +547,49 @@ mod tests {
         assert!(rbac::has_permission(&UserRole::Owner, &Permission::FileDelete));
         assert!(rbac::has_permission(&UserRole::Admin, &Permission::CollaboratorInvite));
         assert!(!rbac::has_permission(&UserRole::Viewer, &Permission::FileDelete));
+        assert!(rbac::has_permission(&UserRole::Editor, &Permission::FileWrite));
+        assert!(!rbac::has_permission(&UserRole::Guest, &Permission::AIAccess));
+    }
+
+    #[test]
+    fn test_duplicate_username() {
+        let config = AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            ..Default::default()
+        };
+        let mut manager = AuthManager::new(config);
+        
+        manager.register(
+            "testuser".to_string(),
+            "test1@example.com".to_string(),
+            "password123",
+        ).unwrap();
+        
+        let result = manager.register(
+            "testuser".to_string(),
+            "test2@example.com".to_string(),
+            "password456",
+        );
+        
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_audit_log() {
+        let config = AuthConfig {
+            jwt_secret: "test-secret".to_string(),
+            ..Default::default()
+        };
+        let mut manager = AuthManager::new(config);
+        
+        manager.register(
+            "testuser".to_string(),
+            "test@example.com".to_string(),
+            "password123",
+        ).unwrap();
+        
+        let logs = manager.get_audit_log(10);
+        assert!(!logs.is_empty());
+        assert!(logs.iter().any(|l| matches!(l.action, AuditAction::UserRegistered)));
     }
 }
