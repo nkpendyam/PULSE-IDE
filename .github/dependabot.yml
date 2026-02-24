@@ -2,10 +2,6 @@
 # Automatically creates PRs to update dependencies
 
 version: 2
-registries:
-  npm-registry:
-    type: npm-registry
-    url: https://registry.npmjs.org
 
 updates:
   # Rust dependencies
@@ -16,23 +12,18 @@ updates:
       day: "monday"
       time: "06:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - "nkpendyam"
     labels:
       - "dependencies"
       - "rust"
     commit-message:
       prefix: "cargo"
       include: "scope"
-    groups:
-      dev-dependencies:
-        patterns:
-          - "*"
-        dependency-type: "development"
-      prod-dependencies:
-        patterns:
-          - "*"
-        dependency-type: "production"
+    ignore:
+      # Ignore major version updates for critical packages
+      - dependency-name: "tauri"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tokio"
+        update-types: ["version-update:semver-major"]
 
   # npm/bun dependencies
   - package-ecosystem: "npm"
@@ -42,8 +33,6 @@ updates:
       day: "monday"
       time: "06:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - "nkpendyam"
     labels:
       - "dependencies"
       - "javascript"
@@ -67,8 +56,6 @@ updates:
       day: "monday"
       time: "06:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "nkpendyam"
     labels:
       - "dependencies"
       - "github-actions"
