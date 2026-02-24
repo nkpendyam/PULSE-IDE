@@ -27,6 +27,9 @@ mod lsp_test;
 // Performance and load tests
 mod performance_test;
 
+// Security tests
+mod security_test;
+
 /// Test utilities and helpers
 pub mod utils {
     use std::time::Duration;
