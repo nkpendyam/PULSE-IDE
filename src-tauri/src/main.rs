@@ -76,6 +76,9 @@ mod buffer;
 // ============ Authentication (JWT + OAuth) ============
 mod auth;
 
+// ============ End-to-End Encryption (Signal Protocol) ============
+mod e2ee;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};

@@ -180,6 +180,15 @@ argon2 = "0.5"  # Argon2 password hashing (recommended)
 bcrypt = "0.15"  # Bcrypt fallback password hashing
 password-hash = "0.5"  # Password hashing traits
 
+# ============ End-to-End Encryption (Signal Protocol) ============
+# Based on: https://github.com/signalapp/libsignal
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+x448 = "0.1"  # X448 key exchange (post-quantum ready)
+chacha20poly1305 = "0.10"  # AEAD encryption
+hkdf = "0.12"  # Key derivation
+sha2 = "0.10"  # SHA-256/512
+double-ratchet = "0.1"  # Double ratchet for forward secrecy
+
 # ============ Platform-Specific ============
 
 # Unix-specific
