@@ -73,7 +73,7 @@ num_cpus = "1.16"
 lsp-types = "0.95"
 
 # ============ Database (Agent Memory) ============
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.38", features = ["bundled"] }
 
 # ============ Text Processing ============
 regex = "1.10"
