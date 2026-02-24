@@ -144,9 +144,18 @@ fn main() {
             
             // ============ Initialize Embedded LLM ============
             
+            // Initialize embedded LLM state (for commands to access)
+            let embedded_llm_state = commands::embedded_llm::EmbeddedLLMState {
+                engine: None,
+                hardware: hardware_caps.clone(),
+            };
+            app.manage(Arc::new(AsyncRwLock::new(embedded_llm_state)));
+            log::info!("✓ Embedded LLM state initialized");
+            
             #[cfg(feature = "embedded-llm")]
             {
                 let app_handle = app.handle().clone();
+                let hardware_caps = hardware_caps.clone();
                 tauri::async_runtime::spawn(async move {
                     let config = embedded_llm::EmbeddedLLMConfig {
                         max_vram_mb: (hardware_caps.vram_bytes / (1024*1024)) as u64 * 80 / 100, // 80% of VRAM
@@ -279,6 +288,18 @@ fn main() {
             commands::lsp::update_file_symbols,
             commands::lsp::get_completion_stats,
             commands::lsp::get_completion_budget,
+            
+            // Embedded LLM operations
+            commands::embedded_llm::get_hardware_info,
+            commands::embedded_llm::init_embedded_llm,
+            commands::embedded_llm::load_model,
+            commands::embedded_llm::unload_model,
+            commands::embedded_llm::list_local_models,
+            commands::embedded_llm::embedded_complete,
+            commands::embedded_llm::embedded_chat,
+            commands::embedded_llm::embedded_code_complete,
+            commands::embedded_llm::is_embedded_llm_ready,
+            commands::embedded_llm::get_loaded_models,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
