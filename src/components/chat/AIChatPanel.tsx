@@ -3,13 +3,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore } from '@/store/kyroStore';
-import { Send, Trash2, Copy, Check, Sparkles, Code, Bug, FileCode } from 'lucide-react';
+import { Send, Trash2, Sparkles } from 'lucide-react';
 
 export function AIChatPanel() {
   const [input, setInput] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { chatMessages, isAiLoading, models, selectedModel, isOllamaRunning, addChatMessage, clearChatMessages, setSelectedModel, setAiLoading, openFiles, activeFileIndex } = useKyroStore();
+  const { chatMessages, isAiLoading, models, selectedModel, isOllamaRunning, addChatMessage, clearChatMessages, setAiLoading, openFiles, activeFileIndex } = useKyroStore();
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
   
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
@@ -21,7 +20,7 @@ export function AIChatPanel() {
     addChatMessage({ id: Date.now().toString(), role: 'user', content: userMessage, timestamp: new Date() });
     setAiLoading(true);
     try {
-      let context = currentFile ? `[Current file: ${currentFile.path}]\n\n${userMessage}` : userMessage;
+      const context = currentFile ? `[Current file: ${currentFile.path}]\n\n${userMessage}` : userMessage;
       const response = await invoke<string>('chat_completion', { model: selectedModel, messages: [{ role: 'system', content: 'You are KYRO, an expert coding assistant.' }, ...chatMessages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content: context }] });
       addChatMessage({ id: (Date.now() + 1).toString(), role: 'assistant', content: response, timestamp: new Date() });
     } catch (error) { addChatMessage({ id: (Date.now() + 1).toString(), role: 'assistant', content: `Error: ${error}`, timestamp: new Date() }); }

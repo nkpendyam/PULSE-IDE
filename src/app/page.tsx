@@ -13,7 +13,7 @@ import { StatusBar } from '@/components/statusbar/StatusBar';
 import { TabBar } from '@/components/tabs/TabBar';
 import { ActivityBar } from '@/components/sidebar/ActivityBar';
 import { SymbolOutline } from '@/components/sidebar/SymbolOutline';
-import { FolderOpen, Search, GitBranch, Settings, FileCode } from 'lucide-react';
+import { FolderOpen, GitBranch, FileCode } from 'lucide-react';
 
 export default function KyroIDE() {
   const [isLoading, setIsLoading] = useState(false);

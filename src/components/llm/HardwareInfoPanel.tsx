@@ -34,6 +34,7 @@ export function HardwareInfoPanel() {
 
   useEffect(() => {
     loadHardwareInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadHardwareInfo = async () => {

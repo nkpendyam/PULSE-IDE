@@ -2,12 +2,11 @@
 
 import React, { useRef } from 'react';
 import Editor, { OnMount, OnChange } from '@monaco-editor/react';
-import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore } from '@/store/kyroStore';
 
 export function CodeEditor() {
   const editorRef = useRef<unknown>(null);
-  const { openFiles, activeFileIndex, updateFileContent, setCursorPosition, selectedModel, isAiLoading, addChatMessage, setAiLoading } = useKyroStore();
+  const { openFiles, activeFileIndex, updateFileContent, setCursorPosition } = useKyroStore();
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
   
   const handleEditorMount: OnMount = (editor, monaco) => {

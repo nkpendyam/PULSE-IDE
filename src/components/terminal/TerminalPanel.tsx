@@ -4,13 +4,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore } from '@/store/kyroStore';
 import { X } from 'lucide-react';
+import type { Terminal as XTerminal } from 'xterm';
+import type { FitAddon } from 'xterm-addon-fit';
 
 export function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<any>(null);
-  const fitAddonRef = useRef<any>(null);
+  const xtermRef = useRef<XTerminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const { projectPath, toggleTerminal, terminalHeight } = useKyroStore();
+  const { projectPath, toggleTerminal } = useKyroStore();
   
   useEffect(() => { setIsClient(true); }, []);
   
