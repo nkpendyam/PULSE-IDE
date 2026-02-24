@@ -87,6 +87,32 @@ tree-sitter-make = { version = "0.0.12", optional = true }
 tree-sitter-graphql = { version = "0.1", optional = true }
 tree-sitter-wgsl = { version = "0.0.12", optional = true }
 
+# Additional missing languages (from open source repos)
+# Objective-C (from tree-sitter-grammars/tree-sitter-objc)
+tree-sitter-objc = { version = "0.1", optional = true }
+# F# (from ionide/tree-sitter-fsharp)
+tree-sitter-fsharp = { version = "0.1", optional = true }
+# Elm (from elm-tooling/tree-sitter-elm)
+tree-sitter-elm = { version = "0.5", optional = true }
+# Assembly x86 (from bearcove/tree-sitter-x86asm)
+tree-sitter-asm = { version = "0.1", optional = true }
+# WebAssembly WAT (from wasm-lsp/tree-sitter-wasm)
+tree-sitter-wat = { version = "0.1", optional = true }
+# V language
+tree-sitter-v = { version = "0.0.11", optional = true }
+# D language
+tree-sitter-d = { version = "0.1", optional = true }
+# Crystal
+tree-sitter-crystal = { version = "0.0.10", optional = true }
+# PureScript
+tree-sitter-purescript = { version = "0.1", optional = true }
+# ReasonML
+tree-sitter-reason = { version = "0.1", optional = true }
+# Prisma
+tree-sitter-prisma = { version = "0.1", optional = true }
+# Action (GitHub Actions)
+tree-sitter-action = { version = "0.1", optional = true }
+
 # ============ Concurrency ============
 dashmap = "5.5"
 parking_lot = "0.12"
@@ -144,6 +170,10 @@ ropey = "1.6"  # UTF-8 text rope (from cessen/ropey)
 blake3 = "1.5"
 ed25519-dalek = { version = "2.1", features = ["rand_core"] }
 rand = "0.8"
+
+# ============ JWT Authentication (from jedisct1/rust-jwt-simple) ============
+jwt-simple = "0.12"  # Secure, standard JWT implementation
+jsonwebtoken = "9.3"  # Alternative JWT library (from Keats/jsonwebtoken)
 
 # ============ Platform-Specific ============
 
@@ -219,6 +249,19 @@ all-languages = [
     "tree-sitter-make",
     "tree-sitter-graphql",
     "tree-sitter-wgsl",
+    # New languages for 50+ support
+    "tree-sitter-objc",
+    "tree-sitter-fsharp",
+    "tree-sitter-elm",
+    "tree-sitter-asm",
+    "tree-sitter-wat",
+    "tree-sitter-v",
+    "tree-sitter-d",
+    "tree-sitter-crystal",
+    "tree-sitter-purescript",
+    "tree-sitter-reason",
+    "tree-sitter-prisma",
+    "tree-sitter-action",
 ]
 
 # Embedded LLM (llama.cpp static linking)

@@ -73,6 +73,9 @@ mod inference;
 // ============ Text Buffer (based on Ropey) ============
 mod buffer;
 
+// ============ Authentication (JWT + OAuth) ============
+mod auth;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};
