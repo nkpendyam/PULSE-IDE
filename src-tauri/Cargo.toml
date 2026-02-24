@@ -98,7 +98,7 @@ yrs = "0.18"  # Yjs Rust port
 # ============ Additional Crypto ============
 blake3 = "1.5"
 ed25519-dalek = { version = "2.1", features = ["rand_core"] }
-rand = "0.8"
+rand = "0.10"
 
 # ============ Platform-Specific ============
 
