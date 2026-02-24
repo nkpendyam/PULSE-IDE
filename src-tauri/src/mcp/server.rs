@@ -37,253 +37,258 @@ impl MCPServer {
     
     /// Register built-in tools
     fn register_builtin_tools(&mut self) {
-        let tools = vec![
-            // File operations
-            tools::Tool::new(
-                "read_file",
-                "Read the contents of a file",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "path": {
-                            "type": "string",
-                            "description": "The file path to read"
-                        }
-                    },
-                    "required": ["path"]
-                }),
-                |args| {
-                    let path = args["path"].as_str().unwrap_or("");
-                    // Would integrate with file system
-                    Ok(serde_json::json!({
-                        "content": format!("File contents of: {}", path)
-                    }))
-                },
-            ),
-            
-            tools::Tool::new(
-                "write_file",
-                "Write content to a file",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "path": {
-                            "type": "string",
-                            "description": "The file path to write"
-                        },
-                        "content": {
-                            "type": "string",
-                            "description": "The content to write"
-                        }
-                    },
-                    "required": ["path", "content"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "success": true,
-                        "message": "File written successfully"
-                    }))
-                },
-            ),
-            
-            tools::Tool::new(
-                "list_directory",
-                "List contents of a directory",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "path": {
-                            "type": "string",
-                            "description": "The directory path"
-                        }
-                    },
-                    "required": ["path"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "entries": [
-                            {"name": "src", "is_dir": true},
-                            {"name": "README.md", "is_dir": false}
-                        ]
-                    }))
-                },
-            ),
-            
-            // Code operations
-            tools::Tool::new(
-                "search_code",
-                "Search for code patterns in the project",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The search query (regex supported)"
-                        },
-                        "file_pattern": {
-                            "type": "string",
-                            "description": "Glob pattern for files to search"
-                        }
-                    },
-                    "required": ["query"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "results": [
-                            {"file": "src/main.rs", "line": 42, "snippet": "fn main() {"}
-                        ]
-                    }))
-                },
-            ),
-            
-            tools::Tool::new(
-                "get_symbols",
-                "Get symbol definitions from a file",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "path": {
-                            "type": "string",
-                            "description": "The file path"
-                        }
-                    },
-                    "required": ["path"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "symbols": [
-                            {"name": "main", "kind": "function", "line": 1},
-                            {"name": "Config", "kind": "struct", "line": 10}
-                        ]
-                    }))
-                },
-            ),
-            
-            // Git operations
-            tools::Tool::new(
-                "git_status",
-                "Get git status of the project",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {}
-                }),
-                |_args| {
-                    Ok(serde_json::json!({
-                        "branch": "main",
-                        "staged": 0,
-                        "unstaged": 1,
-                        "untracked": 2
-                    }))
-                },
-            ),
-            
-            tools::Tool::new(
-                "git_diff",
-                "Get git diff of changes",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "cached": {
-                            "type": "boolean",
-                            "description": "Show staged changes"
-                        }
+        // Note: In production, these tools would be registered with actual implementations
+        // For now, we create a placeholder registry that will be populated on first use
+        log::info!("Builtin tools will be registered on demand");
+    }
+
+    /// Register all builtin tools into the registry (async)
+    pub async fn populate_tools(&self) {
+        let mut registry = self.tools.write().await;
+
+        // File operations
+        registry.register(tools::Tool::new(
+            "read_file",
+            "Read the contents of a file",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "The file path to read"
                     }
-                }),
-                |_args| {
-                    Ok(serde_json::json!({
-                        "diff": "- old line\n+ new line"
-                    }))
                 },
-            ),
-            
-            // Terminal operations
-            tools::Tool::new(
-                "run_command",
-                "Run a shell command",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "command": {
-                            "type": "string",
-                            "description": "The command to run"
-                        },
-                        "cwd": {
-                            "type": "string",
-                            "description": "Working directory"
-                        },
-                        "timeout_ms": {
-                            "type": "integer",
-                            "description": "Timeout in milliseconds"
-                        }
+                "required": ["path"]
+            }),
+            |args| async move {
+                let path = args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                Ok(serde_json::json!({
+                    "content": format!("File contents of: {}", path)
+                }))
+            },
+        ));
+
+        registry.register(tools::Tool::new(
+            "write_file",
+            "Write content to a file",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "The file path to write"
                     },
-                    "required": ["command"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "stdout": "Command output",
-                        "stderr": "",
-                        "exit_code": 0
-                    }))
+                    "content": {
+                        "type": "string",
+                        "description": "The content to write"
+                    }
                 },
-            ),
-            
-            // AI operations
-            tools::Tool::new(
-                "ai_analyze",
-                "Analyze code with AI",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "Code to analyze"
-                        },
-                        "task": {
-                            "type": "string",
-                            "enum": ["review", "explain", "optimize", "test"],
-                            "description": "Analysis task"
-                        }
+                "required": ["path", "content"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "success": true,
+                    "message": "File written successfully"
+                }))
+            },
+        ));
+
+        registry.register(tools::Tool::new(
+            "list_directory",
+            "List contents of a directory",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "The directory path"
+                    }
+                },
+                "required": ["path"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "entries": [
+                        {"name": "src", "is_dir": true},
+                        {"name": "README.md", "is_dir": false}
+                    ]
+                }))
+            },
+        ));
+
+        // Code operations
+        registry.register(tools::Tool::new(
+            "search_code",
+            "Search for code patterns in the project",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query (regex supported)"
                     },
-                    "required": ["code", "task"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "analysis": "Code analysis result"
-                    }))
+                    "file_pattern": {
+                        "type": "string",
+                        "description": "Glob pattern for files to search"
+                    }
                 },
-            ),
-            
-            tools::Tool::new(
-                "ai_generate",
-                "Generate code with AI",
-                serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "prompt": {
-                            "type": "string",
-                            "description": "What to generate"
-                        },
-                        "language": {
-                            "type": "string",
-                            "description": "Target language"
-                        },
-                        "context": {
-                            "type": "string",
-                            "description": "Surrounding context"
-                        }
+                "required": ["query"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "results": [
+                        {"file": "src/main.rs", "line": 42, "snippet": "fn main() {"}
+                    ]
+                }))
+            },
+        ));
+
+        registry.register(tools::Tool::new(
+            "get_symbols",
+            "Get symbol definitions from a file",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "The file path"
+                    }
+                },
+                "required": ["path"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "symbols": [
+                        {"name": "main", "kind": "function", "line": 1},
+                        {"name": "Config", "kind": "struct", "line": 10}
+                    ]
+                }))
+            },
+        ));
+
+        // Git operations
+        registry.register(tools::Tool::new(
+            "git_status",
+            "Get git status of the project",
+            serde_json::json!({
+                "type": "object",
+                "properties": {}
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "branch": "main",
+                    "staged": 0,
+                    "unstaged": 1,
+                    "untracked": 2
+                }))
+            },
+        ));
+
+        registry.register(tools::Tool::new(
+            "git_diff",
+            "Get git diff of changes",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "cached": {
+                        "type": "boolean",
+                        "description": "Show staged changes"
+                    }
+                }
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "diff": "- old line\n+ new line"
+                }))
+            },
+        ));
+
+        // Terminal operations
+        registry.register(tools::Tool::new(
+            "run_command",
+            "Run a shell command",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "description": "The command to run"
                     },
-                    "required": ["prompt"]
-                }),
-                |args| {
-                    Ok(serde_json::json!({
-                        "code": "// Generated code here"
-                    }))
+                    "cwd": {
+                        "type": "string",
+                        "description": "Working directory"
+                    },
+                    "timeout_ms": {
+                        "type": "integer",
+                        "description": "Timeout in milliseconds"
+                    }
                 },
-            ),
-        ];
-        
-        // Register tools (simplified - would use async in production)
-        log::info!("Registered {} builtin tools", tools.len());
+                "required": ["command"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "stdout": "Command output",
+                    "stderr": "",
+                    "exit_code": 0
+                }))
+            },
+        ));
+
+        // AI operations
+        registry.register(tools::Tool::new(
+            "ai_analyze",
+            "Analyze code with AI",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Code to analyze"
+                    },
+                    "task": {
+                        "type": "string",
+                        "enum": ["review", "explain", "optimize", "test"],
+                        "description": "Analysis task"
+                    }
+                },
+                "required": ["code", "task"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "analysis": "Code analysis result"
+                }))
+            },
+        ));
+
+        registry.register(tools::Tool::new(
+            "ai_generate",
+            "Generate code with AI",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": "What to generate"
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Target language"
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "Surrounding context"
+                    }
+                },
+                "required": ["prompt"]
+            }),
+            |_args| async move {
+                Ok(serde_json::json!({
+                    "code": "// Generated code here"
+                }))
+            },
+        ));
+
+        log::info!("Registered {} builtin tools", registry.len());
     }
     
     /// Register built-in resources

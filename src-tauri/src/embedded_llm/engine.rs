@@ -297,19 +297,19 @@ impl EmbeddedLLMEngine {
     pub async fn complete_stream(
         &self,
         request: &InferenceRequest,
-        mut callback: impl FnMut(&str) + Send + 'static,
+        callback: impl FnMut(&str) + Send + 'static,
     ) -> Result<InferenceResponse> {
         // Ensure model is loaded
         let model_name = &self.config.default_model;
         if !self.loaded_models.read().await.contains_key(model_name) {
             self.load_model(model_name).await?;
         }
-        
+
         let start = Instant::now();
         let mut backend = self.backend.write().await;
-        let response = backend.infer_stream(request, &mut callback).await?;
+        let response = backend.infer_stream_boxed(request, Box::new(callback)).await?;
         let elapsed = start.elapsed();
-        
+
         Ok(InferenceResponse {
             total_time_ms: elapsed.as_millis() as u64,
             tokens_per_second: response.tokens_generated as f32 / elapsed.as_secs_f32(),
@@ -353,26 +353,27 @@ struct GpuInfo {
 }
 
 /// Backend trait for different inference backends
+#[async_trait::async_trait]
 pub trait InferenceBackend: Send + Sync {
     /// Load a model
-    fn load_model(&mut self, spec: &ModelSpec) -> impl std::future::Future<Output = Result<()>> + Send;
-    
+    async fn load_model(&mut self, spec: &ModelSpec) -> Result<()>;
+
     /// Unload a model
-    fn unload_model(&mut self, name: &str) -> impl std::future::Future<Output = Result<()>> + Send;
-    
+    async fn unload_model(&mut self, name: &str) -> Result<()>;
+
     /// Run inference
-    fn infer(&mut self, request: &InferenceRequest) -> impl std::future::Future<Output = Result<InferenceResponse>> + Send;
-    
-    /// Stream inference
-    fn infer_stream(
-        &mut self, 
-        request: &InferenceRequest, 
-        callback: &mut impl FnMut(&str)
-    ) -> impl std::future::Future<Output = Result<InferenceResponse>> + Send;
-    
+    async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse>;
+
+    /// Stream inference with boxed callback (for trait object safety)
+    async fn infer_stream_boxed(
+        &mut self,
+        request: &InferenceRequest,
+        callback: Box<dyn FnMut(&str) + Send>,
+    ) -> Result<InferenceResponse>;
+
     /// Get backend name
     fn name(&self) -> &str;
-    
+
     /// Get backend capabilities
     fn capabilities(&self) -> BackendCapabilities;
 }

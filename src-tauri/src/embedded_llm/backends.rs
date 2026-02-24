@@ -3,7 +3,7 @@
 //! CPU, CUDA, Metal, and Vulkan backends for llama.cpp
 
 use super::*;
-use anyhow::{Result, Context};
+use anyhow::Result;
 
 /// CPU Backend (always available)
 pub struct CpuBackend {
@@ -20,6 +20,7 @@ impl CpuBackend {
     }
 }
 
+#[async_trait::async_trait]
 impl InferenceBackend for CpuBackend {
     async fn load_model(&mut self, spec: &ModelSpec) -> Result<()> {
         // In production, this would call llama.cpp C API
@@ -28,19 +29,19 @@ impl InferenceBackend for CpuBackend {
         log::info!("CPU backend: Loading model from {}", spec.path);
         Ok(())
     }
-    
+
     async fn unload_model(&mut self, _name: &str) -> Result<()> {
         self.model_path = None;
         Ok(())
     }
-    
+
     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
         let start = std::time::Instant::now();
-        
+
         // Placeholder - actual implementation would call llama.cpp
         // This simulates inference timing
         let tokens = (request.prompt.len() / 4) as u32; // Rough estimate
-        
+
         Ok(InferenceResponse {
             text: "// Generated code would appear here".to_string(),
             tokens_generated: tokens.min(request.max_tokens),
@@ -52,28 +53,28 @@ impl InferenceBackend for CpuBackend {
             memory_used: 0,
         })
     }
-    
-    async fn infer_stream(
-        &mut self, 
-        request: &InferenceRequest, 
-        callback: &mut impl FnMut(&str)
+
+    async fn infer_stream_boxed(
+        &mut self,
+        request: &InferenceRequest,
+        mut callback: Box<dyn FnMut(&str) + Send>,
     ) -> Result<InferenceResponse> {
         // Simulate streaming
         let response = self.infer(request).await?;
-        
+
         // Stream word by word
         for word in response.text.split_whitespace() {
             callback(&format!("{} ", word));
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
-        
+
         Ok(response)
     }
-    
+
     fn name(&self) -> &str {
         "cpu"
     }
-    
+
     fn capabilities(&self) -> BackendCapabilities {
         BackendCapabilities {
             supports_gpu: false,
@@ -103,17 +104,18 @@ impl CudaBackend {
 }
 
 #[cfg(feature = "cuda")]
+#[async_trait::async_trait]
 impl InferenceBackend for CudaBackend {
     async fn load_model(&mut self, spec: &ModelSpec) -> Result<()> {
         log::info!("CUDA backend: Loading model from {}", spec.path);
         Ok(())
     }
-    
+
     async fn unload_model(&mut self, _name: &str) -> Result<()> {
         self.model_handle = None;
         Ok(())
     }
-    
+
     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
         // CUDA inference would be ~40 tok/s on RTX 4060
         Ok(InferenceResponse {
@@ -124,14 +126,14 @@ impl InferenceBackend for CudaBackend {
             tokens_per_second: 40.0,
             model: "cuda-model".to_string(),
             from_cache: false,
-            memory_used: spec.size_bytes,
+            memory_used: request.max_tokens as u64 * 4, // Estimate based on output
         })
     }
-    
-    async fn infer_stream(
-        &mut self, 
-        request: &InferenceRequest, 
-        callback: &mut impl FnMut(&str)
+
+    async fn infer_stream_boxed(
+        &mut self,
+        request: &InferenceRequest,
+        mut callback: Box<dyn FnMut(&str) + Send>,
     ) -> Result<InferenceResponse> {
         let response = self.infer(request).await?;
         for word in response.text.split_whitespace() {
@@ -140,11 +142,11 @@ impl InferenceBackend for CudaBackend {
         }
         Ok(response)
     }
-    
+
     fn name(&self) -> &str {
         "cuda"
     }
-    
+
     fn capabilities(&self) -> BackendCapabilities {
         BackendCapabilities {
             supports_gpu: true,
@@ -170,17 +172,18 @@ impl MetalBackend {
 }
 
 #[cfg(target_os = "macos")]
+#[async_trait::async_trait]
 impl InferenceBackend for MetalBackend {
     async fn load_model(&mut self, spec: &ModelSpec) -> Result<()> {
         log::info!("Metal backend: Loading model from {}", spec.path);
         Ok(())
     }
-    
+
     async fn unload_model(&mut self, _name: &str) -> Result<()> {
         self.model_handle = None;
         Ok(())
     }
-    
+
     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
         // Metal on M3 Max would be ~50 tok/s
         Ok(InferenceResponse {
@@ -191,14 +194,14 @@ impl InferenceBackend for MetalBackend {
             tokens_per_second: 50.0,
             model: "metal-model".to_string(),
             from_cache: false,
-            memory_used: spec.size_bytes,
+            memory_used: request.max_tokens as u64 * 4, // Estimate based on output
         })
     }
-    
-    async fn infer_stream(
-        &mut self, 
-        request: &InferenceRequest, 
-        callback: &mut impl FnMut(&str)
+
+    async fn infer_stream_boxed(
+        &mut self,
+        request: &InferenceRequest,
+        mut callback: Box<dyn FnMut(&str) + Send>,
     ) -> Result<InferenceResponse> {
         let response = self.infer(request).await?;
         for word in response.text.split_whitespace() {
@@ -207,11 +210,11 @@ impl InferenceBackend for MetalBackend {
         }
         Ok(response)
     }
-    
+
     fn name(&self) -> &str {
         "metal"
     }
-    
+
     fn capabilities(&self) -> BackendCapabilities {
         BackendCapabilities {
             supports_gpu: true,
@@ -238,17 +241,18 @@ impl VulkanBackend {
     }
 }
 
+#[async_trait::async_trait]
 impl InferenceBackend for VulkanBackend {
     async fn load_model(&mut self, spec: &ModelSpec) -> Result<()> {
         log::info!("Vulkan backend: Loading model from {}", spec.path);
         Ok(())
     }
-    
+
     async fn unload_model(&mut self, _name: &str) -> Result<()> {
         self.model_handle = None;
         Ok(())
     }
-    
+
     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
         // Vulkan would be ~30 tok/s on mid-range GPU
         Ok(InferenceResponse {
@@ -262,11 +266,11 @@ impl InferenceBackend for VulkanBackend {
             memory_used: 0,
         })
     }
-    
-    async fn infer_stream(
-        &mut self, 
-        request: &InferenceRequest, 
-        callback: &mut impl FnMut(&str)
+
+    async fn infer_stream_boxed(
+        &mut self,
+        request: &InferenceRequest,
+        mut callback: Box<dyn FnMut(&str) + Send>,
     ) -> Result<InferenceResponse> {
         let response = self.infer(request).await?;
         for word in response.text.split_whitespace() {
@@ -275,11 +279,11 @@ impl InferenceBackend for VulkanBackend {
         }
         Ok(response)
     }
-    
+
     fn name(&self) -> &str {
         "vulkan"
     }
-    
+
     fn capabilities(&self) -> BackendCapabilities {
         BackendCapabilities {
             supports_gpu: true,
