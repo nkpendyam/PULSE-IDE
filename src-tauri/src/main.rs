@@ -56,6 +56,7 @@ mod update;
 mod plugin_sandbox;
 mod telemetry;
 mod accessibility;
+mod benchmark;
 
 use tauri::Manager;
 use std::sync::Arc;
