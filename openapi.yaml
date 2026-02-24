@@ -1,0 +1,582 @@
+openapi: 3.0.3
+info:
+  title: KRO IDE API
+  description: |
+    KRO IDE - AI-Powered Code Editor API
+    
+    A zero-dependency, privacy-first IDE with embedded LLM, MCP agent swarm,
+    and real-time collaboration capabilities.
+  version: 0.1.0
+  contact:
+    name: KRO IDE Team
+    url: https://github.com/nkpendyam/Kyro_IDE
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+
+tags:
+  - name: Files
+    description: File system operations
+  - name: AI
+    description: AI/LLM features
+  - name: Collaboration
+    description: Real-time collaboration
+  - name: Auth
+    description: Authentication and authorization
+  - name: Terminal
+    description: Terminal operations
+  - name: Git
+    description: Git operations
+  - name: LSP
+    description: Language Server Protocol
+
+paths:
+  /files/read:
+    post:
+      tags: [Files]
+      summary: Read file contents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path:
+                  type: string
+                  description: File path to read
+      responses:
+        '200':
+          description: File contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  path:
+                    type: string
+                  size:
+                    type: integer
+
+  /files/write:
+    post:
+      tags: [Files]
+      summary: Write file contents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path, content]
+              properties:
+                path:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '200':
+          description: File written successfully
+
+  /files/list:
+    post:
+      tags: [Files]
+      summary: List directory contents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+                  default: "."
+      responses:
+        '200':
+          description: Directory listing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FileEntry'
+
+  /ai/chat:
+    post:
+      tags: [AI]
+      summary: Chat with AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                context:
+                  type: string
+                model:
+                  type: string
+                  default: "default"
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIResponse'
+
+  /ai/complete:
+    post:
+      tags: [AI]
+      summary: Get code completions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, position]
+              properties:
+                code:
+                  type: string
+                position:
+                  type: integer
+                language:
+                  type: string
+      responses:
+        '200':
+          description: Completions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Completion'
+
+  /ai/review:
+    post:
+      tags: [AI]
+      summary: Code review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                language:
+                  type: string
+      responses:
+        '200':
+          description: Review results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResult'
+
+  /collaboration/create-room:
+    post:
+      tags: [Collaboration]
+      summary: Create a collaboration room
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                maxUsers:
+                  type: integer
+                  default: 50
+      responses:
+        '200':
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Room'
+
+  /collaboration/join:
+    post:
+      tags: [Collaboration]
+      summary: Join a collaboration room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roomId, userId]
+              properties:
+                roomId:
+                  type: string
+                userId:
+                  type: string
+      responses:
+        '200':
+          description: Joined room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinResult'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid credentials
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+
+  /terminal/create:
+    post:
+      tags: [Terminal]
+      summary: Create a new terminal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shell:
+                  type: string
+                cwd:
+                  type: string
+      responses:
+        '200':
+          description: Terminal created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Terminal'
+
+  /git/status:
+    post:
+      tags: [Git]
+      summary: Get git status
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+      responses:
+        '200':
+          description: Git status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitStatus'
+
+  /lsp/completions:
+    post:
+      tags: [LSP]
+      summary: Get LSP completions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [filePath, position]
+              properties:
+                filePath:
+                  type: string
+                position:
+                  $ref: '#/components/schemas/Position'
+      responses:
+        '200':
+          description: Completions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompletionItem'
+
+components:
+  schemas:
+    FileEntry:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        isDirectory:
+          type: boolean
+        size:
+          type: integer
+        modified:
+          type: string
+          format: date-time
+
+    AIResponse:
+      type: object
+      properties:
+        content:
+          type: string
+        model:
+          type: string
+        tokensUsed:
+          type: integer
+        latencyMs:
+          type: integer
+
+    Completion:
+      type: object
+      properties:
+        text:
+          type: string
+        displayText:
+          type: string
+        kind:
+          type: string
+        score:
+          type: number
+
+    ReviewResult:
+      type: object
+      properties:
+        issues:
+          type: array
+          items:
+            type: object
+            properties:
+              severity:
+                type: string
+              message:
+                type: string
+              line:
+                type: integer
+              column:
+                type: integer
+        suggestions:
+          type: array
+          items:
+            type: string
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        maxUsers:
+          type: integer
+        userCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    JoinResult:
+      type: object
+      properties:
+        roomId:
+          type: string
+        userId:
+          type: string
+        documentState:
+          type: string
+        presence:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserPresence'
+
+    UserPresence:
+      type: object
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        cursor:
+          $ref: '#/components/schemas/CursorPosition'
+
+    CursorPosition:
+      type: object
+      properties:
+        line:
+          type: integer
+        column:
+          type: integer
+        filePath:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+
+    Terminal:
+      type: object
+      properties:
+        id:
+          type: string
+        shell:
+          type: string
+        cwd:
+          type: string
+
+    GitStatus:
+      type: object
+      properties:
+        branch:
+          type: string
+        staged:
+          type: array
+          items:
+            type: string
+        unstaged:
+          type: array
+          items:
+            type: string
+        untracked:
+          type: array
+          items:
+            type: string
+
+    Position:
+      type: object
+      properties:
+        line:
+          type: integer
+        character:
+          type: integer
+
+    CompletionItem:
+      type: object
+      properties:
+        label:
+          type: string
+        kind:
+          type: integer
+        detail:
+          type: string
+        documentation:
+          type: string
+        insertText:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

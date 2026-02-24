@@ -9,14 +9,17 @@
 //! - `manifest` - Extension manifest (package.json) parsing and validation
 //! - `marketplace` - VS Code Marketplace client for extension discovery
 //! - `protocol` - JSON-RPC protocol for extension communication
+//! - `commands` - Built-in and extension command registration
 
 pub mod api;
+pub mod commands;
 pub mod extension_host;
 pub mod manifest;
 pub mod marketplace;
 pub mod protocol;
 
 pub use api::VsCodeApi;
+pub use commands::{CommandRegistry, CommandInfo, CommandResult, Keybinding};
 pub use extension_host::{ExtensionHost, ExtensionState};
 pub use manifest::{ExtensionManifest, ExtensionKind};
 pub use marketplace::{MarketplaceClient, ExtensionQuery};
