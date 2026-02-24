@@ -19,7 +19,7 @@
     "@tauri-apps/plugin-shell": "^2.0.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.475.0",
-    "monaco-editor": "^0.52.2",
+    "monaco-editor": "^0.55.1",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
