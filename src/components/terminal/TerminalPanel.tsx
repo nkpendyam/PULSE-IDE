@@ -6,6 +6,7 @@ import { useKyroStore } from '@/store/kyroStore';
 import { X } from 'lucide-react';
 import type { Terminal as XTerminal } from 'xterm';
 import type { FitAddon } from 'xterm-addon-fit';
+import 'xterm/css/xterm.css';
 
 export function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -22,7 +23,6 @@ export function TerminalPanel() {
       try {
         const { Terminal } = await import('xterm');
         const { FitAddon } = await import('xterm-addon-fit');
-        await import('xterm/css/xterm.css');
         const term = new Terminal({ cursorBlink: true, fontSize: 13, fontFamily: 'JetBrains Mono, monospace',
           theme: { background: '#0D1117', foreground: '#C9D1D9', cursor: '#58A6FF', selectionBackground: '#264F78' } });
         const fitAddon = new FitAddon();

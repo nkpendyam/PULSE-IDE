@@ -20,18 +20,18 @@ export function FileTree({ node, onFileClick, level }: FileTreeProps) {
   
   if (node.name.startsWith('.')) return null;
   
-  const icon = getFileIcon(node.name, node.isDirectory);
+  const icon = getFileIcon(node.name, node.is_directory);
   const paddingLeft = level * 12 + 8;
   
   return (
     <div className="select-none">
       <div className={`flex items-center gap-1 py-1 px-1 cursor-pointer hover:bg-[#21262d] rounded ${isOpen ? 'bg-[#1f6feb33]' : ''}`} style={{ paddingLeft }}
-        onClick={() => node.isDirectory ? setIsExpanded(!isExpanded) : onFileClick(node.path)}>
-        {node.isDirectory && <span className="text-[#8b949e]">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>}
-        {icon ? <span className="text-xs">{icon}</span> : node.isDirectory ? (isExpanded ? <FolderOpen size={14} className="text-[#54aeff]" /> : <Folder size={14} className="text-[#54aeff]" />) : <File size={14} className="text-[#8b949e]" />}
-        <span className={`text-xs truncate ${node.isDirectory ? 'font-medium' : ''}`}>{node.name}</span>
+        onClick={() => node.is_directory ? setIsExpanded(!isExpanded) : onFileClick(node.path)}>
+        {node.is_directory && <span className="text-[#8b949e]">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>}
+        {icon ? <span className="text-xs">{icon}</span> : node.is_directory ? (isExpanded ? <FolderOpen size={14} className="text-[#54aeff]" /> : <Folder size={14} className="text-[#54aeff]" />) : <File size={14} className="text-[#8b949e]" />}
+        <span className={`text-xs truncate ${node.is_directory ? 'font-medium' : ''}`}>{node.name}</span>
       </div>
-      {node.isDirectory && isExpanded && node.children && (
+      {node.is_directory && isExpanded && node.children && (
         <div>{node.children.map((child) => <FileTree key={child.path} node={child} onFileClick={onFileClick} level={level + 1} />)}</div>
       )}
     </div>

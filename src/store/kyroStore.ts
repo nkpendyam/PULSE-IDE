@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export interface FileNode { name: string; path: string; isDirectory: boolean; children?: FileNode[]; extension?: string; size?: number; }
+export interface FileNode { name: string; path: string; is_directory: boolean; children?: FileNode[]; extension?: string; size?: number; }
 export interface OpenFile { path: string; content: string; language: string; isDirty: boolean; }
 export interface ChatMessage { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date; }
 export interface ModelInfo { name: string; size: string; modified_at: string; }

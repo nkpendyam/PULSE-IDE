@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
-import { useKyroStore } from '@/store/kyroStore';
+import { useKyroStore, FileNode } from '@/store/kyroStore';
 import { FileTree } from '@/components/sidebar/FileTree';
 import { CodeEditor } from '@/components/editor/CodeEditor';
 import { TerminalPanel } from '@/components/terminal/TerminalPanel';
@@ -59,7 +59,7 @@ export default function KyroIDE() {
       if (selected && typeof selected === 'string') {
         setIsLoading(true);
         setProjectPath(selected);
-        const tree = await invoke<{name: string; path: string; is_directory: boolean; children?: Array<{name: string; path: string; is_directory: boolean; children?: unknown[]}>}>('get_file_tree', { path: selected, maxDepth: 5 });
+        const tree = await invoke<FileNode>('get_file_tree', { path: selected, maxDepth: 5 });
         setFileTree(tree);
         try {
           const status = await invoke<{branch: string; ahead: number; behind: number; staged: Array<{path: string; status: string}>; unstaged: Array<{path: string; status: string}>; untracked: string[]}>('git_status', { path: selected });
