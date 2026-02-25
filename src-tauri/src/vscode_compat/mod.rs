@@ -6,6 +6,7 @@
 //! ## Architecture
 //! - `api` - VS Code namespace API shim (window, workspace, commands, etc.)
 //! - `extension_host` - Extension lifecycle and process management
+//! - `extension_runtime` - Node.js subprocess for running extension JavaScript
 //! - `manifest` - Extension manifest (package.json) parsing and validation
 //! - `marketplace` - VS Code Marketplace client for extension discovery
 //! - `protocol` - JSON-RPC protocol for extension communication
@@ -14,6 +15,7 @@
 pub mod api;
 pub mod commands;
 pub mod extension_host;
+pub mod extension_runtime;
 pub mod manifest;
 pub mod marketplace;
 pub mod protocol;
@@ -21,6 +23,7 @@ pub mod protocol;
 pub use api::VsCodeApi;
 pub use commands::{CommandRegistry, CommandInfo, CommandResult, Keybinding};
 pub use extension_host::{ExtensionHost, ExtensionState};
+pub use extension_runtime::{ExtensionRuntime, RpcRequest, RpcResponse};
 pub use manifest::{ExtensionManifest, ExtensionKind};
 pub use marketplace::{MarketplaceClient, ExtensionQuery};
 pub use protocol::ExtensionProtocol;
