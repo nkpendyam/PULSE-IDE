@@ -264,7 +264,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            // File operations
+            // ============ File Operations ============
             commands::fs::read_file,
             commands::fs::write_file,
             commands::fs::list_directory,
@@ -275,13 +275,13 @@ fn main() {
             commands::fs::rename_file,
             commands::fs::get_file_tree,
             
-            // Terminal operations
+            // ============ Terminal Operations ============
             commands::terminal::create_terminal,
             commands::terminal::write_to_terminal,
             commands::terminal::resize_terminal,
             commands::terminal::kill_terminal,
             
-            // AI operations
+            // ============ AI Operations ============
             commands::ai::chat_completion,
             commands::ai::code_completion,
             commands::ai::code_review,
@@ -292,27 +292,25 @@ fn main() {
             commands::ai::check_ollama_status,
             commands::ai::list_models,
             
-            // Git operations
+            // ============ Git Operations ============
             commands::git::git_status,
             commands::git::git_commit,
             commands::git::git_diff,
             commands::git::git_log,
             commands::git::git_branch,
             
-            // LSP operations (basic)
+            // ============ LSP Operations ============
             commands::lsp::detect_language,
             commands::lsp::extract_symbols,
             commands::lsp::get_completions,
             commands::lsp::get_diagnostics,
             commands::lsp::list_supported_languages,
-            
-            // LSP operations (AI-powered)
             commands::lsp::get_ai_completions,
             commands::lsp::update_file_symbols,
             commands::lsp::get_completion_stats,
             commands::lsp::get_completion_budget,
             
-            // Embedded LLM operations
+            // ============ Embedded LLM Operations ============
             commands::embedded_llm::get_hardware_info,
             commands::embedded_llm::init_embedded_llm,
             commands::embedded_llm::load_model,
@@ -323,6 +321,109 @@ fn main() {
             commands::embedded_llm::embedded_code_complete,
             commands::embedded_llm::is_embedded_llm_ready,
             commands::embedded_llm::get_loaded_models,
+            
+            // ============ Authentication Operations ============
+            commands::auth::login_user,
+            commands::auth::logout_user,
+            commands::auth::register_user,
+            commands::auth::get_current_user,
+            commands::auth::is_authenticated,
+            commands::auth::update_user_role,
+            commands::auth::validate_session,
+            commands::auth::get_oauth_url,
+            commands::auth::handle_oauth_callback,
+            
+            // ============ Collaboration Operations ============
+            commands::collaboration::create_room,
+            commands::collaboration::join_room,
+            commands::collaboration::leave_room,
+            commands::collaboration::get_room_users,
+            commands::collaboration::update_presence,
+            commands::collaboration::get_room_presence,
+            commands::collaboration::send_operation,
+            commands::collaboration::send_chat_message,
+            commands::collaboration::get_collab_stats,
+            commands::collaboration::is_connected_to_room,
+            commands::collaboration::get_current_room,
+            commands::collaboration::list_rooms,
+            
+            // ============ E2E Encryption Operations ============
+            commands::e2ee::generate_key_pair,
+            commands::e2ee::get_public_key,
+            commands::e2ee::create_key_bundle,
+            commands::e2ee::init_encrypted_channel,
+            commands::e2ee::encrypt_message,
+            commands::e2ee::decrypt_message,
+            commands::e2ee::has_e2ee_session,
+            commands::e2ee::has_encrypted_channel,
+            commands::e2ee::rotate_keys,
+            commands::e2ee::get_prekey_count,
+            commands::e2ee::delete_e2ee_session,
+            
+            // ============ VS Code Compatibility Operations ============
+            commands::vscode_compat::search_extensions,
+            commands::vscode_compat::get_extension_details,
+            commands::vscode_compat::install_extension,
+            commands::vscode_compat::uninstall_extension,
+            commands::vscode_compat::enable_extension,
+            commands::vscode_compat::disable_extension,
+            commands::vscode_compat::list_installed_extensions,
+            commands::vscode_compat::get_extension_status,
+            commands::vscode_compat::reload_extensions,
+            commands::vscode_compat::get_extension_recommendations,
+            commands::vscode_compat::get_popular_extensions,
+            
+            // ============ MCP/Agent Operations ============
+            commands::mcp::list_agents,
+            commands::mcp::create_agent,
+            commands::mcp::run_agent,
+            commands::mcp::get_agent_status,
+            commands::mcp::delete_agent,
+            commands::mcp::list_mcp_tools,
+            commands::mcp::execute_tool,
+            commands::mcp::list_mcp_resources,
+            commands::mcp::read_mcp_resource,
+            commands::mcp::register_tool,
+            commands::mcp::unregister_tool,
+            
+            // ============ Swarm AI Operations ============
+            commands::swarm::list_swarm_agents,
+            commands::swarm::create_swarm_agent,
+            commands::swarm::submit_swarm_task,
+            commands::swarm::execute_swarm_task,
+            commands::swarm::get_swarm_task_status,
+            commands::swarm::list_swarm_tasks,
+            commands::swarm::cancel_swarm_task,
+            commands::swarm::get_swarm_stats,
+            commands::swarm::delete_swarm_agent,
+            commands::swarm::send_agent_message,
+            
+            // ============ Plugin Operations ============
+            commands::plugin::list_plugins,
+            commands::plugin::install_plugin,
+            commands::plugin::uninstall_plugin,
+            commands::plugin::enable_plugin,
+            commands::plugin::disable_plugin,
+            commands::plugin::execute_plugin_function,
+            commands::plugin::get_plugin_capabilities,
+            commands::plugin::plugin_has_capability,
+            commands::plugin::get_plugin_status,
+            commands::plugin::reload_plugins,
+            commands::plugin::get_plugin_memory_usage,
+            
+            // ============ Update Operations ============
+            commands::update::check_for_updates,
+            commands::update::download_update,
+            commands::update::get_download_progress,
+            commands::update::install_update,
+            commands::update::cancel_update,
+            commands::update::get_update_channel,
+            commands::update::set_update_channel,
+            commands::update::get_update_history,
+            commands::update::set_auto_update,
+            commands::update::is_auto_update_enabled,
+            commands::update::skip_update,
+            commands::update::get_last_update_check,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

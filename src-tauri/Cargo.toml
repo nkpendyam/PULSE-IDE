@@ -7,6 +7,10 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/nkpendyam/Kyro_IDE"
 
+[lib]
+name = "kyro_ide"
+path = "src/lib.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
