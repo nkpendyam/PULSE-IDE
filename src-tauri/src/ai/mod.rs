@@ -3,6 +3,10 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+pub mod quality_gate;
+
+pub use quality_gate::{AiQualityGate, QualityGateConfig, QualityGateResult, QualityContext};
+
 pub struct AiClient {
     client: Client,
     base_url: String,
