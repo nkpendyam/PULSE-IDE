@@ -2,6 +2,15 @@
 //!
 //! A zero-dependency, privacy-first IDE with embedded LLM, MCP agent swarm,
 //! and real-time collaboration capabilities.
+//!
+//! ## Strategic Vision
+//! "AI that happens to have an IDE attached"
+//!
+//! ## Differentiation
+//! - Local-First AI: Completely offline, privacy-respecting
+//! - Agent Permission System: Trust layer for AI operations
+//! - Hierarchical Memory: True codebase understanding
+//! - Autonomous Coding: "Describe feature → get code in 30s"
 
 // ============ Core Modules ============
 pub mod commands;
@@ -52,6 +61,21 @@ pub mod collab;
 // ============ Debug Adapter Protocol ============
 pub mod debug;
 
+// ============ Trust Layer (Critical) ============
+pub mod trust;
+
+// ============ Hierarchical Memory ============
+pub mod memory;
+
+// ============ Quality Control ============
+pub mod quality;
+
+// ============ Business Model ============
+pub mod business;
+
+// ============ Autonomous Agent ============
+pub mod autonomous;
+
 // ============ AI Inference (based on Candle) ============
 pub mod inference;
 
@@ -63,3 +87,9 @@ pub mod auth;
 
 // ============ End-to-End Encryption (Signal Protocol) ============
 pub mod e2ee;
+
+// ============ Chat Sidebar with RAG (Killer Feature #1) ============
+pub mod chat_sidebar;
+
+// ============ MCP Agent Editor (Killer Feature #2) ============
+pub mod agent_editor;

@@ -9,7 +9,7 @@ import { useExtendedKyroStore } from '@/store/extendedStore';
 import { FileTree } from '@/components/sidebar/FileTree';
 import { CodeEditor } from '@/components/editor/CodeEditor';
 import { TerminalPanel } from '@/components/terminal/TerminalPanel';
-import { AIChatPanel } from '@/components/chat/AIChatPanel';
+import { AIChatSidebar } from '@/components/chat/AIChatSidebar';
 import { StatusBar } from '@/components/statusbar/StatusBar';
 import { TabBar } from '@/components/tabs/TabBar';
 import { SymbolOutline } from '@/components/sidebar/SymbolOutline';
@@ -315,15 +315,15 @@ export default function KyroIDE() {
 
                     {/* Feature highlights */}
                     <div className="mt-8 grid grid-cols-2 gap-4 max-w-md mx-auto text-left">
-                      <div className="p-3 bg-[#161b22] rounded border border-[#30363d]">
-                        <Bot size={20} className="text-[#58a6ff] mb-2" />
-                        <h3 className="text-sm font-medium text-[#c9d1d9]">AI Agents</h3>
-                        <p className="text-xs text-[#8b949e]">8 specialized agents for code generation, review, and testing</p>
+                      <div className="p-3 bg-[#161b22] rounded border border-[#a371f7] shadow-lg shadow-[#a371f7]/10">
+                        <Bot size={20} className="text-[#a371f7] mb-2" />
+                        <h3 className="text-sm font-medium text-[#c9d1d9]">RAG Chat</h3>
+                        <p className="text-xs text-[#8b949e]">AI that knows your entire codebase - works offline!</p>
                       </div>
-                      <div className="p-3 bg-[#161b22] rounded border border-[#30363d]">
-                        <Users size={20} className="text-[#58a6ff] mb-2" />
-                        <h3 className="text-sm font-medium text-[#c9d1d9]">Collaboration</h3>
-                        <p className="text-xs text-[#8b949e]">Real-time editing with up to 50 users with E2E encryption</p>
+                      <div className="p-3 bg-[#161b22] rounded border border-[#a371f7] shadow-lg shadow-[#a371f7]/10">
+                        <Users size={20} className="text-[#a371f7] mb-2" />
+                        <h3 className="text-sm font-medium text-[#c9d1d9]">Agent Editor</h3>
+                        <p className="text-xs text-[#8b949e]">"Fix the bug in auth.rs" - AI edits files for you!</p>
                       </div>
                       <div className="p-3 bg-[#161b22] rounded border border-[#30363d]">
                         <Puzzle size={20} className="text-[#58a6ff] mb-2" />
@@ -342,7 +342,7 @@ export default function KyroIDE() {
             </div>
             {showChat && (
               <div className="border-l border-[#30363d] bg-[#0d1117]" style={{ width: chatWidth }}>
-                <AIChatPanel />
+                <AIChatSidebar />
               </div>
             )}
           </div>

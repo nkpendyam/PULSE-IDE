@@ -1,0 +1,6 @@
+- Use strict mode for better type safety
+- Prefer interfaces over type aliases for object shapes
+- Use `const` assertions for literal types
+- Consider using discriminated unions for state management
+- Use `readonly` for immutable properties
+- Check for proper null/undefined handling

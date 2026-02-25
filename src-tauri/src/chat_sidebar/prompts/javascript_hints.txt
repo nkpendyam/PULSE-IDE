@@ -1,0 +1,6 @@
+- Use `const` and `let`, never `var`
+- Prefer arrow functions for callbacks
+- Use template literals for string interpolation
+- Consider using Optional Chaining (`?.`) for safe property access
+- Use destructuring for cleaner code
+- Check for proper async/await usage

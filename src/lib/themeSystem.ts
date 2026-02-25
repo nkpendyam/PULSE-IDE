@@ -478,7 +478,7 @@ export const themeManager = new ThemeManager();
 // Type for monaco (will be available at runtime)
 declare const monaco: {
   editor: {
-    IStandaloneThemeData: interface IStandaloneThemeData {
+    IStandaloneThemeData: {
       base: 'vs' | 'vs-dark' | 'hc-black';
       inherit: boolean;
       rules: Array<{
@@ -489,7 +489,7 @@ declare const monaco: {
       }>;
       colors: Record<string, string>;
     };
-    ITokenThemeRule: interface ITokenThemeRule {
+    ITokenThemeRule: {
       token: string;
       foreground?: string;
       background?: string;

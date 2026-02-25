@@ -1,0 +1,6 @@
+- Use `Result<T, E>` for error handling, not unwraps in production
+- Prefer `&str` over `String` for function parameters when possible
+- Use `Arc<Mutex<T>>` for shared mutable state
+- Consider `Cow<str>` for strings that might be borrowed or owned
+- Use `#[derive]` macros to reduce boilerplate
+- Check for `?` operator for error propagation

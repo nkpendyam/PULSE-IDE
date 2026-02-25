@@ -41,3 +41,6 @@ pub mod gitcrdt;
 
 // Enhanced LSP commands
 pub mod lsp_real;
+
+// Chat Sidebar and Agent Editor commands (Killer Features)
+pub mod chat_agent;

@@ -2,7 +2,16 @@ import { create } from 'zustand';
 
 export interface FileNode { name: string; path: string; is_directory: boolean; children?: FileNode[]; extension?: string; size?: number; }
 export interface OpenFile { path: string; content: string; language: string; isDirty: boolean; isPinned?: boolean; isPreview?: boolean; }
-export interface ChatMessage { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date; }
+export interface ChatMessage { id: string; role: 'user' | 'assistant'; content: string; timestamp: Date; isStreaming?: boolean; ragSources?: RagSource[]; }
+
+// RAG Source for context
+export interface RagSource {
+  file_path: string;
+  start_line: number;
+  end_line: number;
+  score: number;
+  preview: string;
+}
 export interface ModelInfo { name: string; size: string; modified_at: string; }
 
 // Embedded LLM types
