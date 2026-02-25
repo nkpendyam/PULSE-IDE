@@ -5,6 +5,8 @@
 pub mod indexer;
 pub mod embedder;
 pub mod retriever;
+pub mod vector_store;
+pub mod embeddings;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

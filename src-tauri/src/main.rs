@@ -64,8 +64,11 @@ mod vscode_compat;
 // ============ Tower-LSP Integration ============
 mod lsp_tower;
 
-// ============ Collaboration (based on Conflux) ============
-mod collaboration;
+// ============ LSP Transport (Real Implementation) ============
+mod lsp_transport;
+
+// ============ Collaboration (CRDT-based) ============
+mod collab;
 
 // ============ AI Inference (based on Candle) ============
 mod inference;
