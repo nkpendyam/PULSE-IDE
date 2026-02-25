@@ -89,8 +89,8 @@ impl AgentMemory {
     ) -> Result<i64, AgentError> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
         
         let tools_json = serde_json::to_string(tools).unwrap_or_default();
         let files_json = serde_json::to_string(files).unwrap_or_default();
@@ -181,8 +181,8 @@ impl AgentMemory {
     ) -> Result<(), AgentError> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64;
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
         
         self.db.execute(
             r#"
@@ -244,8 +244,8 @@ impl AgentMemory {
     pub fn cleanup_old_conversations(&self, days: u64) -> Result<usize, AgentError> {
         let cutoff = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0)
             - (days * 86400) as i64;
         
         let affected = self.db.execute(

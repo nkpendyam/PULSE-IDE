@@ -23,7 +23,7 @@ impl ApprovalWorkflow {
         let id = uuid::Uuid::new_v4().to_string();
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| anyhow::anyhow!("System time error: {}", e))?
             .as_secs();
 
         let pending = PendingEdit {
@@ -55,7 +55,7 @@ impl ApprovalWorkflow {
         // Check expiry
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| anyhow::anyhow!("System time error: {}", e))?
             .as_secs();
         if now > pending.expires_at {
             pending.status = ApprovalStatus::Expired;
@@ -89,7 +89,8 @@ impl ApprovalWorkflow {
     pub fn clear_expired(&mut self) -> usize {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|_| log::warn!("System time error in clear_expired"))
+            .unwrap_or(0)
             .as_secs();
 
         let expired: Vec<String> = self.pending.iter()
@@ -201,11 +202,13 @@ impl PendingEdit {
 
     /// Check if edit has expired
     pub fn is_expired(&self) -> bool {
-        let now = SystemTime::now()
+        SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        now > self.expires_at
+            .map(|now| now.as_secs() > self.expires_at)
+            .unwrap_or_else(|_| {
+                log::warn!("System time error in is_expired, assuming expired");
+                true // Safer to assume expired on error
+            })
     }
 
     /// Get affected files

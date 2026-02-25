@@ -603,34 +603,413 @@ impl KyroLspBackend {
         }).collect()
     }
     
+    /// Get hover content for a word
+    fn get_hover_content(&self, word: &str, language_id: &str) -> String {
+        match language_id {
+            "rust" => self.rust_hover_content(word),
+            "python" => self.python_hover_content(word),
+            "typescript" | "javascript" => self.js_ts_hover_content(word),
+            "go" => self.go_hover_content(word),
+            _ => format!("`{}`", word),
+        }
+    }
+    
+    fn rust_hover_content(&self, word: &str) -> String {
+        let docs = match word {
+            "fn" => "**fn** - Declare a function\n\n```rust\nfn name(params) -> ReturnType {\n    // body\n}\n```",
+            "let" => "**let** - Bind a value to a variable\n\n```rust\nlet x = 5;\nlet mut y = 10; // mutable\n```",
+            "mut" => "**mut** - Make a binding mutable\n\n```rust\nlet mut x = 5;\nx = 10; // OK\n```",
+            "struct" => "**struct** - Define a custom data type\n\n```rust\nstruct Name {\n    field: Type,\n}\n```",
+            "enum" => "**enum** - Define an enumeration\n\n```rust\nenum Name {\n    Variant1,\n    Variant2(i32),\n}\n```",
+            "impl" => "**impl** - Implement methods for a type\n\n```rust\nimpl TypeName {\n    fn method(&self) {}\n}\n```",
+            "trait" => "**trait** - Define shared behavior\n\n```rust\ntrait Name {\n    fn method(&self);\n}\n```",
+            "match" => "**match** - Pattern matching\n\n```rust\nmatch value {\n    Pattern1 => result1,\n    Pattern2 => result2,\n    _ => default,\n}\n```",
+            "Result" => "**Result<T, E>** - Error handling type\n\n- `Ok(T)` - Success\n- `Err(E)` - Error\n\nUse `?` operator for propagation.",
+            "Option" => "**Option<T>** - Nullable type\n\n- `Some(T)` - Value present\n- `None` - No value\n\nSafer than null pointers.",
+            "Vec" => "**Vec<T>** - Growable array\n\n```rust\nlet mut v = Vec::new();\nv.push(1);\nlet v = vec![1, 2, 3];\n```",
+            "String" => "**String** - Growable UTF-8 string\n\n```rust\nlet s = String::from(\"hello\");\nlet s = \"hello\".to_string();\n```",
+            _ => return format!("`{}` - Rust identifier", word),
+        };
+        docs.to_string()
+    }
+    
+    fn python_hover_content(&self, word: &str) -> String {
+        let docs = match word {
+            "def" => "**def** - Define a function\n\n```python\ndef name(params):\n    \"\"\"docstring\"\"\"\n    return value\n```",
+            "class" => "**class** - Define a class\n\n```python\nclass Name:\n    def __init__(self):\n        pass\n```",
+            "import" => "**import** - Import a module\n\n```python\nimport module\nfrom module import name\n```",
+            "lambda" => "**lambda** - Anonymous function\n\n```python\nfn = lambda x: x * 2\n```",
+            "yield" => "**yield** - Generator expression\n\n```python\ndef gen():\n    yield 1\n    yield 2\n```",
+            "async" => "**async** - Define async function\n\n```python\nasync def fetch():\n    await something()\n```",
+            _ => return format!("`{}` - Python identifier", word),
+        };
+        docs.to_string()
+    }
+    
+    fn js_ts_hover_content(&self, word: &str) -> String {
+        let docs = match word {
+            "function" => "**function** - Declare a function\n\n```typescript\nfunction name(params): ReturnType {\n    return value;\n}\n```",
+            "const" => "**const** - Constant binding\n\n```typescript\nconst x = 5;\nconst fn = () => {};\n```",
+            "let" => "**let** - Block-scoped variable\n\n```typescript\nlet x = 5;\nx = 10; // OK\n```",
+            "interface" => "**interface** - Type contract\n\n```typescript\ninterface Name {\n    property: Type;\n    method(): void;\n}\n```",
+            "type" => "**type** - Type alias\n\n```typescript\ntype Name = { field: Type };\ntype Union = A | B;\n```",
+            "async" => "**async** - Async function\n\n```typescript\nasync function fn() {\n    const result = await promise();\n}\n```",
+            "class" => "**class** - Define a class\n\n```typescript\nclass Name {\n    constructor() {}\n    method() {}\n}\n```",
+            _ => return format!("`{}` - TypeScript/JavaScript identifier", word),
+        };
+        docs.to_string()
+    }
+    
+    fn go_hover_content(&self, word: &str) -> String {
+        let docs = match word {
+            "func" => "**func** - Declare a function\n\n```go\nfunc name(params) returnType {\n    return value\n}\n```",
+            "struct" => "**struct** - Define a struct\n\n```go\ntype Name struct {\n    Field Type\n}\n```",
+            "interface" => "**interface** - Define an interface\n\n```go\ntype Name interface {\n    Method()\n}\n```",
+            "go" => "**go** - Start a goroutine\n\n```go\ngo func() {\n    // concurrent code\n}()\n```",
+            "defer" => "**defer** - Defer execution\n\n```go\ndefer cleanup()\n// cleanup() runs when function returns\n```",
+            "chan" => "**chan** - Channel type\n\n```go\nch := make(chan int)\nch <- value  // send\nv := <-ch    // receive\n```",
+            _ => return format!("`{}` - Go identifier", word),
+        };
+        docs.to_string()
+    }
+    
+    /// Get definition patterns for a word
+    fn get_definition_patterns(&self, word: &str, language_id: &str) -> Vec<String> {
+        match language_id {
+            "rust" => vec![
+                format!("fn {}", word),
+                format!("struct {}", word),
+                format!("enum {}", word),
+                format!("trait {}", word),
+                format!("impl {}", word),
+                format!("type {}", word),
+                format!("const {}", word),
+                format!("static {}", word),
+                format!("mod {}", word),
+            ],
+            "python" => vec![
+                format!("def {}", word),
+                format!("class {}", word),
+            ],
+            "typescript" | "javascript" => vec![
+                format!("function {}", word),
+                format!("class {}", word),
+                format!("const {}", word),
+                format!("let {}", word),
+                format!("var {}", word),
+                format!("interface {}", word),
+                format!("type {}", word),
+            ],
+            "go" => vec![
+                format!("func {}", word),
+                format!("type {} struct", word),
+                format!("type {} interface", word),
+                format!("var {}", word),
+                format!("const {}", word),
+            ],
+            _ => vec![word.to_string()],
+        }
+    }
+    
     async fn get_hover(&self, content: &str, language_id: &str, position: Position) -> Option<Hover> {
-        // TODO: Implement hover using tree-sitter
-        None
+        // Get the word at the current position
+        let lines: Vec<&str> = content.lines().collect();
+        let current_line = lines.get(position.line as usize)?;
+        
+        // Find word boundaries
+        let char_pos = position.character as usize;
+        if char_pos > current_line.len() {
+            return None;
+        }
+        
+        let start = current_line[..char_pos].rfind(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let end = current_line[char_pos..].find(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| char_pos + i)
+            .unwrap_or(current_line.len());
+        
+        let word = &current_line[start..end];
+        if word.is_empty() {
+            return None;
+        }
+        
+        // Provide hover info for known keywords/types
+        let hover_content = self.get_hover_content(word, language_id);
+        
+        Some(Hover {
+            contents: HoverContents::Markup(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: hover_content,
+            }),
+            range: Some(Range {
+                start: Position { line: position.line, character: start as u32 },
+                end: Position { line: position.line, character: end as u32 },
+            }),
+        })
     }
     
     async fn get_definition(&self, content: &str, language_id: &str, position: Position) -> Option<Location> {
-        // TODO: Implement definition using tree-sitter
+        // Simple implementation: search for definition patterns
+        let lines: Vec<&str> = content.lines().collect();
+        let current_line = lines.get(position.line as usize)?;
+        
+        // Find word at position
+        let char_pos = position.character as usize;
+        if char_pos > current_line.len() {
+            return None;
+        }
+        
+        let start = current_line[..char_pos].rfind(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let end = current_line[char_pos..].find(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| char_pos + i)
+            .unwrap_or(current_line.len());
+        
+        let word = &current_line[start..end];
+        if word.is_empty() {
+            return None;
+        }
+        
+        // Search for definition patterns
+        let def_patterns = self.get_definition_patterns(word, language_id);
+        
+        for (line_num, line) in lines.iter().enumerate() {
+            for pattern in &def_patterns {
+                if let Some(col) = line.find(pattern) {
+                    return Some(Location {
+                        uri: Url::parse("file:///").ok()?,
+                        range: Range {
+                            start: Position { line: line_num as u32, character: col as u32 },
+                            end: Position { line: line_num as u32, character: (col + pattern.len()) as u32 },
+                        },
+                    });
+                }
+            }
+        }
+        
         None
     }
     
     async fn get_references(&self, content: &str, language_id: &str, position: Position) -> Vec<Location> {
-        // TODO: Implement references using tree-sitter
-        Vec::new()
+        let mut references = Vec::new();
+        let lines: Vec<&str> = content.lines().collect();
+        
+        let current_line = match lines.get(position.line as usize) {
+            Some(l) => l,
+            None => return references,
+        };
+        
+        // Find word at position
+        let char_pos = position.character as usize;
+        if char_pos > current_line.len() {
+            return references;
+        }
+        
+        let start = current_line[..char_pos].rfind(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let end = current_line[char_pos..].find(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| char_pos + i)
+            .unwrap_or(current_line.len());
+        
+        let word = &current_line[start..end];
+        if word.is_empty() {
+            return references;
+        }
+        
+        // Find all occurrences
+        for (line_num, line) in lines.iter().enumerate() {
+            let mut search_start = 0;
+            while let Some(col) = line[search_start..].find(word) {
+                // Check word boundaries
+                let abs_col = search_start + col;
+                let before_ok = abs_col == 0 || {
+                    let c = line.chars().nth(abs_col - 1);
+                    c.map_or(true, |c| !c.is_alphanumeric() && c != '_')
+                };
+                let after_ok = abs_col + word.len() >= line.len() || {
+                    let c = line.chars().nth(abs_col + word.len());
+                    c.map_or(true, |c| !c.is_alphanumeric() && c != '_')
+                };
+                
+                if before_ok && after_ok {
+                    references.push(Location {
+                        uri: Url::parse("file:///").unwrap_or_else(|_| Url::parse("file:///unknown").unwrap()),
+                        range: Range {
+                            start: Position { line: line_num as u32, character: abs_col as u32 },
+                            end: Position { line: line_num as u32, character: (abs_col + word.len()) as u32 },
+                        },
+                    });
+                }
+                search_start = abs_col + word.len();
+            }
+        }
+        
+        references
     }
     
     async fn get_document_symbols(&self, content: &str, language_id: &str) -> Vec<SymbolInformation> {
-        // TODO: Implement using tree-sitter
-        Vec::new()
+        let mut symbols = Vec::new();
+        
+        let patterns = match language_id {
+            "rust" => vec![("fn ", SymbolKind::FUNCTION), ("struct ", SymbolKind::STRUCT), 
+                          ("enum ", SymbolKind::ENUM), ("impl ", SymbolKind::CLASS),
+                          ("trait ", SymbolKind::INTERFACE), ("mod ", SymbolKind::MODULE)],
+            "python" => vec![("def ", SymbolKind::FUNCTION), ("class ", SymbolKind::CLASS)],
+            "typescript" | "javascript" => vec![("function ", SymbolKind::FUNCTION), 
+                                                ("class ", SymbolKind::CLASS),
+                                                ("const ", SymbolKind::CONSTANT),
+                                                ("interface ", SymbolKind::INTERFACE)],
+            "go" => vec![("func ", SymbolKind::FUNCTION), ("type ", SymbolKind::STRUCT),
+                         ("struct ", SymbolKind::STRUCT), ("interface ", SymbolKind::INTERFACE)],
+            _ => return symbols,
+        };
+        
+        for (line_num, line) in content.lines().enumerate() {
+            for (pattern, kind) in &patterns {
+                if let Some(col) = line.find(pattern) {
+                    // Extract name
+                    let rest = &line[col + pattern.len()..];
+                    let name_end = rest.find(|c: char| c.is_whitespace() || c == '(' || c == '{' || c == ':')
+                        .unwrap_or(rest.len());
+                    let name = &rest[..name_end];
+                    
+                    if !name.is_empty() {
+                        symbols.push(SymbolInformation {
+                            name: name.to_string(),
+                            kind: *kind,
+                            deprecated: None,
+                            location: Location {
+                                uri: Url::parse("file:///").unwrap_or_else(|_| Url::parse("file:///unknown").unwrap()),
+                                range: Range {
+                                    start: Position { line: line_num as u32, character: col as u32 },
+                                    end: Position { line: line_num as u32, character: (col + pattern.len() + name.len()) as u32 },
+                                },
+                            },
+                            container_name: None,
+                        });
+                    }
+                }
+            }
+        }
+        
+        symbols
     }
     
     async fn format_document(&self, content: &str, language_id: &str, options: &FormattingOptions) -> Vec<TextEdit> {
-        // TODO: Integrate with formatters (rustfmt, black, prettier, etc.)
-        Vec::new()
+        let mut edits = Vec::new();
+        let lines: Vec<&str> = content.lines().collect();
+        
+        // Simple formatting: fix indentation based on options
+        let indent_str = if options.insert_spaces {
+            " ".repeat(options.tab_size as usize)
+        } else {
+            "\t".to_string()
+        };
+        
+        let mut formatted_lines = Vec::new();
+        let mut indent_level = 0;
+        
+        for line in &lines {
+            let trimmed = line.trim_start();
+            
+            // Decrease indent for closing braces
+            if trimmed.starts_with('}') || trimmed.starts_with(']') || trimmed.starts_with(')') {
+                indent_level = indent_level.saturating_sub(1);
+            }
+            
+            // Build formatted line
+            let formatted = if trimmed.is_empty() {
+                String::new()
+            } else {
+                format!("{}{}", indent_str.repeat(indent_level), trimmed)
+            };
+            formatted_lines.push(formatted);
+            
+            // Increase indent for opening braces
+            for c in trimmed.chars() {
+                match c {
+                    '{' | '[' | '(' => indent_level += 1,
+                    '}' | ']' | ')' => indent_level = indent_level.saturating_sub(1),
+                    _ => {}
+                }
+            }
+        }
+        
+        // Create edit if content changed
+        let new_content = formatted_lines.join("\n");
+        if new_content != *content {
+            edits.push(TextEdit {
+                range: Range {
+                    start: Position { line: 0, character: 0 },
+                    end: Position { line: lines.len() as u32, character: 0 },
+                },
+                new_text: new_content,
+            });
+        }
+        
+        edits
     }
     
     async fn get_rename_edits(&self, content: &str, language_id: &str, position: Position, new_name: &str) -> Vec<TextEdit> {
-        // TODO: Implement rename using tree-sitter
-        Vec::new()
+        let mut edits = Vec::new();
+        let lines: Vec<&str> = content.lines().collect();
+        
+        let current_line = match lines.get(position.line as usize) {
+            Some(l) => l,
+            None => return edits,
+        };
+        
+        // Find word at position
+        let char_pos = position.character as usize;
+        if char_pos > current_line.len() {
+            return edits;
+        }
+        
+        let start = current_line[..char_pos].rfind(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        let end = current_line[char_pos..].find(|c: char| !c.is_alphanumeric() && c != '_')
+            .map(|i| char_pos + i)
+            .unwrap_or(current_line.len());
+        
+        let old_name = &current_line[start..end];
+        if old_name.is_empty() {
+            return edits;
+        }
+        
+        // Find all occurrences and create edits
+        for (line_num, line) in lines.iter().enumerate() {
+            let mut search_start = 0;
+            while let Some(col) = line[search_start..].find(old_name) {
+                let abs_col = search_start + col;
+                
+                // Check word boundaries
+                let before_ok = abs_col == 0 || {
+                    let c = line.chars().nth(abs_col - 1);
+                    c.map_or(true, |c| !c.is_alphanumeric() && c != '_')
+                };
+                let after_ok = abs_col + old_name.len() >= line.len() || {
+                    let c = line.chars().nth(abs_col + old_name.len());
+                    c.map_or(true, |c| !c.is_alphanumeric() && c != '_')
+                };
+                
+                if before_ok && after_ok {
+                    edits.push(TextEdit {
+                        range: Range {
+                            start: Position { line: line_num as u32, character: abs_col as u32 },
+                            end: Position { line: line_num as u32, character: (abs_col + old_name.len()) as u32 },
+                        },
+                        new_text: new_name.to_string(),
+                    });
+                }
+                search_start = abs_col + old_name.len();
+            }
+        }
+        
+        edits
     }
 }
 

@@ -159,7 +159,8 @@ impl CollabManager {
             info!("Created room: {}", room_id);
         }
         
-        let room = self.rooms.get_mut(room_id).unwrap();
+        let room = self.rooms.get_mut(room_id)
+            .ok_or_else(|| anyhow::anyhow!("Failed to get room after creation"))?;
         room.users.insert(self.local_user.id.clone(), self.local_user.clone());
         
         // Broadcast join
@@ -168,7 +169,8 @@ impl CollabManager {
             user: self.local_user.clone(),
         });
         
-        Ok(self.rooms.get(room_id).unwrap())
+        self.rooms.get(room_id)
+            .ok_or_else(|| anyhow::anyhow!("Room not found after join"))
     }
     
     /// Leave a room

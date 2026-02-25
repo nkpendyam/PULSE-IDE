@@ -153,7 +153,13 @@ impl AgentScheduler {
 
     /// Clear queue
     pub fn clear_queue(&self) -> usize {
-        let mut queue = self.queue.lock().unwrap();
+        let mut queue = match self.queue.lock() {
+            Ok(q) => q,
+            Err(_) => {
+                log::warn!("Failed to acquire queue lock in clear_queue");
+                return 0;
+            }
+        };
         let count = queue.len();
         queue.clear();
         count
@@ -276,8 +282,8 @@ pub fn create_task(id: &str, description: &str, priority: TaskPriority) -> Agent
         priority,
         queued_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i64,
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0),
         config: AgentConfig::default(),
     }
 }
