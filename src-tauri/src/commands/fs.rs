@@ -131,3 +131,76 @@ pub fn detect_language(path: &PathBuf) -> String {
         _ => "plaintext",
     }.to_string()
 }
+
+// ============ First-Run Experience Commands ============
+
+/// Get the config directory for KYRO IDE
+fn get_config_dir() -> Result<PathBuf, String> {
+    let config_dir = dirs::config_dir()
+        .ok_or_else(|| "Could not find config directory".to_string())?
+        .join("kyro-ide");
+    
+    if !config_dir.exists() {
+        fs::create_dir_all(&config_dir)
+            .map_err(|e| format!("Failed to create config directory: {}", e))?;
+    }
+    
+    Ok(config_dir)
+}
+
+/// Check if first run experience has been completed
+#[command]
+pub async fn is_first_run_complete() -> Result<bool, String> {
+    let config_dir = get_config_dir()?;
+    let first_run_file = config_dir.join(".first_run_complete");
+    
+    Ok(first_run_file.exists())
+}
+
+/// Mark first run experience as complete
+#[command]
+pub async fn save_first_run_complete() -> Result<(), String> {
+    let config_dir = get_config_dir()?;
+    let first_run_file = config_dir.join(".first_run_complete");
+    
+    // Write current timestamp
+    let content = chrono::Utc::now().to_rfc3339();
+    fs::write(&first_run_file, content)
+        .map_err(|e| format!("Failed to save first run status: {}", e))?;
+    
+    Ok(())
+}
+
+/// Get list of supported languages
+#[command]
+pub async fn list_supported_languages() -> Result<Vec<String>, String> {
+    Ok(vec![
+        "Rust".to_string(),
+        "TypeScript".to_string(),
+        "JavaScript".to_string(),
+        "Python".to_string(),
+        "Go".to_string(),
+        "Java".to_string(),
+        "C++".to_string(),
+        "C".to_string(),
+        "C#".to_string(),
+        "Ruby".to_string(),
+        "PHP".to_string(),
+        "Swift".to_string(),
+        "Kotlin".to_string(),
+        "Scala".to_string(),
+        "Lua".to_string(),
+        "Shell".to_string(),
+        "HTML".to_string(),
+        "CSS".to_string(),
+        "SCSS".to_string(),
+        "JSON".to_string(),
+        "YAML".to_string(),
+        "TOML".to_string(),
+        "Markdown".to_string(),
+        "SQL".to_string(),
+        "Vue".to_string(),
+        "Svelte".to_string(),
+        "XML".to_string(),
+    ])
+}

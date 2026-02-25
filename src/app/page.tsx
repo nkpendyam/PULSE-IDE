@@ -20,6 +20,8 @@ import { PluginManager } from '@/components/plugins/PluginManager';
 import { AgentPanel } from '@/components/agents/AgentPanel';
 import { UpdatePanel } from '@/components/update/UpdatePanel';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
+import { FirstRunExperience } from '@/components/onboarding/FirstRunExperience';
+import { GitStagingPanel } from '@/components/git/GitStagingPanel';
 import {
   FolderOpen, GitBranch, FileCode, Users, Puzzle, Bot, Download, Settings,
   LogIn
@@ -32,6 +34,7 @@ export default function KyroIDE() {
   const [activePanel, setActivePanel] = useState<SidebarPanel>('explorer');
   const [supportedLanguages, setSupportedLanguages] = useState<string[]>([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isFirstRun, setIsFirstRun] = useState<boolean | null>(null); // null = checking
 
   const {
     projectPath, fileTree, openFiles, activeFileIndex, isOllamaRunning, models,
@@ -47,6 +50,38 @@ export default function KyroIDE() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Check if first run on mount
+  useEffect(() => {
+    const checkFirstRun = async () => {
+      try {
+        const firstRunComplete = await invoke<boolean>('is_first_run_complete');
+        setIsFirstRun(!firstRunComplete);
+      } catch {
+        // If command doesn't exist, assume not first run
+        setIsFirstRun(false);
+      }
+    };
+    checkFirstRun();
+  }, []);
+
+  // Complete first run
+  const handleFirstRunComplete = useCallback(() => {
+    setIsFirstRun(false);
+  }, []);
+
+  // Show first run experience if needed
+  if (isFirstRun === null) {
+    return (
+      <div className="h-screen w-screen bg-[#0d1117] flex items-center justify-center">
+        <div className="text-[#8b949e]">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isFirstRun) {
+    return <FirstRunExperience onComplete={handleFirstRunComplete} />;
+  }
 
   useEffect(() => {
     const checkOllama = async () => {
@@ -251,10 +286,7 @@ export default function KyroIDE() {
 
             {/* Git Panel */}
             {activePanel === 'git' && (
-              <div className="p-3 text-xs text-[#8b949e]">
-                <GitBranch className="mb-2" size={16} />
-                <p>Git integration coming soon</p>
-              </div>
+              <GitStagingPanel />
             )}
 
             {/* Symbols Panel */}

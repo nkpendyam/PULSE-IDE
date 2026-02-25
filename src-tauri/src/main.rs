@@ -304,6 +304,9 @@ fn main() {
             commands::fs::delete_directory,
             commands::fs::rename_file,
             commands::fs::get_file_tree,
+            commands::fs::is_first_run_complete,
+            commands::fs::save_first_run_complete,
+            commands::fs::list_supported_languages,
             
             // ============ Terminal Operations ============
             commands::terminal::create_terminal,
