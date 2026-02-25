@@ -57,10 +57,3 @@ pub mod auth;
 
 // ============ End-to-End Encryption (Signal Protocol) ============
 pub mod e2ee;
-
-// Re-export commonly used types
-pub use auth::{User, UserRole, AuthManager, Session};
-pub use collaboration::{CollaborationManager, Room, UserInfo};
-pub use e2ee::{E2eeManager, E2eeSession};
-pub use embedded_llm::{EmbeddedLLMEngine, HardwareCapabilities, MemoryTier};
-pub use vscode_compat::{ExtensionManifest, ExtensionHost, TextDocument};
