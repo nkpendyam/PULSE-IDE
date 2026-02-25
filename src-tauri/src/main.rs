@@ -70,6 +70,9 @@ mod lsp_transport;
 // ============ Collaboration (CRDT-based) ============
 mod collab;
 
+// ============ Debug Adapter Protocol ============
+mod debug;
+
 // ============ AI Inference (based on Candle) ============
 mod inference;
 

@@ -1,5 +1,7 @@
 //! File watching for KYRO IDE
 
+pub mod local_history;
+
 use tauri::WebviewWindow;
 
 pub struct FileWatcher {
