@@ -21,12 +21,14 @@ pub mod backends;
 pub mod model_manager;
 pub mod memory_tiers;
 pub mod context_cache;
+pub mod real_inference;
 
 pub use engine::EmbeddedLLMEngine;
 pub use backends::{InferenceBackend, BackendCapabilities};
 pub use model_manager::{ModelManager, ModelSpec, Quantization};
 pub use memory_tiers::{MemoryTier, MemoryProfiler};
 pub use context_cache::{ContextCache, CachedContext};
+pub use real_inference::{RealLlamaBackend, ModelDownloader, DEFAULT_MODELS, get_recommended_model};
 
 use serde::{Deserialize, Serialize};
 

@@ -19,6 +19,7 @@ pub mod completion_engine;
 pub mod wasm_loader;
 pub mod smart_selection;
 pub mod postfix_completion;
+pub mod lsp_manager;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

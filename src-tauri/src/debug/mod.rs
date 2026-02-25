@@ -9,6 +9,7 @@ pub mod types;
 pub mod session;
 pub mod breakpoints;
 pub mod variables;
+pub mod debug_adapter;
 
 pub use client::*;
 pub use server::*;
@@ -16,3 +17,4 @@ pub use types::*;
 pub use session::*;
 pub use breakpoints::*;
 pub use variables::*;
+pub use debug_adapter::*;

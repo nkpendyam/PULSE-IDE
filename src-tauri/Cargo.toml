@@ -375,6 +375,13 @@ flate2 = "1.0"
 # ============ WASM Runtime (Plugin System) ============
 wasmtime = { version = "20", optional = true, default-features = false, features = ["cranelift", "pooling-allocator"] }
 
+# ============ Embedded LLM (llama.cpp) ============
+# Real GGUF model inference - zero external dependency
+llama-cpp = { version = "0.3", features = ["static"], optional = true }
+
+# ============ DAP (Debug Adapter Protocol) ============
+dap = "0.4"  # Debug Adapter Protocol types and client
+
 # ============ Vector Database (RAG) - Commented out to fix build
 # qdrant-client = { version = "1.7", optional = true }
 
@@ -499,7 +506,7 @@ all-languages = [
 ]
 
 # Embedded LLM (llama.cpp static linking)
-embedded-llm = []
+embedded-llm = ["llama-cpp"]
 
 # Candle ML framework (alternative inference)
 candle-inference = []
