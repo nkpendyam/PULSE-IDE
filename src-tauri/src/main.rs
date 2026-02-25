@@ -424,6 +424,52 @@ fn main() {
             commands::update::is_auto_update_enabled,
             commands::update::skip_update,
             commands::update::get_last_update_check,
+            
+            // ============ RAG Operations ============
+            commands::rag::get_rag_status,
+            commands::rag::index_project,
+            commands::rag::semantic_search,
+            commands::rag::clear_rag_index,
+            commands::rag::get_rag_config,
+            commands::rag::set_rag_config,
+            commands::rag::get_indexed_paths,
+            commands::rag::remove_indexed_path,
+            
+            // ============ WebSocket Operations ============
+            commands::websocket::ws_connect,
+            commands::websocket::ws_disconnect,
+            commands::websocket::ws_get_status,
+            commands::websocket::ws_join_room,
+            commands::websocket::ws_leave_room,
+            commands::websocket::ws_send_message,
+            commands::websocket::ws_send_presence,
+            commands::websocket::ws_send_operation,
+            commands::websocket::ws_get_server_url,
+            commands::websocket::ws_set_reconnect_handler,
+            
+            // ============ Git CRDT Operations ============
+            commands::gitcrdt::git_crdt_status,
+            commands::gitcrdt::git_crdt_sync,
+            commands::gitcrdt::git_crdt_commit,
+            commands::gitcrdt::git_crdt_auto_commit,
+            commands::gitcrdt::git_crdt_auto_push,
+            commands::gitcrdt::git_crdt_resolve_conflict,
+            commands::gitcrdt::git_crdt_get_history,
+            commands::gitcrdt::git_crdt_create_branch,
+            commands::gitcrdt::git_crdt_switch_branch,
+            
+            // ============ Enhanced LSP Operations ============
+            commands::lsp_real::lsp_start_server,
+            commands::lsp_real::lsp_stop_server,
+            commands::lsp_real::lsp_get_servers,
+            commands::lsp_real::lsp_get_completions,
+            commands::lsp_real::lsp_get_hover,
+            commands::lsp_real::lsp_goto_definition,
+            commands::lsp_real::lsp_goto_references,
+            commands::lsp_real::lsp_get_diagnostics,
+            commands::lsp_real::lsp_rename,
+            commands::lsp_real::lsp_format_document,
+            commands::lsp_real::lsp_code_actions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

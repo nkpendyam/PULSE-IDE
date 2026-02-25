@@ -18,6 +18,7 @@ pub mod e2ee;
 
 // Collaboration commands
 pub mod collaboration;
+pub mod websocket;
 
 // Extension commands
 pub mod vscode_compat;
@@ -31,3 +32,12 @@ pub mod plugin;
 
 // System commands
 pub mod update;
+
+// RAG commands
+pub mod rag;
+
+// Git CRDT commands  
+pub mod gitcrdt;
+
+// Enhanced LSP commands
+pub mod lsp_real;
