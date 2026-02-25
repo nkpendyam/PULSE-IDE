@@ -317,3 +317,250 @@ pub async fn get_popular_extensions() -> Result<Vec<ExtensionInfo>, String> {
         rating: ext.average_rating,
     }).collect())
 }
+
+// ============ Unified Marketplace Commands ============
+
+/// Search extensions from both VS Code Marketplace and Open VSX
+#[command]
+pub async fn search_extensions_unified(
+    query: String,
+    category: Option<String>,
+    source: Option<String>,
+    sort_by: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<ExtensionInfo>, String> {
+    let limit = limit.unwrap_or(50) as usize;
+    let mut all_extensions = Vec::new();
+    
+    // Search VS Code Marketplace
+    if source.as_deref() == Some("vscode") || source.as_deref() == Some("all") || source.is_none() {
+        let vscode_client = crate::vscode_compat::MarketplaceClient::new();
+        let vscode_query = crate::vscode_compat::ExtensionQuery {
+            search_text: Some(query.clone()),
+            category: category.clone(),
+            ..Default::default()
+        };
+        
+        if let Ok(results) = vscode_client.search(&vscode_query).await {
+            for ext in results {
+                all_extensions.push(ExtensionInfo {
+                    id: format!("{}.{}", ext.publisher_name, ext.extension_name),
+                    name: ext.extension_name,
+                    display_name: ext.display_name,
+                    version: ext.version,
+                    description: Some(ext.short_description),
+                    publisher: ext.publisher_name,
+                    enabled: false,
+                    installed: false,
+                    state: "available".to_string(),
+                    icon_url: ext.icon_url,
+                    download_count: Some(ext.download_count),
+                    rating: ext.average_rating,
+                });
+            }
+        }
+    }
+    
+    // Search Open VSX
+    if source.as_deref() == Some("openvsx") || source.as_deref() == Some("all") || source.is_none() {
+        let openvsx_client = crate::vscode_compat::OpenVsxClient::new();
+        let openvsx_query = crate::vscode_compat::OpenVsxQuery {
+            search_text: Some(query),
+            category: category,
+            size: (limit / 2) as u32,
+            ..Default::default()
+        };
+        
+        if let Ok(results) = openvsx_client.search(&openvsx_query).await {
+            for ext in results {
+                all_extensions.push(ExtensionInfo {
+                    id: format!("{}.{}", ext.namespace, ext.name),
+                    name: ext.name,
+                    display_name: ext.display_name.unwrap_or_else(|| ext.name.clone()),
+                    version: ext.version,
+                    description: ext.description,
+                    publisher: ext.namespace,
+                    enabled: false,
+                    installed: false,
+                    state: "available".to_string(),
+                    icon_url: ext.files.icon,
+                    download_count: Some(ext.download_count),
+                    rating: ext.average_rating,
+                });
+            }
+        }
+    }
+    
+    // Sort by downloads
+    all_extensions.sort_by(|a, b| {
+        b.download_count.unwrap_or(0).cmp(&a.download_count.unwrap_or(0))
+    });
+    
+    // Limit results
+    all_extensions.truncate(limit);
+    
+    Ok(all_extensions)
+}
+
+/// Install extension from unified marketplace
+#[command]
+pub async fn install_extension_unified(
+    publisher: String,
+    name: String,
+    version: String,
+    source: String,
+) -> Result<ExtensionInfo, String> {
+    let mut state = EXTENSION_STATE.write().await;
+    
+    let ext_id = format!("{}.{}", publisher, name);
+    
+    if source == "openvsx" {
+        let openvsx_client = crate::vscode_compat::OpenVsxClient::new();
+        
+        // Download extension
+        let vsix_path = openvsx_client.download_extension(&publisher, &name, &version).await
+            .map_err(|e| format!("Download failed: {}", e))?;
+        
+        // Extract and install
+        let extensions_dir = dirs::data_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join("kyro-ide")
+            .join("extensions");
+        
+        let ext_dir = extensions_dir.join(&ext_id);
+        std::fs::create_dir_all(&ext_dir).map_err(|e| e.to_string())?;
+        
+        // Extract VSIX
+        extract_vsix(&vsix_path, &ext_dir)?;
+        
+        let info = ExtensionInfo {
+            id: ext_id.clone(),
+            name: name.clone(),
+            display_name: name.clone(),
+            version,
+            description: None,
+            publisher: publisher.clone(),
+            enabled: false,
+            installed: true,
+            state: "installed".to_string(),
+            icon_url: None,
+            download_count: None,
+            rating: None,
+        };
+        
+        state.installed_extensions.push(info.clone());
+        
+        return Ok(info);
+    }
+    
+    // VS Code Marketplace
+    let ext = state.marketplace_client.get_extension(&publisher, &name).await
+        .map_err(|e| format!("Failed to get extension: {}", e))?;
+    
+    state.marketplace_client.install_extension(&publisher, &name, Some(&version)).await
+        .map_err(|e| format!("Installation failed: {}", e))?;
+    
+    let info = ExtensionInfo {
+        id: ext_id.clone(),
+        name: name.clone(),
+        display_name: ext.display_name.unwrap_or(name),
+        version: ext.version.clone(),
+        description: ext.description.clone(),
+        publisher: publisher.clone(),
+        enabled: false,
+        installed: true,
+        state: "installed".to_string(),
+        icon_url: ext.icon_url.clone(),
+        download_count: Some(ext.download_count),
+        rating: ext.average_rating,
+    };
+    
+    state.installed_extensions.push(info.clone());
+    
+    Ok(info)
+}
+
+/// Get popular extensions from Open VSX
+#[command]
+pub async fn get_openvsx_popular(count: Option<u32>) -> Result<Vec<ExtensionInfo>, String> {
+    let openvsx_client = crate::vscode_compat::OpenVsxClient::new();
+    let count = count.unwrap_or(25);
+    
+    let results = openvsx_client.get_popular(count).await
+        .map_err(|e| format!("Failed to get popular extensions: {}", e))?;
+    
+    Ok(results.into_iter().map(|ext| ExtensionInfo {
+        id: format!("{}.{}", ext.namespace, ext.name),
+        name: ext.name,
+        display_name: ext.display_name.unwrap_or_else(|| ext.name.clone()),
+        version: ext.version,
+        description: ext.description,
+        publisher: ext.namespace,
+        enabled: false,
+        installed: false,
+        state: "popular".to_string(),
+        icon_url: ext.files.icon,
+        download_count: Some(ext.download_count),
+        rating: ext.average_rating,
+    }).collect())
+}
+
+/// Get extension readme
+#[command]
+pub async fn get_extension_readme(
+    publisher: String,
+    name: String,
+    source: String,
+) -> Result<String, String> {
+    if source == "openvsx" {
+        let openvsx_client = crate::vscode_compat::OpenVsxClient::new();
+        
+        if let Some(ext) = openvsx_client.get_extension(&publisher, &name).await.map_err(|e| e.to_string())? {
+            if let Some(url) = ext.files.readme {
+                let response = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+                return response.text().await.map_err(|e| e.to_string());
+            }
+        }
+    }
+    
+    // VS Code Marketplace
+    let marketplace_client = crate::vscode_compat::MarketplaceClient::new();
+    let readme = marketplace_client.get_readme(&publisher, &name, "latest").await
+        .map_err(|e| e.to_string())?;
+    
+    Ok(readme)
+}
+
+/// Extract VSIX file to directory
+fn extract_vsix(vsix_path: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
+    use std::fs::File;
+    use std::io::Read;
+    use zip::ZipArchive;
+    
+    let file = File::open(vsix_path).map_err(|e| e.to_string())?;
+    let mut archive = ZipArchive::new(file).map_err(|e| e.to_string())?;
+    
+    std::fs::create_dir_all(dest).map_err(|e| e.to_string())?;
+    
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
+        let path = file.mangled_name();
+        
+        // VSIX files have extension/ prefix
+        if let Ok(relative) = path.strip_prefix("extension/") {
+            let out_path = dest.join(relative);
+            
+            if file.name().ends_with('/') {
+                std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
+            } else {
+                if let Some(parent) = out_path.parent() {
+                    std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+                }
+                let mut outfile = File::create(&out_path).map_err(|e| e.to_string())?;
+                std::io::copy(&mut file, &mut outfile).map_err(|e| e.to_string())?;
+            }
+        }
+    }
+    
+    Ok(())
+}

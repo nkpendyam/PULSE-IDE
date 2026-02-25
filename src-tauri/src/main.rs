@@ -324,6 +324,9 @@ fn main() {
             commands::ai::fix_code,
             commands::ai::check_ollama_status,
             commands::ai::list_models,
+            commands::ai::ai_code_completion,
+            commands::ai::ai_stream_completion,
+            commands::ai::ai_inline_chat,
             
             // ============ Git Operations ============
             commands::git::git_status,
@@ -405,6 +408,10 @@ fn main() {
             commands::vscode_compat::reload_extensions,
             commands::vscode_compat::get_extension_recommendations,
             commands::vscode_compat::get_popular_extensions,
+            commands::vscode_compat::search_extensions_unified,
+            commands::vscode_compat::install_extension_unified,
+            commands::vscode_compat::get_openvsx_popular,
+            commands::vscode_compat::get_extension_readme,
             
             // ============ MCP/Agent Operations ============
             commands::mcp::list_agents,

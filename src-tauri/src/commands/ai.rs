@@ -120,3 +120,133 @@ fn format_size(bytes: u64) -> String {
     else if bytes >= KB { format!("{:.1} KB", bytes as f64 / KB as f64) }
     else { format!("{} B", bytes) }
 }
+
+// ============ Ghost Text / Inline Completion Commands ============
+
+/// AI code completion for ghost text
+#[command]
+pub async fn ai_code_completion(
+    code: String,
+    language: String,
+    max_tokens: Option<u32>,
+    temperature: Option<f32>,
+) -> Result<String, String> {
+    let max_tokens = max_tokens.unwrap_or(100);
+    let temperature = temperature.unwrap_or(0.3);
+    
+    // Check if embedded LLM is available
+    let state = crate::commands::embedded_llm::EMBEDDED_LLM_STATE.read().await;
+    
+    if let Some(ref engine) = state.engine {
+        let engine = engine.read().await;
+        
+        let request = crate::embedded_llm::InferenceRequest {
+            prompt: code.clone(),
+            max_tokens,
+            temperature,
+            top_p: 0.9,
+            top_k: 40,
+            repeat_penalty: 1.1,
+            stop_sequences: vec!["\n\n".to_string(), "```".to_string()],
+            stream: false,
+            system_prompt: Some(format!(
+                "You are an AI code completion assistant. Complete the {} code. Only output the completion, not the entire code.",
+                language
+            )),
+            history: vec![],
+        };
+        
+        let response = engine.complete(&request).await
+            .map_err(|e| format!("Completion failed: {}", e))?;
+        
+        return Ok(response.text);
+    }
+    drop(state);
+    
+    // Fallback to Ollama
+    let models = list_models().await?;
+    let model = models.first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| "codellama:7b".to_string());
+    
+    let system_prompt = format!(
+        "You are an AI code completion assistant. Complete the {} code naturally. Only output the completion, nothing else.",
+        language
+    );
+    
+    chat_completion(model, vec![
+        ChatMessage { role: "system".to_string(), content: system_prompt },
+        ChatMessage { role: "user".to_string(), content: format!("Complete this code:\n\n{}", code) },
+    ]).await
+}
+
+/// Streaming AI completion
+#[command]
+pub async fn ai_stream_completion(
+    code: String,
+    language: String,
+    max_tokens: Option<u32>,
+    temperature: Option<f32>,
+) -> Result<StreamCompletionResult, String> {
+    let max_tokens = max_tokens.unwrap_or(100);
+    let temperature = temperature.unwrap_or(0.3);
+    
+    // Get completion (streaming would require event-based communication)
+    let text = ai_code_completion(code, language, Some(max_tokens), Some(temperature)).await?;
+    
+    // Split into tokens for streaming simulation
+    let tokens: Vec<String> = text
+        .split_whitespace()
+        .map(|w| format!("{} ", w))
+        .collect();
+    
+    Ok(StreamCompletionResult {
+        text: text.clone(),
+        tokens,
+    })
+}
+
+/// Result for streaming completion
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamCompletionResult {
+    pub text: String,
+    pub tokens: Vec<String>,
+}
+
+/// AI inline chat for code editing
+#[command]
+pub async fn ai_inline_chat(
+    prompt: String,
+    selected_code: String,
+    language: String,
+    context: String,
+) -> Result<String, String> {
+    let models = list_models().await?;
+    let model = models.first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| "codellama:7b".to_string());
+    
+    let system_prompt = format!(
+        "You are KYRO, an AI coding assistant integrated into an IDE. \
+        The user has selected some {} code and wants to modify it. \
+        Respond ONLY with the modified code, no explanations or markdown.",
+        language
+    );
+    
+    let user_content = if selected_code.is_empty() {
+        format!(
+            "Context (surrounding code):\n```\n{}\n```\n\nRequest: {}",
+            context, prompt
+        )
+    } else {
+        format!(
+            "Selected code:\n```\n{}\n```\n\nContext:\n```\n{}\n```\n\nRequest: {}",
+            selected_code, context, prompt
+        )
+    };
+    
+    chat_completion(model, vec![
+        ChatMessage { role: "system".to_string(), content: system_prompt },
+        ChatMessage { role: "user".to_string(), content: user_content },
+    ]).await
+}

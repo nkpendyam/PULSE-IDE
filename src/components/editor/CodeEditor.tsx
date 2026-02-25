@@ -5,6 +5,7 @@ import Editor, { OnMount, OnChange, Monaco } from '@monaco-editor/react';
 import { useKyroStore } from '@/store/kyroStore';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { useGhostTextProvider } from './GhostTextProvider';
 
 // Extended editor options for full IDE experience
 interface EditorOptions {
@@ -44,6 +45,14 @@ export function CodeEditor() {
   } = useKyroStore();
 
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+
+  // Initialize ghost text provider with streaming
+  const { currentCompletion, isProcessing: isGhostTextProcessing } = useGhostTextProvider(
+    editorRef.current,
+    monacoRef.current,
+    currentFile?.language || 'plaintext',
+    { enabled: editorOptions.ghostText, debounceMs: 300, maxTokens: 100 }
+  );
 
   // Default editor options
   const defaultOptions: EditorOptions = {

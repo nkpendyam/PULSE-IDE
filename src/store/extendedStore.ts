@@ -349,18 +349,56 @@ export const useExtendedKyroStore = create<ExtendedKyroState>((set, get) => ({
   // Extension Actions
   fetchExtensions: async () => {
     set({ extensionLoading: true });
-    const installed = await invoke<Extension[]>('list_installed_extensions');
-    set({ installedExtensions: installed, extensionLoading: false });
+    try {
+      const installed = await invoke<Extension[]>('list_installed_extensions');
+      set({ installedExtensions: installed, extensionLoading: false });
+    } catch {
+      set({ installedExtensions: [], extensionLoading: false });
+    }
   },
 
   searchExtensions: async (query: string) => {
-    const result = await invoke<{ extensions: Extension[] }>('search_extensions', { query });
-    set({ availableExtensions: result.extensions });
+    set({ extensionLoading: true });
+    try {
+      // Use unified search which queries both VS Code Marketplace and Open VSX
+      const extensions = await invoke<Extension[]>('search_extensions_unified', {
+        query,
+        source: 'all',
+        limit: 50
+      });
+      set({ availableExtensions: extensions, extensionLoading: false });
+    } catch {
+      // Fallback to popular extensions
+      try {
+        const popular = await invoke<Extension[]>('get_openvsx_popular', { count: 25 });
+        set({ availableExtensions: popular, extensionLoading: false });
+      } catch {
+        set({ availableExtensions: [], extensionLoading: false });
+      }
+    }
   },
 
   installExtension: async (extensionId: string) => {
-    await invoke('install_extension', { request: { extensionId } });
-    await get().fetchExtensions();
+    try {
+      // Parse extension ID (format: publisher.name)
+      const parts = extensionId.split('.');
+      if (parts.length >= 2) {
+        const publisher = parts[0];
+        const name = parts.slice(1).join('.');
+        await invoke('install_extension_unified', {
+          publisher,
+          name,
+          version: 'latest',
+          source: 'openvsx'
+        });
+      } else {
+        await invoke('install_extension', { request: { extensionId } });
+      }
+      await get().fetchExtensions();
+    } catch (error) {
+      console.error('Failed to install extension:', error);
+      throw error;
+    }
   },
 
   uninstallExtension: async (extensionId: string) => {

@@ -9,6 +9,7 @@
 //! - `extension_runtime` - Node.js subprocess for running extension JavaScript
 //! - `manifest` - Extension manifest (package.json) parsing and validation
 //! - `marketplace` - VS Code Marketplace client for extension discovery
+//! - `openvsx` - Open VSX Registry client (open-source alternative)
 //! - `protocol` - JSON-RPC protocol for extension communication
 //! - `commands` - Built-in and extension command registration
 
@@ -18,6 +19,7 @@ pub mod extension_host;
 pub mod extension_runtime;
 pub mod manifest;
 pub mod marketplace;
+pub mod openvsx;
 pub mod protocol;
 
 pub use api::VsCodeApi;
@@ -26,6 +28,7 @@ pub use extension_host::{ExtensionHost, ExtensionState};
 pub use extension_runtime::{ExtensionRuntime, RpcRequest, RpcResponse};
 pub use manifest::{ExtensionManifest, ExtensionKind};
 pub use marketplace::{MarketplaceClient, ExtensionQuery};
+pub use openvsx::{OpenVsxClient, OpenVsxQuery};
 pub use protocol::ExtensionProtocol;
 
 use anyhow::{Result, Context};
