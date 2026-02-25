@@ -252,6 +252,30 @@ fn main() {
             app.manage(Arc::new(Mutex::new(telemetry)));
             log::info!("✓ Telemetry initialized");
             
+            // ============ Initialize RAG State ============
+            
+            let rag_state = commands::rag::RagState::default();
+            app.manage(Arc::new(AsyncRwLock::new(rag_state)));
+            log::info!("✓ RAG state initialized");
+            
+            // ============ Initialize WebSocket State ============
+            
+            let ws_state = commands::websocket::WsState::default();
+            app.manage(Arc::new(AsyncRwLock::new(ws_state)));
+            log::info!("✓ WebSocket state initialized");
+            
+            // ============ Initialize Git CRDT State ============
+            
+            let git_crdt_state = commands::gitcrdt::GitCrdtState::default();
+            app.manage(Arc::new(AsyncRwLock::new(git_crdt_state)));
+            log::info!("✓ Git CRDT state initialized");
+            
+            // ============ Initialize Enhanced LSP State ============
+            
+            let lsp_state = commands::lsp_real::LspState::default();
+            app.manage(Arc::new(AsyncRwLock::new(lsp_state)));
+            log::info!("✓ Enhanced LSP state initialized");
+            
             // ============ Startup Complete ============
             
             log::info!("=================================");

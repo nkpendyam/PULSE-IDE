@@ -1,12 +1,10 @@
 //! WebSocket Client for Real-time Collaboration
-//! 
+//!
 //! Handles real-time communication for collaboration features
 
 use tauri::State;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use futures_util::{SinkExt, StreamExt};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 /// WebSocket connection status
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -159,21 +157,6 @@ pub async fn ws_send_presence(
     
     // Real impl would broadcast presence to room
     let _ = cursor;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn ws_send_operation(
-    operation: TextOperation,
-    state: State<'_, Arc<RwLock<WsState>>>,
-) -> Result<(), String> {
-    let ws = state.read().await;
-    if ws.status != WsStatus::Connected {
-        return Err("Not connected".to_string());
-    }
-    
-    // Real impl would broadcast CRDT operation
-    let _ = operation;
     Ok(())
 }
 
