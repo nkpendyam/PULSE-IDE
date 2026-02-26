@@ -1,6 +1,22 @@
-# KYRO IDE
+# Kyro IDE
 
-**AI-Powered Code Editor** - A lightweight, fast, and intelligent development environment with local AI support, distributed inference, and real-time collaboration.
+**The Only AI IDE That Respects Your Code** - A lightweight, fast, and privacy-first development environment with embedded local AI, zero cloud dependency, and real-time E2E encrypted collaboration.
+
+> *"Your code. Your machine. Your rules."*
+
+## Why Kyro IDE?
+
+| Kyro IDE | Cursor | VS Code | Copilot |
+|----------|--------|---------|---------|
+| ✅ 100% Local AI | ❌ Cloud required | ❌ Cloud required | ❌ Cloud required |
+| ✅ Zero data leakage | ⚠️ Code to cloud | ⚠️ Telemetry | ⚠️ Microsoft cloud |
+| ✅ Free forever | $20/mo + tokens | Free | $10/mo |
+| ✅ Works offline | ❌ No | ⚠️ Partial | ❌ No |
+| ✅ E2E encrypted collab | ❌ None | ❌ None | ⚠️ Shared workspaces |
+| ✅ < 150MB RAM | 400-600MB | 400-600MB | Tab-dependent |
+| ✅ Open source (MIT) | ❌ Closed | ✅ Open | ❌ Closed |
+
+**Works in a Faraday cage. They don't.**
 
 ## Features
 

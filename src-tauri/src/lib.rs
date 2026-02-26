@@ -93,3 +93,6 @@ pub mod chat_sidebar;
 
 // ============ MCP Agent Editor (Killer Feature #2) ============
 pub mod agent_editor;
+
+// ============ Agent Store (VECTOR_3: User-Controlled Agents) ============
+pub mod agent_store;
