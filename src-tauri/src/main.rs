@@ -42,11 +42,10 @@ mod rag;
 mod git_crdt;
 
 // ============ Platform Modules ============
-// mod virtual_pico;  // TODO: Re-enable when module is ready
 mod telegram;
 
 // ============ Verification Modules ============
-// mod symbolic_verify;  // TODO: Re-enable when module is ready
+// symbolic_verify - removed (incomplete)
 
 // ============ Agent System ============
 mod agents;
@@ -214,10 +213,8 @@ fn main() {
             app.manage(Arc::new(AsyncRwLock::new(mcp_server)));
             log::info!("✓ MCP server initialized");
             
-            // ============ Initialize Virtual PICO Bridge ============
-            // TODO: Re-enable when virtual_pico module is ready
-            // let pico_bridge = virtual_pico::PicoBridge::default();
-            // app.manage(Arc::new(Mutex::new(pico_bridge)));
+            // ============ Virtual PICO Bridge ============
+            // virtual_pico module removed - incomplete feature
             
             // ============ Initialize Collaboration ============
             
@@ -226,13 +223,8 @@ fn main() {
             app.manage(Arc::new(Mutex::new(collab_manager)));
             log::info!("✓ Collaboration manager initialized");
             
-            // ============ Initialize Verification ============
-            // TODO: Re-enable when symbolic_verify module is ready
-            // let verify_config = symbolic_verify::VerificationConfig::default();
-            // if let Ok(verify_manager) = symbolic_verify::VerificationManager::new(verify_config) {
-            //     app.manage(Arc::new(Mutex::new(verify_manager)));
-            //     log::info!("✓ Verification manager initialized");
-            // }
+            // ============ Verification ============
+            // symbolic_verify module removed - incomplete feature
             
             // ============ Initialize Plugin Manager ============
             

@@ -12,3 +12,18 @@ src-tauri/target/
 .vscode/
 download/
 upload/
+
+# Logs
+*.log
+logs/
+
+# IDE
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Build artifacts
+*.tsbuildinfo
