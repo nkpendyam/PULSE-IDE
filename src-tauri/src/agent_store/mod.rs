@@ -118,6 +118,7 @@ pub struct InstalledAgent {
 }
 
 /// Agent store for discovering and installing agents
+#[derive(Clone)]
 pub struct AgentStore {
     /// Installed agents
     installed: HashMap<String, InstalledAgent>,
