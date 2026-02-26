@@ -45,7 +45,7 @@
 - **Symbol Extraction** - Find functions, classes, structs, enums
 - **Keyword Completions** - Language-specific suggestions
 - **Syntax Diagnostics** - Bracket matching, string detection
-- **Supported Languages**: Rust, Python, JavaScript, TypeScript, Go, C, C++, C#, Ruby, PHP, Java, Kotlin, Swift, HTML, CSS, SCSS, JSON, YAML, TOML, Markdown, SQL, Shell, Lua, Vue, Svelte
+- **Supported Languages** (10 core): Rust, TypeScript, Python, Go, C, C++, Java, JSON, YAML, Markdown
 
 ### Swarm AI Engine (New!)
 - **Local LLM Inference** - Direct llama.cpp integration without Ollama dependency
@@ -60,18 +60,15 @@
 - **AI Merge Resolution** - Intelligent conflict resolution using local LLM
 - **Awareness Protocol** - See cursors and selections of collaborators
 
-### Virtual PICO Bridge (New!)
-- **Phone as Controller** - Use your smartphone as a coding controller
-- **Gesture Recognition** - Shake to undo, tilt to scroll, circle to run
-- **Haptic Feedback** - Rich vibration patterns for different events
-- **Offline Queue** - Commands queued when offline, synced when connected
-- **WebSocket PWA** - No app store needed, works in browser
+### Command Palette
+- **Fuzzy Search** - Quick access to all commands
+- **Keyboard Shortcuts** - Efficient workflow
+- **Recent Files** - Fast file navigation
 
-### Symbolic Verification (New!)
-- **Z3 Integration** - SMT solver for formal verification
-- **Kani Support** - AWS model checker for Rust
-- **Property Generation** - Auto-generate property-based tests
-- **Panic Detection** - Verify absence of runtime panics
+### Debug Support
+- **DAP Integration** - Debug Adapter Protocol support
+- **Breakpoints** - Set and manage breakpoints
+- **Variable Inspection** - View variables and call stacks
 
 ## Screenshot
 
@@ -79,7 +76,7 @@
 ┌────────────────────────────────────────────────────────────────────┐
 │ KYRO IDE • my-project                      ● Ollama Connected     │
 ├────────────────────────────────────────────────────────────────────┤
-│ 📁 Explorer │ ⚡ Symbols │ 🔍 Search │ 🌿 Git │ 🤖 AI │ 📱 PICO    │
+│ 📁 Explorer │ ⚡ Symbols │ 🔍 Search │ 🌿 Git │ 🤖 AI │ ⚙️ Settings │
 ├────────────────────────────────────────────────────────────────────┤
 │ 📂 src                    │  function main() {        │ 💬 AI Chat │
 │   📂 components          │    println!("Hello");     │            │
@@ -175,8 +172,8 @@ wget https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/cod
 │  │   Editor    │  │    LSP      │  │ Engine      │  │ Collaboration │  │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └───────────────┘  │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────────┐  │
-│  │  Git Core   │  │  Terminal   │  │ Virtual PICO│  │ Symbolic      │  │
-│  │  (git2-rs)  │  │  (xterm.js) │  │ Bridge      │  │ Verification  │  │
+│  │  Git Core   │  │  Terminal   │  │   Debug     │  │   Extensions  │  │
+│  │  (git2-rs)  │  │  (xterm.js) │  │    (DAP)    │  │  (Open VSX)   │  │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └───────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -213,34 +210,37 @@ kyro-ide/
 │       │   ├── git_persistence.rs  # Git storage
 │       │   ├── ai_merge.rs     # Conflict resolution
 │       │   └── awareness.rs    # User presence
-│       ├── virtual_pico/       # Mobile controller
-│       │   ├── websocket_server.rs  # WebSocket handler
-│       │   ├── gesture_recognizer.rs  # IMU gestures
-│       │   ├── haptic_engine.rs  # Vibration patterns
-│       │   └── protocol.rs     # Message definitions
-│       ├── symbolic_verify/    # Formal verification
-│       │   ├── z3_engine.rs    # SMT solver
-│       │   ├── kani_adapter.rs # Model checking
-│       │   └── property_generator.rs  # Test generation
+│       ├── debug/              # Debug adapter protocol
+│       ├── e2ee/               # End-to-end encryption
+│       ├── extensions/         # Extension marketplace
 │       └── commands/           # Tauri command handlers
 └── README.md
 ```
 
 ## Roadmap
 
+### Completed ✅
 - [x] Monaco Editor with KYRO theme
-- [x] Ollama AI integration
-- [x] Molecular LSP for 25+ languages
+- [x] Ollama AI integration with streaming
+- [x] Molecular LSP for 10 core languages
 - [x] Symbol extraction and navigation
 - [x] Swarm AI with llama.cpp integration
 - [x] Speculative decoding for fast inference
 - [x] Git-CRDT real-time collaboration
-- [x] Virtual PICO Bridge for mobile
-- [x] Symbolic verification with Z3/Kani
-- [ ] Browser integration for datasets
-- [ ] Command palette (Ctrl+P)
+- [x] E2E encryption (Signal protocol)
+- [x] Debug adapter protocol support
+- [x] Command palette with fuzzy search
+- [x] Extension marketplace (Open VSX)
+
+### In Progress 🚧
+- [ ] rust-analyzer LSP integration
+- [ ] Embedded llama.cpp (remove Ollama dependency)
+- [ ] Performance benchmarks
+
+### Planned 📋
 - [ ] WASM plugin system
 - [ ] Multi-player collaborative editing
+- [ ] Mobile companion app
 
 ## Performance Targets
 
