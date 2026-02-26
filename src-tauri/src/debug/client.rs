@@ -359,7 +359,7 @@ impl DebugClient {
         Ok(())
     }
     
-    /// Send a request to the debug adapter
+    /// Send a request to the debug adapter via stdio
     async fn send_request(&mut self, command: &str, arguments: Option<serde_json::Value>) -> Result<Response> {
         self.seq += 1;
         
@@ -369,18 +369,135 @@ impl DebugClient {
             arguments,
         };
         
-        // In a real implementation, this would send via stdio and wait for response
-        // For now, return a mock response
-        let response = Response {
-            seq: self.seq + 1,
-            request_seq: self.seq,
-            success: true,
-            command: command.to_string(),
-            message: None,
-            body: Some(json!({})),
-        };
+        // Serialize request to JSON
+        let json = serde_json::to_string(&request)
+            .context("Failed to serialize request")?;
         
-        Ok(response)
+        // Format as DAP message with Content-Length header
+        let message = format!("Content-Length: {}\r\n\r\n{}", json.len(), json);
+        
+        // Send to debug adapter process
+        if let Some(ref mut process) = self.adapter_process {
+            use std::io::Write;
+            
+            let stdin = process.stdin.as_mut()
+                .ok_or_else(|| anyhow::anyhow!("No stdin available"))?;
+            
+            stdin.write_all(message.as_bytes())
+                .context("Failed to write to debug adapter stdin")?;
+            stdin.flush()
+                .context("Failed to flush stdin")?;
+            
+            debug!("Sent request: {} (seq={})", command, self.seq);
+        } else {
+            bail!("Debug adapter process not running");
+        }
+        
+        // Read response
+        self.read_response().await
+    }
+    
+    /// Read response from debug adapter
+    async fn read_response(&mut self) -> Result<Response> {
+        if let Some(ref mut process) = self.adapter_process {
+            use std::io::{BufRead, Read};
+            
+            let stdout = process.stdout.as_mut()
+                .ok_or_else(|| anyhow::anyhow!("No stdout available"))?;
+            
+            // Read Content-Length header
+            let mut header_line = String::new();
+            let mut byte = [0u8; 1];
+            
+            loop {
+                stdout.read_exact(&mut byte)
+                    .context("Failed to read from debug adapter stdout")?;
+                header_line.push(byte[0] as char);
+                
+                if header_line.ends_with("\r\n\r\n") {
+                    break;
+                }
+                
+                if header_line.len() > 1024 {
+                    bail!("Header too long");
+                }
+            }
+            
+            // Parse Content-Length
+            let content_length: usize = header_line
+                .lines()
+                .find(|l| l.starts_with("Content-Length:"))
+                .and_then(|l| l.split(':').nth(1))
+                .and_then(|v| v.trim().parse().ok())
+                .ok_or_else(|| anyhow::anyhow!("Missing Content-Length header"))?;
+            
+            // Read body
+            let mut body = vec![0u8; content_length];
+            stdout.read_exact(&mut body)
+                .context("Failed to read response body")?;
+            
+            let json_str = String::from_utf8(body)
+                .context("Response body is not valid UTF-8")?;
+            
+            // Parse response
+            let response: Response = serde_json::from_str(&json_str)
+                .context("Failed to parse response JSON")?;
+            
+            debug!("Received response: seq={}, success={}", response.request_seq, response.success);
+            
+            return Ok(response);
+        }
+        
+        bail!("Debug adapter process not running")
+    }
+    
+    /// Read events from debug adapter
+    pub async fn read_event(&mut self) -> Result<Event> {
+        if let Some(ref mut process) = self.adapter_process {
+            use std::io::Read;
+            
+            let stdout = process.stdout.as_mut()
+                .ok_or_else(|| anyhow::anyhow!("No stdout available"))?;
+            
+            // Read Content-Length header (non-blocking check would be ideal)
+            let mut header_line = String::new();
+            let mut byte = [0u8; 1];
+            
+            loop {
+                match stdout.read(&mut byte) {
+                    Ok(0) => bail!("EOF from debug adapter"),
+                    Ok(_) => {
+                        header_line.push(byte[0] as char);
+                        if header_line.ends_with("\r\n\r\n") {
+                            break;
+                        }
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // No data available yet
+                        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                        continue;
+                    }
+                    Err(e) => return Err(e).context("Failed to read from debug adapter"),
+                }
+            }
+            
+            let content_length: usize = header_line
+                .lines()
+                .find(|l| l.starts_with("Content-Length:"))
+                .and_then(|l| l.split(':').nth(1))
+                .and_then(|v| v.trim().parse().ok())
+                .ok_or_else(|| anyhow::anyhow!("Missing Content-Length header"))?;
+            
+            let mut body = vec![0u8; content_length];
+            stdout.read_exact(&mut body)?;
+            
+            let event: Event = serde_json::from_slice(&body)
+                .context("Failed to parse event JSON")?;
+            
+            Ok(event)
+        } else {
+            bail!("Debug adapter process not running")
+        }
     }
     
     /// Get current state

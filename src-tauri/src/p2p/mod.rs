@@ -1,7 +1,7 @@
 //! P2P Collaboration Module
 //! 
 //! Implements peer-to-peer collaboration without any central server.
-//! Uses libp2p for networking, mDNS for local discovery, and WebRTC for internet.
+//! Uses WebSocket for signaling, mDNS for local discovery, and WebRTC for data channels.
 
 pub mod discovery;
 pub mod webrtc;
@@ -14,6 +14,10 @@ use serde::{Deserialize, Serialize};
 use anyhow::{Result, Context};
 use tokio::sync::{mpsc, broadcast};
 use uuid::Uuid;
+
+pub use discovery::{PeerDiscovery, DiscoveryConfig, DiscoveryEvent, DiscoveryMessage};
+pub use webrtc::{WebRTCManager, WebRTCConfig, ConnectionEvent, SignalingMessage};
+pub use sync::{DocumentSynchronizer, SyncConfig, SyncEvent, EditOperation};
 
 /// Peer identifier
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -99,6 +103,12 @@ pub struct P2PCollaboration {
     state_tx: broadcast::Sender<StateChange>,
     /// Shutdown signal
     shutdown_tx: Option<mpsc::Sender<()>>,
+    /// Discovery service
+    discovery: Option<Arc<tokio::sync::RwLock<PeerDiscovery>>>,
+    /// WebRTC manager
+    webrtc: Option<Arc<tokio::sync::RwLock<WebRTCManager>>>,
+    /// Document synchronizer
+    doc_sync: Option<Arc<tokio::sync::RwLock<DocumentSynchronizer>>>,
 }
 
 /// Peer message types
@@ -197,6 +207,9 @@ impl P2PCollaboration {
             message_rx: Some(message_rx),
             state_tx,
             shutdown_tx: None,
+            discovery: None,
+            webrtc: None,
+            doc_sync: None,
         }
     }
     
@@ -206,6 +219,13 @@ impl P2PCollaboration {
         
         let (shutdown_tx, mut shutdown_rx) = mpsc::channel(1);
         self.shutdown_tx = Some(shutdown_tx);
+        
+        // Initialize document synchronizer
+        let doc_sync = DocumentSynchronizer::new(
+            self.local_peer_id.clone(),
+            SyncConfig::default(),
+        );
+        self.doc_sync = Some(Arc::new(tokio::sync::RwLock::new(doc_sync)));
         
         // Start mDNS discovery if enabled
         if self.config.enable_mdns {
@@ -222,19 +242,94 @@ impl P2PCollaboration {
     }
     
     /// Start mDNS discovery
-    async fn start_mdns_discovery(&self) -> Result<()> {
+    async fn start_mdns_discovery(&mut self) -> Result<()> {
         log::info!("Starting mDNS discovery for local network peers");
         
-        // In production, would use libp2p-mdns
-        // For now, simulate discovery
+        let discovery = PeerDiscovery::new(
+            self.local_peer_id.clone(),
+            self.config.display_name.clone(),
+            DiscoveryConfig::default(),
+        );
+        
+        discovery.start().await?;
+        
+        // Subscribe to discovery events
+        let mut rx = discovery.subscribe();
+        let peers = self.peers.clone();
+        let state_tx = self.state_tx.clone();
+        
+        tokio::spawn(async move {
+            while let Ok(event) = rx.recv().await {
+                match event {
+                    DiscoveryEvent::PeerDiscovered(peer, _source) => {
+                        peers.write().insert(peer.id.clone(), peer.clone());
+                        let _ = state_tx.send(StateChange::PeerConnected(peer));
+                    }
+                    DiscoveryEvent::PeerLost(peer_id) => {
+                        peers.write().remove(&peer_id);
+                        let _ = state_tx.send(StateChange::PeerDisconnected(peer_id));
+                    }
+                    DiscoveryEvent::DiscoveryError(e) => {
+                        log::error!("Discovery error: {}", e);
+                    }
+                }
+            }
+        });
+        
+        self.discovery = Some(Arc::new(tokio::sync::RwLock::new(discovery)));
         Ok(())
     }
     
     /// Start WebRTC listener
-    async fn start_webrtc_listener(&self) -> Result<()> {
+    async fn start_webrtc_listener(&mut self) -> Result<()> {
         log::info!("Starting WebRTC listener for internet peers");
         
-        // In production, would use webrtc-rs
+        let (webrtc, mut message_rx) = WebRTCManager::new(
+            self.local_peer_id.clone(),
+            WebRTCConfig::default(),
+        );
+        
+        // Try to connect to signaling server
+        match webrtc.connect_signaling(
+            self.config.display_name.clone(),
+            vec![], // public_key placeholder
+        ).await {
+            Ok(_) => log::info!("Connected to signaling server"),
+            Err(e) => log::warn!("Could not connect to signaling server: {}", e),
+        }
+        
+        // Subscribe to connection events
+        let mut rx = webrtc.subscribe();
+        let peers = self.peers.clone();
+        let state_tx = self.state_tx.clone();
+        
+        tokio::spawn(async move {
+            while let Ok(event) = rx.recv().await {
+                match event {
+                    ConnectionEvent::PeerConnected(peer_id) => {
+                        log::info!("WebRTC peer connected: {}", peer_id.as_str());
+                    }
+                    ConnectionEvent::PeerDisconnected(peer_id) => {
+                        peers.write().remove(&peer_id);
+                        let _ = state_tx.send(StateChange::PeerDisconnected(peer_id));
+                    }
+                    ConnectionEvent::ConnectionFailed { peer, reason } => {
+                        log::error!("Connection to {} failed: {}", peer.as_str(), reason);
+                    }
+                    ConnectionEvent::SignalingConnected => {
+                        log::info!("Signaling server connected");
+                    }
+                    ConnectionEvent::SignalingDisconnected => {
+                        log::warn!("Signaling server disconnected");
+                    }
+                    ConnectionEvent::MessageReceived { from, message } => {
+                        log::debug!("Message from {}: {:?}", from.as_str(), message);
+                    }
+                }
+            }
+        });
+        
+        self.webrtc = Some(Arc::new(tokio::sync::RwLock::new(webrtc)));
         Ok(())
     }
     
