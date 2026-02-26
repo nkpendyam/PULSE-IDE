@@ -84,6 +84,9 @@ mod auth;
 // ============ End-to-End Encryption (Signal Protocol) ============
 mod e2ee;
 
+// ============ P2P Collaboration (Phase 5) ============
+mod p2p;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};

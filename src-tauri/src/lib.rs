@@ -98,3 +98,6 @@ pub mod agent_editor;
 
 // ============ Agent Store (VECTOR_3: User-Controlled Agents) ============
 pub mod agent_store;
+
+// ============ P2P Collaboration (Phase 5) ============
+pub mod p2p;
