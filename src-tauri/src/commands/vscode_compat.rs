@@ -23,7 +23,11 @@ pub struct ExtensionState {
 impl ExtensionState {
     pub fn new() -> Self {
         Self {
-            host: ExtensionHost::new(Default::default()).unwrap(),
+            host: ExtensionHost::new(Default::default())
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to initialize extension host: {}, using empty host", e);
+                    ExtensionHost::default()
+                }),
             installed_extensions: Vec::new(),
             marketplace_client: MarketplaceClient::new("https://open-vsx.org/api"),
         }

@@ -80,6 +80,10 @@ shellexpand = "3.1"
 num_cpus = "1.16"
 walkdir = "2.4"
 
+# ============ QR Code Generation (from EntityFX/qrcode-rs) ============
+qrcode = "0.14"  # QR code generation (https://github.com/EntityFX/qrcode-rs)
+image = { version = "0.25", default-features = false, features = ["png"] }  # Image processing for QR codes
+
 # ============ LSP Support ============
 lsp-types = "0.95"
 tower-lsp = "0.20"  # LSP implementation framework (from ebkalderon/tower-lsp)

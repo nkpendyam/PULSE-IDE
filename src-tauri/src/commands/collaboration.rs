@@ -25,7 +25,11 @@ impl CollaborationState {
     pub fn new() -> Self {
         let config = CollaborationServerConfig::default();
         Self {
-            server: CollaborationServer::new(config).unwrap(),
+            server: CollaborationServer::new(config)
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to create collaboration server: {}, using default", e);
+                    CollaborationServer::default()
+                }),
             current_room: None,
             current_user: None,
             connected: false,

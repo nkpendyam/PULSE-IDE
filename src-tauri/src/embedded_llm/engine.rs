@@ -93,57 +93,259 @@ impl EmbeddedLLMEngine {
     
     /// Detect GPU capabilities
     fn detect_gpu_capabilities() -> (Option<String>, u64, String, MemoryTier) {
-        // Try CUDA first
+        // Try CUDA first (NVIDIA GPUs)
         #[cfg(feature = "cuda")]
         {
             if let Ok(gpu_info) = Self::detect_cuda() {
                 let tier = MemoryTier::from_vram(gpu_info.vram_bytes);
+                log::info!("CUDA GPU detected: {} ({} GB VRAM)", gpu_info.name, gpu_info.vram_bytes / (1024*1024*1024));
                 return (Some(gpu_info.name), gpu_info.vram_bytes, "cuda".to_string(), tier);
             }
         }
         
-        // Try Metal on macOS
+        // Try Vulkan (cross-platform GPU)
+        #[cfg(feature = "vulkan")]
+        {
+            if let Ok(gpu_info) = Self::detect_vulkan() {
+                let tier = MemoryTier::from_vram(gpu_info.vram_bytes);
+                log::info!("Vulkan GPU detected: {} ({} GB VRAM)", gpu_info.name, gpu_info.vram_bytes / (1024*1024*1024));
+                return (Some(gpu_info.name), gpu_info.vram_bytes, "vulkan".to_string(), tier);
+            }
+        }
+        
+        // Try Metal on macOS (Apple Silicon)
         #[cfg(target_os = "macos")]
         {
             if let Ok(gpu_info) = Self::detect_metal() {
                 // Metal uses unified memory - only ~75% is available for GPU
                 let usable_vram = (gpu_info.vram_bytes as f64 * 0.75) as u64;
                 let tier = MemoryTier::from_vram(usable_vram);
+                log::info!("Metal GPU detected: {} ({} GB unified memory)", gpu_info.name, gpu_info.vram_bytes / (1024*1024*1024));
                 return (Some(gpu_info.name), usable_vram, "metal".to_string(), tier);
             }
         }
         
+        // Try to detect any GPU via sysinfo for display purposes
+        let system = sysinfo::System::new_all();
+        let gpu_name = system.components()
+            .iter()
+            .find(|c| c.label().to_lowercase().contains("gpu") || 
+                       c.label().to_lowercase().contains("nvidia") ||
+                       c.label().to_lowercase().contains("amd") ||
+                       c.label().to_lowercase().contains("intel"))
+            .map(|c| c.label().to_string());
+        
         // Fallback to CPU
-        let ram = sysinfo::System::new_all().total_memory() * 1024;
+        let ram = system.total_memory() * 1024;
         let usable = (ram as f64 * 0.25) as u64; // Use 25% of RAM for CPU inference
-        (None, usable, "cpu".to_string(), MemoryTier::Cpu)
+        
+        if let Some(ref name) = gpu_name {
+            log::info!("GPU found but no GPU backend available: {}, using CPU", name);
+        } else {
+            log::info!("No dedicated GPU detected, using CPU inference");
+        }
+        
+        (gpu_name, usable, "cpu".to_string(), MemoryTier::Cpu)
     }
     
-    /// Detect CUDA GPU
+    /// Detect CUDA GPU using nvidia-smi or NVML
     #[cfg(feature = "cuda")]
     fn detect_cuda() -> Result<GpuInfo> {
-        // Would use rust-cuda or similar
-        // Placeholder - actual implementation would query CUDA
-        Ok(GpuInfo {
-            name: "NVIDIA GPU".to_string(),
-            vram_bytes: 8_589_934_592, // 8GB default
-        })
+        use std::process::Command;
+        
+        // Try nvidia-smi first (most reliable)
+        let output = Command::new("nvidia-smi")
+            .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
+            .output();
+        
+        if let Ok(output) = output {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let line = stdout.lines().next().unwrap_or("");
+                let parts: Vec<&str> = line.split(',').collect();
+                
+                if parts.len() >= 2 {
+                    let name = parts[0].trim().to_string();
+                    let vram_mb: u64 = parts[1].trim().split_whitespace()
+                        .next()
+                        .and_then(|s| s.parse().ok())
+                        .unwrap_or(8192);
+                    
+                    return Ok(GpuInfo {
+                        name,
+                        vram_bytes: vram_mb * 1024 * 1024,
+                    });
+                }
+            }
+        }
+        
+        // Fallback: Check /proc/driver/nvidia/gpus on Linux
+        #[cfg(target_os = "linux")]
+        {
+            if std::path::Path::new("/proc/driver/nvidia/gpus").exists() {
+                // NVIDIA driver is present, use default values
+                return Ok(GpuInfo {
+                    name: "NVIDIA GPU".to_string(),
+                    vram_bytes: 8_589_934_592, // 8GB default
+                });
+            }
+        }
+        
+        // Fallback: Check CUDA runtime via environment
+        if std::env::var("CUDA_VISIBLE_DEVICES").is_ok() {
+            return Ok(GpuInfo {
+                name: "NVIDIA GPU (via CUDA)".to_string(),
+                vram_bytes: 8_589_934_592,
+            });
+        }
+        
+        anyhow::bail!("No CUDA GPU detected")
     }
     
-    /// Detect Metal GPU on macOS
+    /// Detect Vulkan-capable GPU
+    #[cfg(feature = "vulkan")]
+    fn detect_vulkan() -> Result<GpuInfo> {
+        use std::process::Command;
+        
+        // Try vulkaninfo
+        let output = Command::new("vulkaninfo")
+            .args(["--summary"])
+            .output();
+        
+        if let Ok(output) = output {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                
+                // Parse device name
+                for line in stdout.lines() {
+                    if line.contains("deviceName") || line.contains("GPU") {
+                        let name = line.split(':').last()
+                            .map(|s| s.trim().to_string())
+                            .unwrap_or_else(|| "Vulkan GPU".to_string());
+                        
+                        // Estimate VRAM based on GPU name
+                        let vram = if name.contains("4090") || name.contains("4080") {
+                            24 * 1024 * 1024 * 1024 // 24GB
+                        } else if name.contains("4070") || name.contains("3080") || name.contains("3090") {
+                            12 * 1024 * 1024 * 1024 // 12GB
+                        } else if name.contains("3060") || name.contains("3070") || name.contains("4060") {
+                            8 * 1024 * 1024 * 1024 // 8GB
+                        } else {
+                            6 * 1024 * 1024 * 1024 // 6GB default
+                        };
+                        
+                        return Ok(GpuInfo { name, vram_bytes: vram });
+                    }
+                }
+            }
+        }
+        
+        anyhow::bail!("No Vulkan GPU detected")
+    }
+    
+    /// Detect Metal GPU on macOS using system_profiler
     #[cfg(target_os = "macos")]
     fn detect_metal() -> Result<GpuInfo> {
-        use std::ffi::CString;
-        use std::ptr;
+        use std::process::Command;
         
-        // Query Metal for recommended max working set size
-        // This gives us ~75% of unified memory
+        // Use system_profiler to get GPU info
+        let output = Command::new("system_profiler")
+            .args(["SPDisplaysDataType"])
+            .output();
+        
+        if let Ok(output) = output {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                
+                // Parse GPU info from system_profiler output
+                let mut gpu_name = "Apple Silicon".to_string();
+                let mut vram = 0u64;
+                
+                for line in stdout.lines() {
+                    let line = line.trim();
+                    
+                    // Look for chip type (Apple M1/M2/M3)
+                    if line.contains("Chipset Model:") || line.contains("Chip:") {
+                        gpu_name = line.split(':').last()
+                            .map(|s| s.trim().to_string())
+                            .unwrap_or_else(|| "Apple Silicon".to_string());
+                    }
+                    
+                    // Look for VRAM (for Intel Macs with discrete GPU)
+                    if line.contains("VRAM (Total):") || line.contains("Memory:") {
+                        let vram_str = line.split(':').last()
+                            .map(|s| s.trim().to_string())
+                            .unwrap_or_default();
+                        
+                        // Parse "X GB" format
+                        if let Some(gb) = vram_str.split_whitespace().next() {
+                            if let Ok(gb_val) = gb.parse::<u64>() {
+                                vram = gb_val * 1024 * 1024 * 1024;
+                            }
+                        }
+                    }
+                }
+                
+                // For Apple Silicon, use unified memory
+                if vram == 0 {
+                    let system = sysinfo::System::new_all();
+                    vram = system.total_memory() * 1024;
+                    
+                    // Detect specific Apple Silicon chip
+                    let chip_name = Self::detect_apple_silicon_chip();
+                    if !chip_name.is_empty() {
+                        gpu_name = chip_name;
+                    }
+                }
+                
+                return Ok(GpuInfo {
+                    name: gpu_name,
+                    vram_bytes: vram,
+                });
+            }
+        }
+        
+        // Fallback: Use unified memory as VRAM
         let ram = sysinfo::System::new_all().total_memory() * 1024;
-        
         Ok(GpuInfo {
             name: "Apple Silicon".to_string(),
             vram_bytes: ram,
         })
+    }
+    
+    /// Detect specific Apple Silicon chip
+    #[cfg(target_os = "macos")]
+    fn detect_apple_silicon_chip() -> String {
+        use std::process::Command;
+        
+        let output = Command::new("sysctl")
+            .args(["-n", "machdep.cpu.brand_string"])
+            .output();
+        
+        if let Ok(output) = output {
+            if output.status.success() {
+                let brand = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                
+                // Check for Apple M-series
+                if brand.contains("Apple M") {
+                    return brand;
+                }
+            }
+        }
+        
+        // Try alternative method
+        let output = Command::new("uname")
+            .args(["-m"])
+            .output();
+        
+        if let Ok(output) = output {
+            let arch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if arch == "arm64" {
+                return "Apple Silicon".to_string();
+            }
+        }
+        
+        String::new()
     }
     
     /// Adjust configuration based on hardware

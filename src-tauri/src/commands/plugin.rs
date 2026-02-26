@@ -22,7 +22,11 @@ pub struct PluginState {
 impl PluginState {
     pub fn new() -> Self {
         Self {
-            manager: PluginManager::new(Default::default()).unwrap(),
+            manager: PluginManager::new(Default::default())
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to create plugin manager: {}, using default", e);
+                    PluginManager::default()
+                }),
             plugins: Vec::new(),
         }
     }

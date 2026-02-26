@@ -449,7 +449,8 @@ impl LspClientManager {
             client.start(root_uri).await?;
             self.clients.insert(language.to_string(), client);
         }
-        Ok(self.clients.get_mut(language).unwrap())
+        self.clients.get_mut(language)
+            .ok_or_else(|| anyhow::anyhow!("Failed to get LSP client for language: {}", language))
     }
     
     pub async fn shutdown_all(&mut self) {

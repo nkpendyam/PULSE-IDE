@@ -384,13 +384,37 @@ impl P2PCollaboration {
         format!("kyro://peer/{}", base64)
     }
     
-    /// Generate QR code for invite
+    /// Generate QR code for invite (real PNG image)
     pub fn generate_qr_code(&self) -> Result<Vec<u8>> {
         let invite_code = self.generate_invite_code();
         
-        // In production, would use qrcode crate
-        // Return placeholder for now
-        Ok(invite_code.into_bytes())
+        // Use qrcode crate (https://github.com/EntityFX/qrcode-rs)
+        use qrcode::QrCode;
+        use image::Luma;
+        
+        // Generate QR code
+        let code = QrCode::new(&invite_code)
+            .context("Failed to generate QR code")?;
+        
+        // Convert to PNG image
+        let image = code.render::<Luma<u8>>()
+            .quiet_zone(true)
+            .min_dimensions(256, 256)
+            .build();
+        
+        // Encode as PNG
+        let mut png_bytes = Vec::new();
+        image.write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
+            .context("Failed to encode QR code as PNG")?;
+        
+        Ok(png_bytes)
+    }
+    
+    /// Generate QR code as base64 data URL (for frontend display)
+    pub fn generate_qr_code_data_url(&self) -> Result<String> {
+        let png_bytes = self.generate_qr_code()?;
+        let base64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &png_bytes);
+        Ok(format!("data:image/png;base64,{}", base64))
     }
     
     /// Send message to all peers
