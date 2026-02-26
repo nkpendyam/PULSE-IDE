@@ -1,0 +1,114 @@
+# Kyro Extension Manifest Template
+#
+# Place this file in your repository root as `kyro-extension.yaml`
+# Add `kyro-extension` topic to your GitHub repository for discovery
+#
+# Example: https://github.com/kyro-ide/extension-prettier
+
+# Extension ID (owner/repo format)
+id: prettier/prettier-vscode
+
+# Display name
+name: Prettier - Code formatter
+
+# Version (should match GitHub release tag)
+version: 10.1.0
+
+# Description
+description: Code formatter using prettier
+
+# Publisher/owner
+publisher: prettier
+
+# Repository URL
+repository: https://github.com/prettier/prettier-vscode
+
+# Categories for marketplace browsing
+categories:
+  - Formatters
+  - Other
+
+# Keywords for search
+keywords:
+  - prettier
+  - formatter
+  - javascript
+  - typescript
+  - css
+  - html
+  - json
+
+# Icon (relative path in repo or URL)
+icon: ./icon.png
+
+# Entry points
+main: ./dist/extension.js
+browser: ./dist/extension.browser.js
+
+# Activation events (when to load extension)
+activationEvents:
+  - onLanguage:javascript
+  - onLanguage:typescript
+  - onLanguage:json
+  - onCommand:prettier.format
+
+# Contributes (what the extension adds)
+contributes:
+  commands:
+    - command: prettier.format
+      title: Format Document
+      category: Prettier
+      icon: ./icons/format.svg
+  
+  languages:
+    - id: javascript
+      extensions:
+        - .js
+        - .jsx
+      aliases:
+        - JavaScript
+        - Javascript
+    - id: typescript
+      extensions:
+        - .ts
+        - .tsx
+      aliases:
+        - TypeScript
+  
+  configuration:
+    title: Prettier
+    properties:
+      prettier.printWidth:
+        type: integer
+        default: 80
+        description: Line width for formatting
+      prettier.tabWidth:
+        type: integer
+        default: 2
+        description: Tab width
+      prettier.useTabs:
+        type: boolean
+        default: false
+        description: Use tabs instead of spaces
+
+# Extension dependencies (other GitHub extensions)
+dependencies:
+  - esbenp/prettier-vscode
+
+# Minimum Kyro IDE version
+engines:
+  kyro: ">=0.1.0"
+
+# License (SPDX identifier)
+license: MIT
+
+# Homepage
+homepage: https://prettier.io
+
+# Bugs/issues URL
+bugs: https://github.com/prettier/prettier-vscode/issues
+
+# Funding
+funding:
+  - type: opencollective
+    url: https://opencollective.com/prettier

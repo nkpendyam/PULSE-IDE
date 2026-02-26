@@ -13,6 +13,7 @@ pub mod api;
 pub mod registry;
 pub mod runtime;
 pub mod sandbox;
+pub mod github_marketplace;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -23,6 +24,7 @@ pub use api::{ExtensionContext, ExtensionApi};
 pub use registry::{OpenVSXRegistry, ExtensionMetadata};
 pub use runtime::{ExtensionRuntime, ExtensionHost};
 pub use sandbox::{ExtensionSandbox, SandboxConfig};
+pub use github_marketplace::{GitHubMarketplace, GitHubExtension};
 
 /// Installed extension information
 #[derive(Debug, Clone, Serialize, Deserialize)]
