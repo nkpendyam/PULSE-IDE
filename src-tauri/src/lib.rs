@@ -49,6 +49,9 @@ pub mod benchmark;
 // ============ VS Code Compatibility ============
 pub mod vscode_compat;
 
+// ============ Extension System (Open VSX) ============
+pub mod extensions;
+
 // ============ Tower-LSP Integration ============
 pub mod lsp_tower;
 
