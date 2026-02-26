@@ -100,16 +100,14 @@ pub struct ChatSession {
 
 impl Default for ChatSession {
     fn default() -> Self {
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         Self {
             id: uuid::Uuid::new_v4().to_string(),
-            created_at: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
-            updated_at: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs(),
+            created_at: timestamp,
+            updated_at: timestamp,
             messages: Vec::new(),
             project_path: String::new(),
             model: "qwen3-4b-q4_k_m".to_string(),

@@ -85,15 +85,17 @@ pub async fn rag_chat(
     let session = sessions.get_mut(&session_id)
         .ok_or_else(|| "Session not found".to_string())?;
 
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
     // Create user message
     let user_msg = ChatMessage {
         id: uuid::Uuid::new_v4().to_string(),
         role: ChatRole::User,
         content: message.clone(),
-        timestamp: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
+        timestamp,
         code_context: None,
         metadata: HashMap::new(),
     };
@@ -127,10 +129,7 @@ pub async fn rag_chat(
         id: uuid::Uuid::new_v4().to_string(),
         role: ChatRole::Assistant,
         content: response_text.clone(),
-        timestamp: std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
+        timestamp,
         code_context: None,
         metadata: HashMap::new(),
     };

@@ -76,21 +76,24 @@ pub async fn login_user(request: LoginRequest) -> Result<LoginResponse, String> 
     
     let expires_at = chrono::Utc::now() + chrono::Duration::hours(24);
     
-    // Update global state
-    let mut state = AUTH_STATE.write().await;
-    state.current_user = Some(UserInfo {
+    // Create user info
+    let user_info = UserInfo {
         id: user.id.clone(),
         email: user.email.clone(),
         name: user.name.clone(),
         role: format!("{:?}", user.role),
         avatar: user.avatar.clone(),
         created_at: user.created_at.to_rfc3339(),
-    });
+    };
+    
+    // Update global state
+    let mut state = AUTH_STATE.write().await;
+    state.current_user = Some(user_info.clone());
     state.session_token = Some(token.clone());
     state.is_authenticated = true;
     
     Ok(LoginResponse {
-        user: state.current_user.clone().unwrap(),
+        user: user_info,
         token,
         expires_at: expires_at.to_rfc3339(),
     })
@@ -112,21 +115,24 @@ pub async fn register_user(request: RegisterRequest) -> Result<LoginResponse, St
     
     let expires_at = chrono::Utc::now() + chrono::Duration::hours(24);
     
-    // Update state
-    let mut state = AUTH_STATE.write().await;
-    state.current_user = Some(UserInfo {
+    // Create user info
+    let user_info = UserInfo {
         id: user.id.clone(),
         email: user.email.clone(),
         name: user.name.clone(),
         role: format!("{:?}", user.role),
         avatar: user.avatar.clone(),
         created_at: user.created_at.to_rfc3339(),
-    });
+    };
+    
+    // Update state
+    let mut state = AUTH_STATE.write().await;
+    state.current_user = Some(user_info.clone());
     state.session_token = Some(token.clone());
     state.is_authenticated = true;
     
     Ok(LoginResponse {
-        user: state.current_user.clone().unwrap(),
+        user: user_info,
         token,
         expires_at: expires_at.to_rfc3339(),
     })
