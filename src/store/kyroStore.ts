@@ -12,6 +12,32 @@ export interface RagSource {
   score: number;
   preview: string;
 }
+
+// Editor Group for split panes
+export interface EditorTab {
+  path: string;
+  content: string;
+  language: string;
+  isDirty: boolean;
+  isPinned?: boolean;
+  viewState?: unknown; // Monaco editor view state
+}
+
+export interface EditorGroup {
+  id: string;
+  tabs: EditorTab[];
+  activeTabIndex: number;
+  width?: number; // percentage or pixels
+  height?: number;
+}
+
+export type SplitDirection = 'none' | 'horizontal' | 'vertical';
+
+// Multi-cursor history for undo operations
+export interface CursorOperation {
+  type: 'add' | 'remove' | 'move';
+  selections: Array<{ startLine: number; startCol: number; endLine: number; endCol: number }>;
+}
 export interface ModelInfo { name: string; size: string; modified_at: string; }
 
 // Embedded LLM types
@@ -41,6 +67,36 @@ export interface CompletionOptions {
   top_k?: number;
   stop_sequences?: string[];
   stream?: boolean;
+}
+
+// Ghost text state
+export interface GhostTextCompletion {
+  id: string;
+  text: string;
+  position: { lineNumber: number; column: number };
+  isStreaming: boolean;
+  timestamp: number;
+  latency: number; // Time to first token in ms
+}
+
+export interface GhostTextCacheStats {
+  hits: number;
+  misses: number;
+  size: number;
+  hitRate: number;
+}
+
+export interface GhostTextConfig {
+  enabled: boolean;
+  debounceMs: number;
+  maxTokens: number;
+  temperature: number;
+  triggerOnTyping: boolean;
+  triggerOnNewline: boolean;
+  minPrefixLength: number;
+  showAcceptHint: boolean;
+  cacheEnabled: boolean;
+  cacheMaxSize: number;
 }
 
 export interface InferenceResponse {
@@ -126,6 +182,26 @@ interface KyroState {
   recentCommands: string[];
   recentFiles: string[];
   
+  // Editor Groups / Split Panes
+  editorGroups: EditorGroup[];
+  activeGroupId: string;
+  splitDirection: SplitDirection;
+  draggedTab: { groupId: string; tabIndex: number } | null;
+  
+  // Multi-cursor history
+  cursorHistory: CursorOperation[];
+  maxCursorHistory: number;
+  
+  // Minimap state
+  minimapVisible: boolean;
+  minimapScale: number;
+  
+  // Ghost text state
+  ghostTextCompletion: GhostTextCompletion | null;
+  ghostTextCacheStats: GhostTextCacheStats;
+  ghostTextConfig: GhostTextConfig;
+  isGhostTextProcessing: boolean;
+  
   setProjectPath: (path: string | null) => void; setFileTree: (tree: FileNode | null) => void;
   openFile: (file: OpenFile) => void; closeFile: (path: string) => void; setActiveFile: (index: number) => void; updateFileContent: (path: string, content: string) => void;
   setEditorContent: (content: string) => void; setCursorPosition: (line: number, column: number) => void; setSelectedText: (text: string) => void;
@@ -161,6 +237,36 @@ interface KyroState {
   addRecentFile: (path: string) => void;
   pinFile: (path: string) => void;
   unpinFile: (path: string) => void;
+  
+  // Ghost text actions
+  setGhostTextCompletion: (completion: GhostTextCompletion | null) => void;
+  updateGhostTextCompletion: (text: string) => void;
+  setGhostTextProcessing: (processing: boolean) => void;
+  updateGhostTextCacheStats: (stats: Partial<GhostTextCacheStats>) => void;
+  setGhostTextConfig: (config: Partial<GhostTextConfig>) => void;
+  clearGhostText: () => void;
+  
+  // Editor Groups / Split Panes actions
+  createEditorGroup: (id?: string) => string;
+  closeEditorGroup: (id: string) => void;
+  setActiveGroup: (id: string) => void;
+  addTabToGroup: (groupId: string, tab: EditorTab) => void;
+  removeTabFromGroup: (groupId: string, tabIndex: number) => void;
+  setActiveTabInGroup: (groupId: string, tabIndex: number) => void;
+  moveTabBetweenGroups: (fromGroupId: string, fromIndex: number, toGroupId: string, toIndex: number) => void;
+  setSplitDirection: (direction: SplitDirection) => void;
+  setDraggedTab: (dragInfo: { groupId: string; tabIndex: number } | null) => void;
+  updateGroupSize: (groupId: string, width?: number, height?: number) => void;
+  saveEditorViewState: (groupId: string, viewState: unknown) => void;
+  
+  // Multi-cursor history actions
+  pushCursorOperation: (operation: CursorOperation) => void;
+  popCursorOperation: () => CursorOperation | undefined;
+  clearCursorHistory: () => void;
+  
+  // Minimap actions
+  setMinimapVisible: (visible: boolean) => void;
+  setMinimapScale: (scale: number) => void;
 }
 
 export const useKyroStore = create<KyroState>((set, get) => ({
@@ -206,6 +312,37 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   inlineChatPosition: null,
   recentCommands: [],
   recentFiles: [],
+  
+  // Ghost text initial state
+  ghostTextCompletion: null,
+  ghostTextCacheStats: { hits: 0, misses: 0, size: 0, hitRate: 0 },
+  ghostTextConfig: {
+    enabled: true,
+    debounceMs: 200,
+    maxTokens: 100,
+    temperature: 0.3,
+    triggerOnTyping: true,
+    triggerOnNewline: true,
+    minPrefixLength: 3,
+    showAcceptHint: true,
+    cacheEnabled: true,
+    cacheMaxSize: 1000,
+  },
+  isGhostTextProcessing: false,
+  
+  // Editor Groups / Split Panes initial state
+  editorGroups: [{ id: 'main', tabs: [], activeTabIndex: -1 }],
+  activeGroupId: 'main',
+  splitDirection: 'none',
+  draggedTab: null,
+  
+  // Multi-cursor history initial state
+  cursorHistory: [],
+  maxCursorHistory: 50,
+  
+  // Minimap initial state
+  minimapVisible: true,
+  minimapScale: 1,
   
   setProjectPath: (path) => set({ projectPath: path }), setFileTree: (tree) => set({ fileTree: tree }),
   openFile: (file) => {
@@ -279,4 +416,150 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   unpinFile: (path) => set(state => ({
     openFiles: state.openFiles.map(f => f.path === path ? { ...f, isPinned: false } : f)
   })),
+  
+  // Ghost text actions
+  setGhostTextCompletion: (completion) => set({ ghostTextCompletion: completion }),
+  updateGhostTextCompletion: (text) => set(state => ({
+    ghostTextCompletion: state.ghostTextCompletion 
+      ? { ...state.ghostTextCompletion, text }
+      : null
+  })),
+  setGhostTextProcessing: (processing) => set({ isGhostTextProcessing: processing }),
+  updateGhostTextCacheStats: (stats) => set(state => {
+    const newStats = { ...state.ghostTextCacheStats, ...stats };
+    if (newStats.hits + newStats.misses > 0) {
+      newStats.hitRate = newStats.hits / (newStats.hits + newStats.misses);
+    }
+    return { ghostTextCacheStats: newStats };
+  }),
+  setGhostTextConfig: (config) => set(state => ({
+    ghostTextConfig: { ...state.ghostTextConfig, ...config }
+  })),
+  clearGhostText: () => set({ ghostTextCompletion: null, isGhostTextProcessing: false }),
+  
+  // Editor Groups / Split Panes actions
+  createEditorGroup: (id) => {
+    const groupId = id || `group-${Date.now()}`;
+    set(state => ({
+      editorGroups: [...state.editorGroups, { id: groupId, tabs: [], activeTabIndex: -1 }]
+    }));
+    return groupId;
+  },
+  
+  closeEditorGroup: (id) => set(state => {
+    if (state.editorGroups.length <= 1) return state; // Don't close last group
+    const newGroups = state.editorGroups.filter(g => g.id !== id);
+    const newActiveGroupId = state.activeGroupId === id ? newGroups[0].id : state.activeGroupId;
+    return {
+      editorGroups: newGroups,
+      activeGroupId: newActiveGroupId,
+      splitDirection: newGroups.length === 1 ? 'none' : state.splitDirection
+    };
+  }),
+  
+  setActiveGroup: (id) => set({ activeGroupId: id }),
+  
+  addTabToGroup: (groupId, tab) => set(state => {
+    const groups = state.editorGroups.map(g => {
+      if (g.id !== groupId) return g;
+      const existingIndex = g.tabs.findIndex(t => t.path === tab.path);
+      if (existingIndex >= 0) {
+        return { ...g, activeTabIndex: existingIndex };
+      }
+      return { ...g, tabs: [...g.tabs, tab], activeTabIndex: g.tabs.length };
+    });
+    return { editorGroups: groups };
+  }),
+  
+  removeTabFromGroup: (groupId, tabIndex) => set(state => {
+    const groups = state.editorGroups.map(g => {
+      if (g.id !== groupId) return g;
+      const newTabs = g.tabs.filter((_, i) => i !== tabIndex);
+      let newActiveIndex = g.activeTabIndex;
+      if (newTabs.length === 0) newActiveIndex = -1;
+      else if (g.activeTabIndex >= newTabs.length) newActiveIndex = newTabs.length - 1;
+      else if (tabIndex < g.activeTabIndex) newActiveIndex = g.activeTabIndex - 1;
+      return { ...g, tabs: newTabs, activeTabIndex: newActiveIndex };
+    });
+    return { editorGroups: groups };
+  }),
+  
+  setActiveTabInGroup: (groupId, tabIndex) => set(state => ({
+    editorGroups: state.editorGroups.map(g =>
+      g.id === groupId ? { ...g, activeTabIndex: tabIndex } : g
+    )
+  })),
+  
+  moveTabBetweenGroups: (fromGroupId, fromIndex, toGroupId, toIndex) => set(state => {
+    const fromGroup = state.editorGroups.find(g => g.id === fromGroupId);
+    if (!fromGroup) return state;
+    
+    const tab = fromGroup.tabs[fromIndex];
+    if (!tab) return state;
+    
+    const groups = state.editorGroups.map(g => {
+      if (g.id === fromGroupId) {
+        const newTabs = g.tabs.filter((_, i) => i !== fromIndex);
+        let newActiveIndex = g.activeTabIndex;
+        if (g.activeTabIndex >= newTabs.length) newActiveIndex = Math.max(0, newTabs.length - 1);
+        return { ...g, tabs: newTabs, activeTabIndex: newActiveIndex };
+      }
+      if (g.id === toGroupId) {
+        const newTabs = [...g.tabs.slice(0, toIndex), tab, ...g.tabs.slice(toIndex)];
+        return { ...g, tabs: newTabs, activeTabIndex: toIndex };
+      }
+      return g;
+    });
+    
+    return { editorGroups: groups, activeGroupId: toGroupId, draggedTab: null };
+  }),
+  
+  setSplitDirection: (direction) => set({ splitDirection: direction }),
+  
+  setDraggedTab: (dragInfo) => set({ draggedTab: dragInfo }),
+  
+  updateGroupSize: (groupId, width, height) => set(state => ({
+    editorGroups: state.editorGroups.map(g =>
+      g.id === groupId ? { ...g, width, height } : g
+    )
+  })),
+  
+  saveEditorViewState: (groupId, viewState) => set(state => {
+    const group = state.editorGroups.find(g => g.id === groupId);
+    if (!group || group.activeTabIndex < 0) return state;
+    
+    const groups = state.editorGroups.map(g => {
+      if (g.id !== groupId) return g;
+      const tabs = g.tabs.map((t, i) =>
+        i === g.activeTabIndex ? { ...t, viewState } : t
+      );
+      return { ...g, tabs };
+    });
+    
+    return { editorGroups: groups };
+  }),
+  
+  // Multi-cursor history actions
+  pushCursorOperation: (operation) => set(state => {
+    const newHistory = [...state.cursorHistory, operation];
+    if (newHistory.length > state.maxCursorHistory) {
+      newHistory.shift();
+    }
+    return { cursorHistory: newHistory };
+  }),
+  
+  popCursorOperation: () => {
+    const state = get();
+    if (state.cursorHistory.length === 0) return undefined;
+    const operation = state.cursorHistory[state.cursorHistory.length - 1];
+    set({ cursorHistory: state.cursorHistory.slice(0, -1) });
+    return operation;
+  },
+  
+  clearCursorHistory: () => set({ cursorHistory: [] }),
+  
+  // Minimap actions
+  setMinimapVisible: (visible) => set({ minimapVisible: visible }),
+  
+  setMinimapScale: (scale) => set({ minimapScale: scale }),
 }));

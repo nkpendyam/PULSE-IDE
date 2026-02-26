@@ -41,7 +41,9 @@ export function CodeEditor() {
 
   const {
     openFiles, activeFileIndex, updateFileContent, setCursorPosition,
-    settings, setEditorOptions
+    settings, setEditorOptions, pushCursorOperation, popCursorOperation,
+    splitDirection, setSplitDirection, editorGroups, createEditorGroup,
+    addTabToGroup, activeGroupId, minimapVisible, minimapScale
   } = useKyroStore();
 
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
@@ -75,11 +77,36 @@ export function CodeEditor() {
   const setupMultiCursorShortcuts = useCallback((editor: monaco.editor.IStandaloneCodeEditor, monaco: Monaco) => {
     // Ctrl+D - Add cursor to next occurrence
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD, () => {
+      const selections = editor.getSelections();
+      if (selections) {
+        // Store current state for undo
+        pushCursorOperation({
+          type: 'add',
+          selections: selections.map(s => ({
+            startLine: s.startLineNumber,
+            startCol: s.startColumn,
+            endLine: s.endLineNumber,
+            endCol: s.endColumn
+          }))
+        });
+      }
       editor.getAction('editor.action.addSelectionToNextFindMatch')?.run();
     });
 
     // Ctrl+Shift+D - Add cursor to previous occurrence
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyD, () => {
+      const selections = editor.getSelections();
+      if (selections) {
+        pushCursorOperation({
+          type: 'add',
+          selections: selections.map(s => ({
+            startLine: s.startLineNumber,
+            startCol: s.startColumn,
+            endLine: s.endLineNumber,
+            endCol: s.endColumn
+          }))
+        });
+      }
       editor.getAction('editor.action.addSelectionToPreviousFindMatch')?.run();
     });
 
@@ -88,22 +115,89 @@ export function CodeEditor() {
       editor.getAction('editor.action.selectHighlights')?.run();
     });
 
-    // Alt+Click already works for adding cursors in Monaco
+    // Ctrl+U - Undo last cursor operation
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU, () => {
+      const lastOp = popCursorOperation();
+      if (lastOp) {
+        const selections = lastOp.selections.map(s =>
+          new monaco.Selection(s.startLine, s.startCol, s.endLine, s.endCol)
+        );
+        editor.setSelections(selections);
+      }
+    });
+
+    // Alt+Click already works for adding cursors in Monaco (enabled via multicursor.modifier)
 
     // Ctrl+Alt+Up - Add cursor above
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow, () => {
+      const selections = editor.getSelections();
+      if (selections) {
+        pushCursorOperation({
+          type: 'add',
+          selections: selections.map(s => ({
+            startLine: s.startLineNumber,
+            startCol: s.startColumn,
+            endLine: s.endLineNumber,
+            endCol: s.endColumn
+          }))
+        });
+      }
       editor.getAction('editor.action.insertCursorAbove')?.run();
     });
 
     // Ctrl+Alt+Down - Add cursor below
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow, () => {
+      const selections = editor.getSelections();
+      if (selections) {
+        pushCursorOperation({
+          type: 'add',
+          selections: selections.map(s => ({
+            startLine: s.startLineNumber,
+            startCol: s.startColumn,
+            endLine: s.endLineNumber,
+            endCol: s.endColumn
+          }))
+        });
+      }
       editor.getAction('editor.action.insertCursorBelow')?.run();
     });
 
-    // Column selection mode toggle (Shift+Alt+drag already works)
+    // Column selection mode toggle (Shift+Alt+drag already works for column selection)
     editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyC, () => {
       const columnSelection = editor.getOption(monaco.editor.EditorOption.columnSelection);
       editor.updateOptions({ columnSelection: !columnSelection });
+    });
+    
+    // Ctrl+\ - Split editor vertically
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backslash, () => {
+      if (splitDirection === 'none') {
+        const newGroupId = createEditorGroup();
+        if (currentFile) {
+          addTabToGroup(newGroupId, {
+            path: currentFile.path,
+            content: currentFile.content,
+            language: currentFile.language,
+            isDirty: currentFile.isDirty
+          });
+        }
+        setSplitDirection('vertical');
+      }
+    });
+    
+    // Ctrl+Shift+\ - Split editor horizontally
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Backslash, () => {
+      if (splitDirection === 'none') {
+        const newGroupId = createEditorGroup();
+        if (currentFile) {
+          addTabToGroup(newGroupId, {
+            path: currentFile.path,
+            content: currentFile.content,
+            language: currentFile.language,
+            isDirty: currentFile.isDirty
+          });
+        }
+        setSplitDirection('horizontal');
+      }
     });
 
     // Ctrl+/ - Toggle line comment
@@ -229,7 +323,7 @@ export function CodeEditor() {
         }));
       }
     });
-  }, []);
+  }, [splitDirection, currentFile, pushCursorOperation, popCursorOperation, createEditorGroup, addTabToGroup, setSplitDirection]);
 
   // Ghost text AI completion
   const fetchGhostTextCompletion = useCallback(async (editor: monaco.editor.IStandaloneCodeEditor, position: monaco.Position) => {
@@ -466,7 +560,7 @@ export function CodeEditor() {
   const editorOptions_final: monaco.editor.IStandaloneEditorConstructionOptions = {
     fontSize: editorOptions.fontSize,
     fontFamily: editorOptions.fontFamily,
-    minimap: { enabled: editorOptions.minimap, scale: 1, showSlider: 'mouseover' },
+    minimap: { enabled: minimapVisible, scale: minimapScale, showSlider: 'mouseover' },
     scrollBeyondLastLine: false,
     wordWrap: editorOptions.wordWrap,
     automaticLayout: true,
@@ -600,12 +694,13 @@ export function CodeEditor() {
         <span className="mx-2">|</span>
         <button
           onClick={() => {
+            const { setMinimapVisible } = useKyroStore.getState();
+            setMinimapVisible(!minimapVisible);
             if (editorRef.current) {
-              editorRef.current.updateOptions({ minimap: { enabled: !editorOptions.minimap } });
-              setEditorOptions({ ...editorOptions, minimap: !editorOptions.minimap });
+              editorRef.current.updateOptions({ minimap: { enabled: !minimapVisible } });
             }
           }}
-          className={`px-2 py-1 rounded hover:bg-[#21262d] ${editorOptions.minimap ? 'text-[#58a6ff]' : ''}`}
+          className={`px-2 py-1 rounded hover:bg-[#21262d] ${minimapVisible ? 'text-[#58a6ff]' : ''}`}
           title="Toggle Minimap"
         >
           Minimap
