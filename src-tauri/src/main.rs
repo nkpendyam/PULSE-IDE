@@ -42,11 +42,11 @@ mod rag;
 mod git_crdt;
 
 // ============ Platform Modules ============
-mod virtual_pico;
+// mod virtual_pico;  // TODO: Re-enable when module is ready
 mod telegram;
 
 // ============ Verification Modules ============
-mod symbolic_verify;
+// mod symbolic_verify;  // TODO: Re-enable when module is ready
 
 // ============ Agent System ============
 mod agents;
@@ -114,7 +114,8 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let window = app.get_webview_window("main").unwrap();
+            let window = app.get_webview_window("main")
+                .expect("Failed to get main webview window");
             
             // ============ Hardware Detection ============
             log::info!("Detecting hardware capabilities...");
@@ -214,9 +215,9 @@ fn main() {
             log::info!("✓ MCP server initialized");
             
             // ============ Initialize Virtual PICO Bridge ============
-            
-            let pico_bridge = virtual_pico::PicoBridge::default();
-            app.manage(Arc::new(Mutex::new(pico_bridge)));
+            // TODO: Re-enable when virtual_pico module is ready
+            // let pico_bridge = virtual_pico::PicoBridge::default();
+            // app.manage(Arc::new(Mutex::new(pico_bridge)));
             
             // ============ Initialize Collaboration ============
             
@@ -226,12 +227,12 @@ fn main() {
             log::info!("✓ Collaboration manager initialized");
             
             // ============ Initialize Verification ============
-            
-            let verify_config = symbolic_verify::VerificationConfig::default();
-            if let Ok(verify_manager) = symbolic_verify::VerificationManager::new(verify_config) {
-                app.manage(Arc::new(Mutex::new(verify_manager)));
-                log::info!("✓ Verification manager initialized");
-            }
+            // TODO: Re-enable when symbolic_verify module is ready
+            // let verify_config = symbolic_verify::VerificationConfig::default();
+            // if let Ok(verify_manager) = symbolic_verify::VerificationManager::new(verify_config) {
+            //     app.manage(Arc::new(Mutex::new(verify_manager)));
+            //     log::info!("✓ Verification manager initialized");
+            // }
             
             // ============ Initialize Plugin Manager ============
             

@@ -46,279 +46,17 @@ git2 = "0.18"
 # ============ Tree-sitter (Language Parsing) ============
 tree-sitter = "0.20"
 
-# Tree-sitter grammars (165 languages - all enabled by default for full support)
-# Core languages (always included)
+# Tree-sitter grammars (10 core languages only)
 tree-sitter-rust = "0.20"
-tree-sitter-python = "0.20"
-tree-sitter-javascript = "0.20"
 tree-sitter-typescript = "0.20"
+tree-sitter-python = "0.20"
 tree-sitter-go = "0.20"
-tree-sitter-java = "0.20"
 tree-sitter-c = "0.20"
 tree-sitter-cpp = "0.20"
-tree-sitter-json = "0.20"
-tree-sitter-yaml = "0.20"
-tree-sitter-html = "0.20"
-tree-sitter-css = "0.20"
-tree-sitter-md = "0.1"
-tree-sitter-bash = "0.20"
-tree-sitter-sql = "0.20"
-
-# All additional languages now enabled for 165+ language support
-tree-sitter-ruby = "0.20"
-tree-sitter-php = "0.20"
-tree-sitter-swift = "0.20"
-tree-sitter-kotlin = "0.3"
-tree-sitter-scala = "0.20"
-tree-sitter-lua = "0.0.19"
-tree-sitter-c-sharp = "0.20"
-tree-sitter-dart = "0.0.4"
-tree-sitter-elixir = "0.2"
-tree-sitter-erlang = "0.2"
-tree-sitter-haskell = "0.14"
-tree-sitter-ocaml = "0.20"
-tree-sitter-clojure = "0.0.10"
-tree-sitter-nim = "0.0.12"
-tree-sitter-zig = "0.0.12"
-tree-sitter-r = "0.19"
-tree-sitter-perl = "0.0.11"
-tree-sitter-julia = "0.0.12"
-tree-sitter-vue = "0.0.6"
-tree-sitter-svelte = "0.0.13"
-tree-sitter-toml = "0.20"
-tree-sitter-dockerfile = "0.1"
-tree-sitter-make = "0.0.12"
-tree-sitter-graphql = "0.1"
-tree-sitter-wgsl = "0.0.12"
-
-# Additional languages for 165+ support
-tree-sitter-objc = "0.1"
-tree-sitter-fsharp = "0.1"
-tree-sitter-elm = "0.5"
-tree-sitter-asm = "0.1"
-tree-sitter-wat = "0.1"
-tree-sitter-v = "0.0.11"
-tree-sitter-d = "0.1"
-tree-sitter-crystal = "0.0.10"
-tree-sitter-purescript = "0.1"
-tree-sitter-reason = "0.1"
-tree-sitter-prisma = "0.1"
-tree-sitter-action = "0.1"
-
-# Additional open source language support
-tree-sitter-agda = { git = "https://github.com/tree-sitter/tree-sitter-agda", optional = true }
-tree-sitter-arduino = "0.20"
-tree-sitter-astro = { git = "https://github.com/virchau13/tree-sitter-astro", optional = true }
-tree-sitter-beancount = { git = "https://github.com/polarmutex/tree-sitter-beancount", optional = true }
-tree-sitter-bibtex = { git = "https://github.com/latex-lsp/tree-sitter-bibtex", optional = true }
-tree-sitter-bicep = { git = "https://github.com/amaanq/tree-sitter-bicep", optional = true }
-tree-sitter-blueprint = { git = "https://gitlab.com/gabmus/tree-sitter-blueprint", optional = true }
-tree-sitter-cadence = { git = "https://github.com/joncinque/tree-sitter-cadence", optional = true }
-tree-sitter-cairo = { git = "https://github.com/amaanq/tree-sitter-cairo", optional = true }
-tree-sitter-capnp = { git = "https://github.com/amaanq/tree-sitter-capnp", optional = true }
-tree-sitter-cel = { git = "https://github.com/amaanq/tree-sitter-cel", optional = true }
-tree-sitter-chatito = { git = "https://github.com/amaanq/tree-sitter-chatito", optional = true }
-tree-sitter-clarity = { git = "https://github.com/amaanq/tree-sitter-clarity", optional = true }
-tree-sitter-cmake = "0.2"
-tree-sitter-comment = { git = "https://github.com/stsewd/tree-sitter-comment", optional = true }
-tree-sitter-commonlisp = { git = "https://github.com/theHamsta/tree-sitter-commonlisp", optional = true }
-tree-sitter-cpon = { git = "https://github.com/amaanq/tree-sitter-cpon", optional = true }
-tree-sitter-cue = { git = "https://github.com/eonpatapon/tree-sitter-cue", optional = true }
-tree-sitter-d2 = { git = "https://git.pleshevski.ru/pleshevskiy/tree-sitter-d2", optional = true }
-tree-sitter-dart = "0.0.4"
-tree-sitter-devicetree = { git = "https://github.com/joelspadin/tree-sitter-devicetree", optional = true }
-tree-sitter-dhall = { git = "https://github.com/jbellerb/tree-sitter-dhall", optional = true }
-tree-sitter-diff = { git = "https://github.com/the-mikedavis/tree-sitter-diff", optional = true }
-tree-sitter-disassembly = { git = "https://github.com/ColinKennedy/tree-sitter-disassembly", optional = true }
-tree-sitter-dot = { git = "https://github.com/rydesun/tree-sitter-dot", optional = true }
-tree-sitter-ebnf = { git = "https://github.com/RubixDev/ebnf", optional = true }
-tree-sitter-editorconfig = { git = "https://github.com/ValentinPicavet/tree-sitter-editorconfig", optional = true }
-tree-sitter-eds = { git = "https://github.com/uyha/tree-sitter-eds", optional = true }
-tree-sitter-eex = { git = "https://github.com/connorlay/tree-sitter-eex", optional = true }
-tree-sitter-elixir = "0.2"
-tree-sitter-elm = "0.5"
-tree-sitter-elvish = { git = "https://github.com/ckafi/tree-sitter-elvish", optional = true }
-tree-sitter-embedded-template = { git = "https://github.com/tree-sitter/tree-sitter-embedded-template", optional = true }
-tree-sitter-erlang = "0.2"
-tree-sitter-fennel = { git = "https://github.com/alexmozaidze/tree-sitter-fennel", optional = true }
-tree-sitter-firrtl = { git = "https://github.com/amaanq/tree-sitter-firrtl", optional = true }
-tree-sitter-fish = { git = "https://github.com/ram02z/tree-sitter-fish", optional = true }
-tree-sitter-foam = { git = "https://github.com/FoamScience/tree-sitter-foam", optional = true }
-tree-sitter-fortran = "0.3"
-tree-sitter-fsharp = "0.1"
-tree-sitter-func = { git = "https://github.com/amaanq/tree-sitter-func", optional = true }
-tree-sitter-gap = { git = "https://github.com/gap-system/tree-sitter-gap", optional = true }
-tree-sitter-gdscript = { git = "https://github.com/PrestonKnopp/tree-sitter-gdscript", optional = true }
-tree-sitter-gdshader = { git = "https://github.com/GodOfAvacyn/tree-sitter-gdshader", optional = true }
-tree-sitter-gitattributes = { git = "https://github.com/ObserverOfTime/tree-sitter-gitattributes", optional = true }
-tree-sitter-gitcommit = { git = "https://github.com/gbprod/tree-sitter-gitcommit", optional = true }
-tree-sitter-gitignore = { git = "https://github.com/shunsambongi/tree-sitter-gitignore", optional = true }
-tree-sitter-gleam = "0.2"
-tree-sitter-glimmer = { git = "https://github.com/ember-tooling/tree-sitter-glimmer", optional = true }
-tree-sitter-glsl = { git = "https://github.com/theHamsta/tree-sitter-glsl", optional = true }
-tree-sitter-gn = { git = "https://github.com/amaanq/tree-sitter-gn", optional = true }
-tree-sitter-go-mod = { git = "https://github.com/camdencheek/tree-sitter-go-mod", optional = true }
-tree-sitter-gomod = "0.2"
-tree-sitter-gosum = { git = "https://github.com/amaanq/tree-sitter-gosum", optional = true }
-tree-sitter-gowork = { git = "https://github.com/omertuc/tree-sitter-gowork", optional = true }
-tree-sitter-gpg = { git = "https://github.com/ObserverOfTime/tree-sitter-gpg", optional = true }
-tree-sitter-graphql = "0.1"
-tree-sitter-groovy = { git = "https://github.com/murtaza64/tree-sitter-groovy", optional = true }
-tree-sitter-gstlaunch = { git = "https://git.ignum.nl/Joziefle/tree-sitter-gstlaunch", optional = true }
-tree-sitter-hack = { git = "https://github.com/slackhq/tree-sitter-hack", optional = true }
-tree-sitter-hare = { git = "https://github.com/amaanq/tree-sitter-hare", optional = true }
-tree-sitter-haskell = "0.14"
-tree-sitter-haskell-persistent = { git = "https://github.com/MercuryTechnologies/tree-sitter-haskell-persistent", optional = true }
-tree-sitter-hcl = { git = "https://github.com/MichaHoffmann/tree-sitter-hcl", optional = true }
-tree-sitter-heex = { git = "https://github.com/phoenixframework/tree-sitter-heex", optional = true }
-tree-sitter-hjson = { git = "https://github.com/winston0410/tree-sitter-hjson", optional = true }
-tree-sitter-hocon = { git = "https://github.com/antosha417/tree-sitter-hocon", optional = true }
-tree-sitter-hoon = { git = "https://github.com/urbit-pilled/tree-sitter-hoon", optional = true }
-tree-sitter-http = { git = "https://github.com/rest-nvim/tree-sitter-http", optional = true }
-tree-sitter-hurl = { git = "https://github.com/pfeiferj/tree-sitter-hurl", optional = true }
-tree-sitter-ini = { git = "https://github.com/justinmk/tree-sitter-ini", optional = true }
-tree-sitter-ispc = { git = "https://github.com/fab4100/tree-sitter-ispc", optional = true }
-tree-sitter-janet-simple = { git = "https://github.com/sogaiu/tree-sitter-janet-simple", optional = true }
 tree-sitter-java = "0.20"
-tree-sitter-javascript = "0.20"
-tree-sitter-jq = { git = "https://github.com/flurie/tree-sitter-jq", optional = true }
-tree-sitter-jsdoc = { git = "https://github.com/tree-sitter/tree-sitter-jsdoc", optional = true }
 tree-sitter-json = "0.20"
-tree-sitter-json5 = { git = "https://github.com/Joakker/tree-sitter-json5", optional = true }
-tree-sitter-jsonc = { git = "https://gitlab.com/WhyNotHugo/tree-sitter-jsonc", optional = true }
-tree-sitter-jsonnet = { git = "https://github.com/sourcegraph/tree-sitter-jsonnet", optional = true }
-tree-sitter-julia = "0.0.12"
-tree-sitter-kdl = { git = "https://github.com/amaanq/tree-sitter-kdl", optional = true }
-tree-sitter-kotlin = "0.3"
-tree-sitter-lalrpop = { git = "https://github.com/traxys/tree-sitter-lalrpop", optional = true }
-tree-sitter-latex = { git = "https://github.com/latex-lsp/tree-sitter-latex", optional = true }
-tree-sitter-ledger = { git = "https://github.com/cbarrete/tree-sitter-ledger", optional = true }
-tree-sitter-llvm = { git = "https://github.com/benwilliamgraham/tree-sitter-llvm", optional = true }
-tree-sitter-lua = "0.0.19"
-tree-sitter-luadoc = { git = "https://github.com/amaanq/tree-sitter-luadoc", optional = true }
-tree-sitter-luap = { git = "https://github.com/amaanq/tree-sitter-luap", optional = true }
-tree-sitter-luau = { git = "https://github.com/amaanq/tree-sitter-luau", optional = true }
-tree-sitter-m68k = { git = "https://github.com/grahamedgecombe/tree-sitter-m68k", optional = true }
-tree-sitter-make = "0.0.12"
-tree-sitter-markdown = "0.1"
-tree-sitter-masm = { git = "https://github.com/ObserverOfTime/tree-sitter-masm", optional = true }
-tree-sitter-matlab = { git = "https://github.com/acristoffers/tree-sitter-matlab", optional = true }
-tree-sitter-menhir = { git = "https://github.com/Kerl13/tree-sitter-menhir", optional = true }
-tree-sitter-mermaid = { git = "https://github.com/monaqa/tree-sitter-mermaid", optional = true }
-tree-sitter-meson = { git = "https://github.com/Decodetalkers/tree-sitter-meson", optional = true }
-tree-sitter-mlir = { git = "https://github.com/artagnon/tree-sitter-mlir", optional = true }
-tree-sitter-muttrc = { git = "https://github.com/neomutt/tree-sitter-muttrc", optional = true }
-tree-sitter-nasm = { git = "https://github.com/naclsn/tree-sitter-nasm", optional = true }
-tree-sitter-nelua = { git = "https://github.com/stefanos82/tree-sitter-nelua", optional = true }
-tree-sitter-nickel = { git = "https://github.com/nickel-lang/tree-sitter-nickel", optional = true }
-tree-sitter-nim = "0.0.12"
-tree-sitter-ninja = { git = "https://github.com/alemuller/tree-sitter-ninja", optional = true }
-tree-sitter-nix = { git = "https://github.com/cstrahan/tree-sitter-nix", optional = true }
-tree-sitter-objc = "0.1"
-tree-sitter-objdump = { git = "https://github.com/ColinKennedy/tree-sitter-objdump", optional = true }
-tree-sitter-ocaml = "0.20"
-tree-sitter-ocaml_interface = { git = "https://github.com/tree-sitter/tree-sitter-ocaml", optional = true }
-tree-sitter-odin = { git = "https://github.com/amaanq/tree-sitter-odin", optional = true }
-tree-sitter-org = { git = "https://github.com/milisims/tree-sitter-org", optional = true }
-tree-sitter-pascal = { git = "https://github.com/Isopod/tree-sitter-pascal", optional = true }
-tree-sitter-passwd = { git = "https://github.com/ath3/tree-sitter-passwd", optional = true }
-tree-sitter-pem = { git = "https://github.com/ObserverOfTime/tree-sitter-pem", optional = true }
-tree-sitter-perl = "0.0.11"
-tree-sitter-perl6 = { git = "https://github.com/Raku/tree-sitter-raku", optional = true }
-tree-sitter-php = "0.20"
-tree-sitter-phpdoc = { git = "https://github.com/claytonrcarter/tree-sitter-phpdoc", optional = true }
-tree-sitter-pioasm = { git = "https://github.com/leo60228/tree-sitter-pioasm", optional = true }
-tree-sitter-po = { git = "https://github.com/erasin/tree-sitter-po", optional = true }
-tree-sitter-pod = { git = "https://github.com/tree-sitter-perl/tree-sitter-pod", optional = true }
-tree-sitter-poe-filter = { git = "https://github.com/ObserverOfTime/tree-sitter-poe-filter", optional = true }
-tree-sitter-pony = { git = "https://github.com/amaanq/tree-sitter-pony", optional = true }
-tree-sitter-prisma = "0.1"
-tree-sitter-proto = { git = "https://github.com/mitchellh/tree-sitter-proto", optional = true }
-tree-sitter-prql = { git = "https://github.com/PRQL/tree-sitter-prql", optional = true }
-tree-sitter-psv = { git = "https://github.com/amaanq/tree-sitter-psv", optional = true }
-tree-sitter-pug = { git = "https://github.com/zealot128/tree-sitter-pug", optional = true }
-tree-sitter-puppet = { git = "https://github.com/amaanq/tree-sitter-puppet", optional = true }
-tree-sitter-purescript = "0.1"
-tree-sitter-pymanifest = { git = "https://github.com/ObserverOfTime/tree-sitter-pymanifest", optional = true }
-tree-sitter-python = "0.20"
-tree-sitter-ql = { git = "https://github.com/tree-sitter/tree-sitter-ql", optional = true }
-tree-sitter-qmldir = { git = "https://github.com/Decodetalkers/tree-sitter-qmldir", optional = true }
-tree-sitter-qmljs = { git = "https://gitlab.com/ubaldia/tree-sitter-qmljs", optional = true }
-tree-sitter-query = { git = "https://github.com/nvim-treesitter/tree-sitter-query", optional = true }
-tree-sitter-r = "0.19"
-tree-sitter-racket = { git = "https://github.com/6cdh/tree-sitter-racket", optional = true }
-tree-sitter-rasi = { git = "https://github.com/Fymyte/tree-sitter-rasi", optional = true }
-tree-sitter-re2c = { git = "https://github.com/amaanq/tree-sitter-re2c", optional = true }
-tree-sitter-readline = { git = "https://github.com/ribru17/tree-sitter-readline", optional = true }
-tree-sitter-regex = { git = "https://github.com/tree-sitter/tree-sitter-regex", optional = true }
-tree-sitter-rego = { git = "https://github.com/FallenAngel97/tree-sitter-rego", optional = true }
-tree-sitter-reason = "0.1"
-tree-sitter-relint = { git = "https://github.com/hauleth/tree-sitter-relint", optional = true }
-tree-sitter-rnoweb = { git = "https://github.com/bamonroe/tree-sitter-rnoweb", optional = true }
-tree-sitter-robot = { git = "https://github.com/Hubro/tree-sitter-robot", optional = true }
-tree-sitter-roc = { git = "https://github.com/faldor20/tree-sitter-roc", optional = true }
-tree-sitter-ron = { git = "https://github.com/amaanq/tree-sitter-ron", optional = true }
-tree-sitter-rst = { git = "https://github.com/stsewd/tree-sitter-rst", optional = true }
-tree-sitter-ruby = "0.20"
-tree-sitter-rust = "0.20"
-tree-sitter-scala = "0.20"
-tree-sitter-scheme = { git = "https://github.com/6cdh/tree-sitter-scheme", optional = true }
-tree-sitter-scss = { git = "https://github.com/serenadeai/tree-sitter-scss", optional = true }
-tree-sitter-slint = { git = "https://github.com/slint-ui/tree-sitter-slint", optional = true }
-tree-sitter-smali = { git = "https://git.sr.ht/~yotam/tree-sitter-smali", optional = true }
-tree-sitter-smithy = { git = "https://github.com/indoorvivants/tree-sitter-smithy", optional = true }
-tree-sitter-snippets = { git = "https://github.com/obsqrbttz/tree-sitter-snippets", optional = true }
-tree-sitter-solidity = { git = "https://github.com/JoranHonig/tree-sitter-solidity", optional = true }
-tree-sitter-soy = { git = "https://github.com/amaanq/tree-sitter-soy", optional = true }
-tree-sitter-spark = { git = "https://github.com/ramaureirac/tree-sitter-spark", optional = true }
-tree-sitter-sparql = { git = "https://github.com/BonaBeavis/tree-sitter-sparql", optional = true }
-tree-sitter-sql = "0.20"
-tree-sitter-squirrel = { git = "https://github.com/amaanq/tree-sitter-squirrel", optional = true }
-tree-sitter-ssh-config = { git = "https://github.com/ObserverOfTime/tree-sitter-ssh-config", optional = true }
-tree-sitter-starlark = { git = "https://github.com/amaanq/tree-sitter-starlark", optional = true }
-tree-sitter-strace = { git = "https://github.com/sigmaSd/tree-sitter-strace", optional = true }
-tree-sitter-styled = { git = "https://github.com/mskelton/tree-sitter-styled", optional = true }
-tree-sitter-supercollider = { git = "https://github.com/madskjeldgaard/tree-sitter-supercollider", optional = true }
-tree-sitter-surface = { git = "https://github.com/connorlay/tree-sitter-surface", optional = true }
-tree-sitter-svelte = "0.0.13"
-tree-sitter-swift = "0.20"
-tree-sitter-sxhkdrc = { git = "https://github.com/Fymyte/tree-sitter-sxhkdrc", optional = true }
-tree-sitter-systemtap = { git = "https://github.com/ok-urawa/tree-sitter-systemtap", optional = true }
-tree-sitter-tablegen = { git = "https://github.com/amaanq/tree-sitter-tablegen", optional = true }
-tree-sitter-teal = { git = "https://github.com/euclidianAce/tree-sitter-teal", optional = true }
-tree-sitter-terraform = { git = "https://github.com/MichaHoffmann/tree-sitter-hcl", optional = true }
-tree-sitter-textproto = { git = "https://github.com/PorterAtAdobe/tree-sitter-textproto", optional = true }
-tree-sitter-thrift = { git = "https://github.com/duskmoon314/tree-sitter-thrift", optional = true }
-tree-sitter-tiger = { git = "https://github.com/ambroisie/tree-sitter-tiger", optional = true }
-tree-sitter-tlaplus = { git = "https://github.com/tlaplus-community/tree-sitter-tlaplus", optional = true }
-tree-sitter-todotxt = { git = "https://github.com/arnarg/tree-sitter-todotxt", optional = true }
-tree-sitter-toml = "0.20"
-tree-sitter-tsv = { git = "https://github.com/amaanq/tree-sitter-tsv", optional = true }
-tree-sitter-tsx = { git = "https://github.com/tree-sitter/tree-sitter-typescript", optional = true }
-tree-sitter-turtle = { git = "https://github.com/BonaBeavis/tree-sitter-turtle", optional = true }
-tree-sitter-twig = { git = "https://github.com/gbprod/tree-sitter-twig", optional = true }
-tree-sitter-typescript = "0.20"
-tree-sitter-typst = { git = "https://github.com/uben0/tree-sitter-typst", optional = true }
-tree-sitter-v = "0.0.11"
-tree-sitter-vala = { git = "https://github.com/vala-lang/tree-sitter-vala", optional = true }
-tree-sitter-vento = { git = "https://github.com/ventojs/tree-sitter-vento", optional = true }
-tree-sitter-verilog = { git = "https://github.com/tree-sitter/tree-sitter-verilog", optional = true }
-tree-sitter-vhdl = { git = "https://github.com/telescopemem/tree-sitter-vhdl", optional = true }
-tree-sitter-vim = { git = "https://github.com/neovimtree-sitter/tree-sitter-vim", optional = true }
-tree-sitter-vimdoc = { git = "https://github.com/neovimtree-sitter/tree-sitter-vimdoc", optional = true }
-tree-sitter-vue = "0.0.6"
-tree-sitter-wast = { git = "https://github.com/wasm-lsp/tree-sitter-wasm", optional = true }
-tree-sitter-wat = "0.1"
-tree-sitter-wgsl = "0.0.12"
-tree-sitter-wgsl_bevy = { git = "https://github.com/anotherkamilla/tree-sitter-wgsl-bevy", optional = true }
-tree-sitter-wing = { git = "https://github.com/winglang/tree-sitter-wing", optional = true }
-tree-sitter-wit = { git = "https://github.com/ahmedsherif/tree-sitter-wit", optional = true }
-tree-sitter-xcompose = { git = "https://github.com/ObserverOfTime/tree-sitter-xcompose", optional = true }
-tree-sitter-xml = { git = "https://github.com/RenjiSann/tree-sitter-xml", optional = true }
 tree-sitter-yaml = "0.20"
-tree-sitter-yang = { git = "https://github.com/Hubro/tree-sitter-yang", optional = true }
-tree-sitter-yuck = { git = "https://github.com/Philipp-M/tree-sitter-yuck", optional = true }
-tree-sitter-zig = "0.0.12"
+tree-sitter-md = "0.1"
 
 # ============ Concurrency ============
 dashmap = "5.5"
@@ -457,53 +195,8 @@ linker = "x86_64-w64-mingw32-gcc"
 # ============ Features ============
 
 [features]
-default = ["custom-protocol", "embedded-llm", "core-languages"]
+default = ["custom-protocol", "embedded-llm"]
 custom-protocol = ["tauri/custom-protocol"]
-
-# Core languages (always included)
-core-languages = []
-
-# Extended language support (50+ languages)
-all-languages = [
-    "tree-sitter-ruby",
-    "tree-sitter-php",
-    "tree-sitter-swift",
-    "tree-sitter-kotlin",
-    "tree-sitter-scala",
-    "tree-sitter-lua",
-    "tree-sitter-c-sharp",
-    "tree-sitter-dart",
-    "tree-sitter-elixir",
-    "tree-sitter-erlang",
-    "tree-sitter-haskell",
-    "tree-sitter-ocaml",
-    "tree-sitter-clojure",
-    "tree-sitter-nim",
-    "tree-sitter-zig",
-    "tree-sitter-r",
-    "tree-sitter-perl",
-    "tree-sitter-julia",
-    "tree-sitter-vue",
-    "tree-sitter-svelte",
-    "tree-sitter-toml",
-    "tree-sitter-dockerfile",
-    "tree-sitter-make",
-    "tree-sitter-graphql",
-    "tree-sitter-wgsl",
-    # New languages for 50+ support
-    "tree-sitter-objc",
-    "tree-sitter-fsharp",
-    "tree-sitter-elm",
-    "tree-sitter-asm",
-    "tree-sitter-wat",
-    "tree-sitter-v",
-    "tree-sitter-d",
-    "tree-sitter-crystal",
-    "tree-sitter-purescript",
-    "tree-sitter-reason",
-    "tree-sitter-prisma",
-    "tree-sitter-action",
-]
 
 # Embedded LLM (llama.cpp static linking)
 embedded-llm = ["llama-cpp"]
@@ -530,7 +223,7 @@ rag = []
 crdt-automerge = ["automerge"]
 
 # Full Enterprise Features
-enterprise = ["wasm-plugins", "rag", "all-languages"]
+enterprise = ["wasm-plugins", "rag"]
 
 # Development/Debug Features
 debug-logging = ["log/max_level_debug", "log/max_level_trace"]

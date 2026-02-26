@@ -1,0 +1,37 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 5%
+        branches:
+          target: 70%
+    patch:
+      default:
+        target: 80%
+
+comment:
+  layout: "header, diff, components, tree, files"
+  behavior: default
+  require_changes: false
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 80%
+  individual_components:
+    - component_id: backend
+      name: Rust Backend
+      paths:
+        - src-tauri/src/
+    - component_id: frontend
+      name: TypeScript Frontend
+      paths:
+        - src/
+
+ignore:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/tests/**"
+  - "**/__tests__/**"

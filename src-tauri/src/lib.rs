@@ -30,11 +30,13 @@ pub mod rag;
 pub mod git_crdt;
 
 // ============ Platform Modules ============
-pub mod virtual_pico;
+// DISABLED: Incomplete module - enable when core features are 100% complete
+// pub mod virtual_pico;
 pub mod telegram;
 
 // ============ Verification Modules ============
-pub mod symbolic_verify;
+// DISABLED: Incomplete module - enable when core features are 100% complete
+// pub mod symbolic_verify;
 
 // ============ Agent System ============
 pub mod agents;
