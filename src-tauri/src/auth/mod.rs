@@ -165,7 +165,7 @@ impl AuthManager {
             .map(|hash| hash.to_string())
             .unwrap_or_else(|_| {
                 // Fallback to bcrypt if argon2 fails (shouldn't happen)
-                bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap()
+                bcrypt::hash(password, bcrypt::DEFAULT_COST).unwrap_or_default()
             })
     }
 

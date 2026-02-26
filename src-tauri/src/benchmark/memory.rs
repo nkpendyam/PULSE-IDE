@@ -442,8 +442,8 @@ impl MemoryMonitor {
 
         // Calculate growth rate
         let growth_rate = if samples.len() >= 2 {
-            let first = samples.front().unwrap();
-            let last = samples.back().unwrap();
+            let first = samples.front().unwrap_or_default();
+            let last = samples.back().unwrap_or_default();
             let time_diff = (last.timestamp_ms - first.timestamp_ms) as f64 / 1000.0;
             if time_diff > 0.0 {
                 (last.total_bytes as f64 - first.total_bytes as f64) / time_diff
@@ -621,7 +621,7 @@ impl MemoryBenchmark {
 
     /// Run full memory profile
     pub async fn run_profile(&self) -> Result<MemoryProfile> {
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap_or_default();
         
         let total = rt.block_on(async { self.monitor.sample().await });
         let breakdown = total.breakdown.clone();

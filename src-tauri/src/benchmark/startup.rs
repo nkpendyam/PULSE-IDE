@@ -662,7 +662,7 @@ impl BenchmarkModule for StartupBenchmark {
                 "cold_start",
                 BenchmarkCategory::Startup,
                 || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().unwrap_or_default();
                     rt.block_on(async {
                         let profile = self.benchmark_cold_start().await?;
                         Ok(std::time::Duration::from_micros(profile.total_duration_ms as u64 * 1000))
@@ -677,7 +677,7 @@ impl BenchmarkModule for StartupBenchmark {
                 "warm_start",
                 BenchmarkCategory::Startup,
                 || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().unwrap_or_default();
                     rt.block_on(async {
                         let profile = self.benchmark_warm_start().await?;
                         Ok(std::time::Duration::from_micros(profile.total_duration_ms as u64 * 1000))

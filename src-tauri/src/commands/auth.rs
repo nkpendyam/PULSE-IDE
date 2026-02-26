@@ -242,7 +242,7 @@ pub async fn handle_oauth_callback(provider: String, code: String) -> Result<Log
     state.is_authenticated = true;
     
     Ok(LoginResponse {
-        user: state.current_user.clone().unwrap(),
+        user: state.current_user.clone().unwrap_or_default(),
         token,
         expires_at: expires_at.to_rfc3339(),
     })

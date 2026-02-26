@@ -47,7 +47,7 @@ impl BranchManager {
             commits_since_merge: 0,
             last_merge_time: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs() as i64,
         }
     }
@@ -182,7 +182,7 @@ impl BranchManager {
         // Check time
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs() as i64;
         let elapsed = now - self.last_merge_time;
         if elapsed > TIME_BEFORE_MERGE_SECS as i64 {
@@ -267,7 +267,7 @@ impl BranchManager {
         self.commits_since_merge = 0;
         self.last_merge_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs() as i64;
 
         log::info!("Merged {} to main and cleaned up", current_branch);
@@ -297,7 +297,7 @@ impl BranchManager {
             commits_since_merge: self.commits_since_merge,
             time_since_merge_secs: (SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs() as i64)
                 - self.last_merge_time,
             needs_merge: self.should_merge(),

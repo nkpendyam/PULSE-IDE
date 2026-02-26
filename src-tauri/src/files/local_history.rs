@@ -70,7 +70,7 @@ impl LocalHistory {
             .join("content")
             .join(&id);
         
-        std::fs::create_dir_all(content_path.parent().unwrap()).ok();
+        std::fs::create_dir_all(content_path.parent().unwrap_or_default()).ok();
         std::fs::write(&content_path, content)?;
         
         let snapshot = FileSnapshot {

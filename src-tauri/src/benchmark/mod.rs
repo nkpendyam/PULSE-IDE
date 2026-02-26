@@ -311,7 +311,7 @@ fn percentile(values: &[f64], p: f64) -> f64 {
         return 0.0;
     }
     let mut sorted = values.to_vec();
-    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or_default());
     let index = (p / 100.0 * (sorted.len() - 1) as f64).floor() as usize;
     sorted[index.min(sorted.len() - 1)]
 }

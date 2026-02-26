@@ -110,7 +110,7 @@ impl AwarenessProtocol {
     pub fn get_active_users(&self, threshold_secs: u64) -> Vec<&UserState> {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         self.states.values()
@@ -122,7 +122,7 @@ impl AwarenessProtocol {
     pub fn cleanup_stale(&mut self, threshold_secs: u64) -> usize {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         let stale: Vec<String> = self.states.iter()

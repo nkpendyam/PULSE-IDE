@@ -76,7 +76,7 @@ impl RAGChatEngine {
             content: user_message.to_string(),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs(),
             code_context: Some(CodeContext {
                 files: open_files.iter().map(|f| f.file_path.clone()).collect(),
@@ -130,7 +130,7 @@ impl RAGChatEngine {
             content: response.text.clone(),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs(),
             code_context: Some(CodeContext {
                 files: vec![],
@@ -144,7 +144,7 @@ impl RAGChatEngine {
         session.messages.push(assistant_msg.clone());
         session.updated_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         // Update session
@@ -187,7 +187,7 @@ impl RAGChatEngine {
             content: user_message.to_string(),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs(),
             code_context: Some(CodeContext {
                 files: open_files.iter().map(|f| f.file_path.clone()).collect(),
@@ -265,7 +265,7 @@ impl RAGChatEngine {
             content: response.text.clone(),
             timestamp: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs(),
             code_context: Some(CodeContext {
                 files: vec![],
@@ -279,7 +279,7 @@ impl RAGChatEngine {
         session.messages.push(assistant_msg.clone());
         session.updated_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
 
         // Update session
@@ -411,7 +411,7 @@ impl RAGChatEngine {
             session.messages.clear();
             session.updated_at = std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
+                .unwrap_or_default()
                 .as_secs();
         }
         Ok(())

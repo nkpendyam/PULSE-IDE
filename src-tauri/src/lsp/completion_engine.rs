@@ -557,41 +557,158 @@ impl AiCompletionEngine {
 
         // Check if AI client is available
         let ai_client = self.ai_client.as_ref()?;
+        let mut client = ai_client.lock().await;
         
-        // Build prompt for AI
+        // Check if AI is available
+        if !client.is_available().await {
+            return None;
+        }
+
+        // Build prompt for AI completion
+        let code_context: String = context.code.lines()
+            .take(context.line.saturating_add(10).min(context.code.lines().count()))
+            .skip(context.line.saturating_sub(5))
+            .collect::<Vec<_>>()
+            .join("\n");
+            
         let prompt = format!(
-            "Complete this {} code. File: {}, Line: {}, Prefix: '{}'\n\nCode:\n{}\n\nProvide 3 completion suggestions in JSON format: [{{\"label\": \"...\", \"insert_text\": \"...\", \"description\": \"...\"}}]",
+            "Complete this {} code at line {}. Current prefix: '{}'\n\nCode context:\n{}\n\nProvide only the completion text, no explanation:",
             context.language,
-            context.file_path,
             context.line,
             context.prefix,
-            context.code.lines().take(context.line + 5).collect::<Vec<_>>().join("\n")
+            code_context
         );
 
-        // Call AI (with timeout)
+        // Call Ollama API with timeout
+        let request_body = serde_json::json!({
+            "model": "qwen2.5-coder:latest",
+            "prompt": prompt,
+            "stream": false,
+            "options": {
+                "num_predict": 100,
+                "temperature": 0.3,
+                "stop": ["\n\n", "```", "// End"]
+            }
+        });
+
+        let response = client.client
+            .post(format!("{}/api/generate", client.base_url))
+            .json(&request_body)
+            .timeout(Duration::from_millis(45)) // Leave 5ms for processing
+            .send()
+            .await;
+
         let latency = start.elapsed().as_millis() as u64;
         
-        // For now, return placeholder AI completions
-        // In production, this would call the actual AI client
-        let items = vec![
-            ScoredCompletion {
-                item: CompletionItem {
-                    label: "ai_suggestion".to_string(),
-                    kind: CompletionKind::Snippet,
-                    detail: Some("AI-generated completion".to_string()),
-                    documentation: None,
-                    insert_text: Some("// AI suggestion placeholder".to_string()),
-                },
-                score: 0.85,
-                source: "ai_hints".to_string(),
-            },
-        ];
+        match response {
+            Ok(resp) if resp.status().is_success() => {
+                if let Ok(json) = resp.json::<serde_json::Value>().await {
+                    if let Some(completion_text) = json.get("response").and_then(|r| r.as_str()) {
+                        let completion_text = completion_text.trim();
+                        if !completion_text.is_empty() {
+                            let items = vec![
+                                ScoredCompletion {
+                                    item: CompletionItem {
+                                        label: format!("{}...", context.prefix),
+                                        kind: CompletionKind::Snippet,
+                                        detail: Some("AI-generated completion".to_string()),
+                                        documentation: Some(completion_text.to_string()),
+                                        insert_text: Some(format!("{}{}", context.prefix, completion_text)),
+                                    },
+                                    score: 0.95,
+                                    source: "ai_hints".to_string(),
+                                },
+                            ];
 
-        Some(CompletionSourceResult {
-            source: "ai_hints".to_string(),
-            latency_ms: latency,
-            items,
-        })
+                            return Some(CompletionSourceResult {
+                                source: "ai_hints".to_string(),
+                                latency_ms: latency,
+                                items,
+                            });
+                        }
+                    }
+                }
+            }
+            _ => {
+                log::debug!("AI completion request failed or timed out after {}ms", latency);
+            }
+        }
+
+        // Return context-based completions as fallback
+        let context_items = self.generate_context_completions(context);
+        if !context_items.is_empty() {
+            return Some(CompletionSourceResult {
+                source: "ai_hints".to_string(),
+                latency_ms: latency,
+                items: context_items,
+            });
+        }
+
+        None
+    }
+    
+    /// Generate context-based completions when AI is unavailable
+    fn generate_context_completions(&self, context: &CompletionContext) -> Vec<ScoredCompletion> {
+        let mut items = Vec::new();
+        
+        // Generate completions based on language patterns
+        match context.language.as_str() {
+            "rust" => {
+                if context.prefix.ends_with('.') {
+                    items.push(ScoredCompletion {
+                        item: CompletionItem {
+                            label: ".unwrap_or_default()".to_string(),
+                            kind: CompletionKind::Method,
+                            detail: Some("Safe unwrap with default".to_string()),
+                            documentation: None,
+                            insert_text: Some("unwrap_or_default()".to_string()),
+                        },
+                        score: 0.85,
+                        source: "ai_hints".to_string(),
+                    });
+                    items.push(ScoredCompletion {
+                        item: CompletionItem {
+                            label: ".ok_or_else(|| ...)".to_string(),
+                            kind: CompletionKind::Method,
+                            detail: Some("Convert Option to Result".to_string()),
+                            documentation: None,
+                            insert_text: Some("ok_or_else(|| \"error\")".to_string()),
+                        },
+                        score: 0.80,
+                        source: "ai_hints".to_string(),
+                    });
+                }
+            }
+            "typescript" | "javascript" => {
+                if context.prefix.ends_with('.') {
+                    items.push(ScoredCompletion {
+                        item: CompletionItem {
+                            label: ".map(x => ...)".to_string(),
+                            kind: CompletionKind::Method,
+                            detail: Some("Map over array".to_string()),
+                            documentation: None,
+                            insert_text: Some("map(x => {})".to_string()),
+                        },
+                        score: 0.85,
+                        source: "ai_hints".to_string(),
+                    });
+                    items.push(ScoredCompletion {
+                        item: CompletionItem {
+                            label: ".filter(x => ...)".to_string(),
+                            kind: CompletionKind::Method,
+                            detail: Some("Filter array".to_string()),
+                            documentation: None,
+                            insert_text: Some("filter(x => {})".to_string()),
+                        },
+                        score: 0.80,
+                        source: "ai_hints".to_string(),
+                    });
+                }
+            }
+            _ => {}
+        }
+        
+        items
     }
 
     /// Update symbol table for a file
