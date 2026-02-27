@@ -17,6 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -37,6 +50,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
@@ -53,39 +79,6 @@ jobs:
         working-directory: src-tauri
         run: cargo test --all-features --lib --tests
 
-  # Performance Benchmarks (2026 IDE Standard)
-  benchmark:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-      
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      
-      - name: Run Performance Tests
-        working-directory: src-tauri
-        run: |
-          cargo test --bench performance -- --nocapture || true
-          echo "Performance benchmarks check completed"
-      
-      - name: Assert Startup < 1.5s
-        run: |
-          echo "✓ Startup time assertion: <1500ms (2026 IDE Standard)"
-      
-      - name: Assert Memory < 150MB
-        run: |
-          echo "✓ Memory usage assertion: <150MB (2026 IDE Standard)"
-
   # Security Audit
   security:
     name: Security Audit
@@ -101,7 +94,7 @@ jobs:
       
       - name: Run Security Audit
         working-directory: src-tauri
-        run: cargo audit || true  # Don't fail on advisories
+        run: cargo audit
 
   # Build Verification (Reproducible)
   reproducible:
@@ -109,7 +102,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
@@ -151,7 +157,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -176,7 +195,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       

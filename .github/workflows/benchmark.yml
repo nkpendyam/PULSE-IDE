@@ -5,8 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: '0 0 * * *'  # Daily at midnight
 
 jobs:
   benchmark:
@@ -14,7 +12,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
@@ -27,56 +38,25 @@ jobs:
             src-tauri/target
           key: ${{ runner.os }}-cargo-bench-${{ hashFiles('**/Cargo.lock') }}
       
-      - name: Run Startup Benchmark
+      - name: Run Performance Tests
         working-directory: src-tauri
         run: |
-          echo "=== 2026 IDE Performance Standard ==="
-          echo "Asserting startup < 1500ms"
-          cargo test test_startup_time --release -- --nocapture || echo "Startup test completed"
+          echo "=== Kyro IDE Performance Benchmarks ==="
+          cargo test performance_test --release -- --nocapture 2>&1 || echo "⚠ Some performance tests failed"
           
-      - name: Run Memory Benchmark
+      - name: Run Benchmark Suite
         working-directory: src-tauri
         run: |
-          echo "Asserting memory < 150MB"
-          cargo test test_memory_usage --release -- --nocapture || echo "Memory test completed"
-          
-      - name: Run Frame Rate Benchmark
-        working-directory: src-tauri
-        run: |
-          echo "Asserting frame rate >= 60fps"
-          cargo test test_frame_rate --release -- --nocapture || echo "Frame rate test completed"
-      
+          cargo bench 2>&1 || echo "⚠ Benchmark suite not fully configured"
+
       - name: Generate Benchmark Report
         run: |
           echo "## Performance Benchmark Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Target | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|--------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Startup Time | <1500ms | ✓ PASS |" >> $GITHUB_STEP_SUMMARY
-          echo "| Memory Usage | <150MB | ✓ PASS |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frame Rate | ≥60fps | ✓ PASS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Target |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Startup Time | <1500ms |" >> $GITHUB_STEP_SUMMARY
+          echo "| Memory Usage | <150MB |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frame Rate | ≥60fps |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Kyro IDE meets the 2026 IDE Performance Standard**" >> $GITHUB_STEP_SUMMARY
-
-  compare-vs-competitors:
-    name: Compare vs Competitors
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-      
-      - name: Run Comparison
-        run: |
-          echo "### Kyro IDE vs Competitors" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Kyro IDE | VS Code | Cursor | Zed |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|----------|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
-          echo "| Startup | ~650ms | 3000ms | 2500ms | ~500ms |" >> $GITHUB_STEP_SUMMARY
-          echo "| Memory | ~50MB | 450MB | 500MB | ~80MB |" >> $GITHUB_STEP_SUMMARY
-          echo "| Local AI | ✓ Yes | ✗ No | ✗ No | ⚠ Limited |" >> $GITHUB_STEP_SUMMARY
-          echo "| Privacy | 10/10 | 3/10 | 3/10 | 7/10 |" >> $GITHUB_STEP_SUMMARY
-          echo "| Cost | Free | Free | $20/mo | Free |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Kyro IDE: 2x faster startup, 8x less memory than Electron-based IDEs**" >> $GITHUB_STEP_SUMMARY
+          echo "See test output above for actual measured values." >> $GITHUB_STEP_SUMMARY

@@ -65,31 +65,14 @@ export default function KyroIDE() {
     checkFirstRun();
   }, []);
 
-  // Complete first run
-  const handleFirstRunComplete = useCallback(() => {
-    setIsFirstRun(false);
-  }, []);
-
-  // Show first run experience if needed
-  if (isFirstRun === null) {
-    return (
-      <div className="h-screen w-screen bg-[#0d1117] flex items-center justify-center">
-        <div className="text-[#8b949e]">Loading...</div>
-      </div>
-    );
-  }
-
-  if (isFirstRun) {
-    return <FirstRunExperience onComplete={handleFirstRunComplete} />;
-  }
-
+  // Check Ollama status and load languages on mount
   useEffect(() => {
     const checkOllama = async () => {
       try {
         const isRunning = await invoke<boolean>('check_ollama_status');
         setOllamaStatus(isRunning);
         if (isRunning) {
-          const modelList = await invoke<Array<{name: string; size: string; modified_at: string}>>('list_models');
+          const modelList = await invoke<Array<{ name: string; size: string; modified_at: string }>>('list_models');
           setModels(modelList);
         }
       } catch { setOllamaStatus(false); }
@@ -107,11 +90,17 @@ export default function KyroIDE() {
     loadLanguages();
   }, [setOllamaStatus, setModels, setStoreSupportedLanguages]);
 
+  // Listen for terminal output events
   useEffect(() => {
-    const unlisten = listen<{id: string; data: string}>('terminal-output', (event) => {
+    const unlisten = listen<{ id: string; data: string }>('terminal-output', (event) => {
       useKyroStore.getState().appendTerminalOutput(event.payload.data);
     });
     return () => { unlisten.then(fn => fn()); };
+  }, []);
+
+  // Complete first run
+  const handleFirstRunComplete = useCallback(() => {
+    setIsFirstRun(false);
   }, []);
 
   const handleOpenFolder = useCallback(async () => {
@@ -123,7 +112,7 @@ export default function KyroIDE() {
         const tree = await invoke<FileNode>('get_file_tree', { path: selected, maxDepth: 5 });
         setFileTree(tree);
         try {
-          const status = await invoke<{branch: string; ahead: number; behind: number; staged: Array<{path: string; status: string}>; unstaged: Array<{path: string; status: string}>; untracked: string[]}>('git_status', { path: selected });
+          const status = await invoke<{ branch: string; ahead: number; behind: number; staged: Array<{ path: string; status: string }>; unstaged: Array<{ path: string; status: string }>; untracked: string[] }>('git_status', { path: selected });
           setGitStatus(status);
         } catch { setGitStatus(null); }
         setIsLoading(false);
@@ -133,7 +122,7 @@ export default function KyroIDE() {
 
   const handleFileOpen = useCallback(async (path: string) => {
     try {
-      const fileContent = await invoke<{path: string; content: string; language: string}>('read_file', { path });
+      const fileContent = await invoke<{ path: string; content: string; language: string }>('read_file', { path });
       openFile({ path: fileContent.path, content: fileContent.content, language: fileContent.language, isDirty: false });
     } catch (error) { console.error('Failed to open file:', error); }
   }, [openFile]);
@@ -149,9 +138,8 @@ export default function KyroIDE() {
   ) => (
     <button
       onClick={() => setActivePanel(activePanel === panel ? 'explorer' : panel)}
-      className={`relative p-3 hover:bg-[#21262d] transition-colors ${
-        activePanel === panel ? 'bg-[#21262d] border-l-2 border-[#58a6ff]' : ''
-      }`}
+      className={`relative p-3 hover:bg-[#21262d] transition-colors ${activePanel === panel ? 'bg-[#21262d] border-l-2 border-[#58a6ff]' : ''
+        }`}
       title={label}
     >
       {icon}
@@ -160,6 +148,19 @@ export default function KyroIDE() {
       )}
     </button>
   );
+
+  // Show loading or first run experience if needed
+  if (isFirstRun === null) {
+    return (
+      <div className="h-screen w-screen bg-[#0d1117] flex items-center justify-center">
+        <div className="text-[#8b949e]">Loading...</div>
+      </div>
+    );
+  }
+
+  if (isFirstRun) {
+    return <FirstRunExperience onComplete={handleFirstRunComplete} />;
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden">
