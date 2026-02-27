@@ -18,7 +18,7 @@ jobs:
     name: Build macOS
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -26,12 +26,12 @@ jobs:
           targets: aarch64-apple-darwin, x86_64-apple-darwin
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Dependencies
         run: bun install
@@ -72,7 +72,7 @@ jobs:
             "src-tauri/target/release/bundle/macos/"
 
       - name: Upload DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kro-ide-macos-universal
           path: "*.dmg"
@@ -82,7 +82,7 @@ jobs:
     name: Build Windows
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -90,12 +90,12 @@ jobs:
           targets: x86_64-pc-windows-msvc
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Dependencies
         run: bun install
@@ -116,7 +116,7 @@ jobs:
           args: --target x86_64-pc-windows-msvc
 
       - name: Upload MSI
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kro-ide-windows-x64
           path: src-tauri/target/release/bundle/msi/*.msi
@@ -126,7 +126,7 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install System Dependencies
         run: |
@@ -147,12 +147,12 @@ jobs:
           targets: x86_64-unknown-linux-gnu
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Dependencies
         run: bun install
@@ -173,7 +173,7 @@ jobs:
           args: --target x86_64-unknown-linux-gnu
 
       - name: Upload AppImage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kro-ide-linux-x64
           path: src-tauri/target/release/bundle/appimage/*.AppImage
@@ -185,10 +185,10 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -196,7 +196,7 @@ jobs:
         run: ls -R artifacts
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             artifacts/**/*.dmg

@@ -15,7 +15,7 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install System Dependencies
         run: |
@@ -48,7 +48,7 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Install System Dependencies
         run: |
@@ -67,7 +67,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -84,7 +84,7 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -101,7 +101,7 @@ jobs:
     name: Reproducible Build Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install System Dependencies
         run: |
@@ -120,7 +120,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -146,7 +146,7 @@ jobs:
           echo "Build hash: $(cat build.hash)"
       
       - name: Upload Build Hash
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-hash
           path: src-tauri/build.hash
@@ -156,7 +156,7 @@ jobs:
     name: Code Coverage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install System Dependencies
         run: |
@@ -184,7 +184,7 @@ jobs:
         run: cargo llvm-cov --all-features --lcov --output-path lcov.info --lib --tests
       
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: src-tauri/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -194,7 +194,7 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install System Dependencies
         run: |
@@ -217,7 +217,7 @@ jobs:
         run: cargo doc --no-deps --all-features
       
       - name: Upload Documentation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: documentation
           path: src-tauri/target/doc
