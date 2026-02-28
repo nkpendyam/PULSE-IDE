@@ -1,0 +1,247 @@
+[package]
+name = "kyro-ide"
+version = "0.1.0"
+description = "KRO_IDE - AI-Powered Code Editor with Embedded LLM, MCP Agents, and Zero-Dependency Distribution"
+authors = ["KRO_IDE Team"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/nkpendyam/Kyro_IDE"
+
+[lib]
+name = "kyro_ide"
+path = "src/lib.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# ============ Tauri (Desktop Shell) ============
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-shell = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"  # For auto-updates
+
+# ============ Serialization ============
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ============ Async Runtime ============
+tokio = { version = "1", features = ["full", "test-util"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+
+# ============ HTTP Client ============
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+
+# ============ Terminal ============
+portable-pty = "0.8"
+
+# ============ File Watching ============
+notify = "6.1"
+
+# ============ Git ============
+git2 = "0.18"
+
+# ============ Tree-sitter (Language Parsing) ============
+tree-sitter = "0.24"
+
+# Tree-sitter grammars (10 core languages - latest crates.io versions)
+tree-sitter-rust = "0.23"
+tree-sitter-typescript = "0.23"
+tree-sitter-python = "0.23"
+tree-sitter-go = "0.23"
+tree-sitter-c = "0.23"
+tree-sitter-cpp = "0.23"
+tree-sitter-java = "0.23"
+tree-sitter-json = "0.24"
+tree-sitter-yaml = "0.7"
+tree-sitter-md = "0.5"
+
+# ============ Concurrency ============
+dashmap = "5.5"
+parking_lot = "0.12"
+crossbeam = "0.8"
+async-trait = "0.1"
+
+# ============ Utilities ============
+base64 = "0.22"
+sha2 = "0.10"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+env_logger = "0.11"
+anyhow = "1.0"
+thiserror = "1.0"
+dirs = "5.0"
+which = "5.0"
+tempfile = "3.10"
+shellexpand = "3.1"
+num_cpus = "1.16"
+walkdir = "2.4"
+lazy_static = "1.4"
+rand_pcg = "0.3"
+
+# ============ QR Code Generation (from EntityFX/qrcode-rs) ============
+qrcode = "0.14"  # QR code generation (https://github.com/EntityFX/qrcode-rs)
+image = { version = "0.25", default-features = false, features = ["png"] }  # Image processing for QR codes
+
+# ============ LSP Support ============
+lsp-types = "0.95"
+tower-lsp = "0.20"  # LSP implementation framework (from ebkalderon/tower-lsp)
+
+# ============ Database (Agent Memory) ============
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# ============ Vector Database (RAG) ============
+rand_distr = "0.4"
+# For embeddings - use local model or simple hashing
+ndarray = "0.15"
+# Quantization for vector storage
+bincode = "1.3"
+
+# ============ Text Processing ============
+regex = "1.10"
+# Text chunking for RAG
+# text-splitter = "0.6"  # FIXME: verify crate exists
+# TF-IDF for fallback search
+rust-stemmers = "1.2"
+
+# ============ System Info ============
+sysinfo = "0.30"
+
+# ============ Archive Handling (for updates/plugins) ============
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+tar = "0.4"
+flate2 = "1.0"
+
+# ============ WASM Runtime (Plugin System) ============
+wasmtime = { version = "20", optional = true, default-features = false, features = ["cranelift", "pooling-allocator"] }
+
+# ============ Embedded LLM (llama.cpp) ============
+# Real GGUF model inference - commented out due to version conflict with tree-sitter 0.24
+# Will be replaced by AirLLM integration in Phase 3
+# llama_cpp = { version = "0.3", features = ["static"], optional = true }
+
+# ============ DAP (Debug Adapter Protocol) ============
+dap = "0.4.1-alpha1"  # Debug Adapter Protocol types and client
+
+# ============ Vector Database (RAG) - Commented out to fix build
+# qdrant-client = { version = "1.7", optional = true }
+
+# ============ CRDT (Collaboration) ============
+yrs = "0.18"  # Yjs Rust port (from y-crdt/y-crdt)
+automerge = { version = "0.5", optional = true }  # Alternative CRDT (optional)
+loro = "1.3"  # Loro CRDT (from loro-dev/loro) - rich text collaboration
+
+# ============ Text Buffer ============
+ropey = "1.6"  # UTF-8 text rope (from cessen/ropey)
+
+# ============ Additional Crypto ============
+blake3 = "1.5"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rand = "0.8"
+
+# ============ JWT Authentication ============
+# Using jsonwebtoken (from Keats/jsonwebtoken) - pure Rust, no BoringSSL/cmake needed
+jsonwebtoken = "9.3"
+
+# ============ Password Hashing ============
+argon2 = "0.5"  # Argon2 password hashing (recommended)
+bcrypt = "0.15"  # Bcrypt fallback password hashing
+password-hash = "0.5"  # Password hashing traits
+
+# ============ End-to-End Encryption (Signal Protocol) ============
+# Based on: https://github.com/signalapp/libsignal
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+chacha20poly1305 = "0.10"  # AEAD encryption
+hkdf = "0.12"  # Key derivation
+hmac = "0.12"  # HMAC for message authentication
+hnsw = "0.11.0"
+hex = "0.4.3"
+glob-match = "0.2.1"
+urlencoding = "2.1.3"
+futures = "0.3.32"
+
+# ============ Platform-Specific ============
+
+# Unix-specific
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# Windows-specific
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winbase", "fileapi", "psapi", "sysinfoapi", "processthreadsapi"] }
+
+# macOS-specific
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.25"
+
+# ============ Build Profile Optimizations ============
+
+[profile.dev]
+opt-level = 1
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# ============ Platform-Specific Static Linking ============
+
+# Linux MUSL static binary
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-gcc"
+
+# Windows MinGW static
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+
+# ============ Features ============
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+# Embedded LLM (llama.cpp static linking) - disabled pending AirLLM migration
+# embedded-llm = ["llama_cpp"]
+
+# Candle ML framework (alternative inference)
+candle-inference = []
+
+# WASM Plugin System
+wasm-plugins = ["wasmtime"]
+
+# CUDA GPU Acceleration
+cuda = []
+
+# Metal GPU Acceleration (macOS only)
+metal = []
+
+# Vulkan GPU Acceleration
+vulkan = []
+
+# RAG System with Vector DB
+rag = []
+
+# Alternative CRDT backend
+crdt-automerge = ["automerge"]
+
+# Full Enterprise Features
+enterprise = ["wasm-plugins", "rag"]
+
+# Development/Debug Features
+debug-logging = ["log/max_level_debug", "log/max_level_trace"]
+
+# ============ Workspace Members (Future) ============
+# [workspace]
+# members = [
+#     "crates/kro-editor",
+#     "crates/kro-ai",
+#     "crates/kro-collab",
+#     "crates/kro-plugins",
+# ]

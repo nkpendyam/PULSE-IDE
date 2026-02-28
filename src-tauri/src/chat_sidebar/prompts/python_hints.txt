@@ -1,0 +1,6 @@
+- Use type hints for better code clarity
+- Prefer list comprehensions for simple transformations
+- Use context managers (`with`) for resource handling
+- Consider using `dataclasses` for simple data containers
+- Use `f-strings` for string formatting
+- Check for proper exception handling

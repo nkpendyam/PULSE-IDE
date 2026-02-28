@@ -1,0 +1,3991 @@
+﻿cargo : warning: unused manifest key: target.x86_64-pc-windows-gnu.linker
+At line:1 char:1
++ cargo check 2>&1 | Out-File -Encoding utf8 errs_b10.txt; $e = (Select ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: unused...dows-gnu.linker:String) [], Rem 
+   oteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+warning: unused manifest key: target.x86_64-unknown-linux-musl.linker
+   Compiling kyro-ide v0.1.0 (C:\Users\nkpen\.gemini\antigravity\scratch\Kyro_IDE\src-tauri)
+error[E0425]: cannot find value `OsRng` in this scope
+  --> src\e2ee\key_exchange.rs:73:53
+   |
+73 |         let dh2 = 
+(EphemeralSecret::random_from_rng(OsRng)).diffie_hellman(&responder_identity);
+   |                                                     ^^^^^ not found in this scope
+   |
+help: consider importing one of these unit structs
+   |
+ 6 + use crate::e2ee::OsRng;
+   |
+ 6 + use rand::rngs::OsRng;
+   |
+
+error[E0425]: cannot find value `OsRng` in this scope
+  --> src\e2ee\key_exchange.rs:76:53
+   |
+76 |         let dh3 = 
+(EphemeralSecret::random_from_rng(OsRng)).diffie_hellman(&responder_signed_pre_key);
+   |                                                     ^^^^^ not found in this scope
+   |
+help: consider importing one of these unit structs
+   |
+ 6 + use crate::e2ee::OsRng;
+   |
+ 6 + use rand::rngs::OsRng;
+   |
+
+error[E0425]: cannot find value `OsRng` in this scope
+  --> src\e2ee\key_exchange.rs:82:52
+   |
+82 |             Some((EphemeralSecret::random_from_rng(OsRng)).diffie_hellman(&responder_opk))
+   |                                                    ^^^^^ not found in this scope
+   |
+help: consider importing one of these unit structs
+   |
+ 6 + use crate::e2ee::OsRng;
+   |
+ 6 + use rand::rngs::OsRng;
+   |
+
+warning: unused import: `std::sync::Arc`
+ --> src\commands\git.rs:4:5
+  |
+4 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `tokio::sync::Mutex`
+ --> src\commands\git.rs:5:5
+  |
+5 | use tokio::sync::Mutex;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `FileStatus`
+ --> src\commands\git.rs:6:63
+  |
+6 | use crate::git::{GitManager, GitStatus, GitCommit, GitBranch, FileStatus};
+  |                                                               ^^^^^^^^^^
+
+warning: unused import: `CompletionResponse`
+ --> src\commands\lsp.rs:9:44
+  |
+9 |     AiCompletionEngine, CompletionContext, CompletionResponse, 
+  |                                            ^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\commands\e2ee.rs:3:13
+  |
+3 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused doc comment
+  --> src\commands\swarm.rs:11:1
+   |
+11 | /// Global swarm state
+   | ^^^^^^^^^^^^^^^^^^^^^^ rustdoc does not generate documentation for macro invocations
+   |
+   = help: to document an item produced by a macro, the macro must produce the documentation 
+as part of its expansion
+   = note: `#[warn(unused_doc_comments)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `tauri::command`
+ --> src\commands\chat_agent.rs:2:5
+  |
+2 | use tauri::command;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\ai\mod.rs:4:13
+  |
+4 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `bail`
+ --> src\ai\quality_gate.rs:6:22
+  |
+6 | use anyhow::{Result, bail};
+  |                      ^^^^
+
+warning: unused import: `Read`
+ --> src\terminal\mod.rs:4:15
+  |
+4 | use std::io::{Read, Write};
+  |               ^^^^
+
+warning: unused imports: `Emitter` and `WebviewWindow`
+ --> src\terminal\mod.rs:6:13
+  |
+6 | use tauri::{WebviewWindow, Emitter};
+  |             ^^^^^^^^^^^^^  ^^^^^^^
+
+warning: unused import: `Path`
+ --> src\files\local_history.rs:6:17
+  |
+6 | use std::path::{Path, PathBuf};
+  |                 ^^^^
+
+warning: unused imports: `Context` and `Result`
+ --> src\lsp\wasm_loader.rs:6:14
+  |
+6 | use anyhow::{Result, Context};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> src\lsp\wasm_loader.rs:10:5
+   |
+10 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+  --> src\lsp\wasm_loader.rs:11:5
+   |
+11 | use tokio::sync::RwLock;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> src\swarm_ai\local_inference.rs:11:5
+   |
+11 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::Mutex`
+  --> src\swarm_ai\local_inference.rs:12:5
+   |
+12 | use tokio::sync::Mutex;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Sha256`
+  --> src\swarm_ai\local_inference.rs:13:12
+   |
+13 | use sha2::{Sha256, Digest};
+   |            ^^^^^^
+
+warning: unused import: `Context`
+ --> src\swarm_ai\speculative_decoder.rs:8:22
+  |
+8 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `InferenceParams`
+  --> src\swarm_ai\speculative_decoder.rs:12:52
+   |
+12 | use super::local_inference::{LocalInferenceEngine, InferenceParams};
+   |                                                    ^^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\swarm_ai\kv_cache.rs:6:5
+  |
+6 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\swarm_ai\model_registry.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+  --> src\swarm_ai\agents.rs:13:22
+   |
+13 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `ModelInfo`
+  --> src\swarm_ai\agents.rs:16:28
+   |
+16 | use super::{SwarmAIEngine, ModelInfo};
+   |                            ^^^^^^^^^
+
+warning: unused import: `anyhow::Result`
+  --> src\swarm_ai\mod.rs:26:5
+   |
+26 | use anyhow::Result;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `Context` and `Result`
+ --> src\embedded_llm\engine.rs:6:14
+  |
+6 | use anyhow::{Result, Context};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\embedded_llm\model_manager.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: variant `Q4_K_M` should have an upper camel case name
+  --> src\embedded_llm\model_manager.rs:39:5
+   |
+39 |     Q4_K_M,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Q4KM`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `Q4_K_S` should have an upper camel case name
+  --> src\embedded_llm\model_manager.rs:41:5
+   |
+41 |     Q4_K_S,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Q4KS`
+
+warning: variant `Q5_K_M` should have an upper camel case name
+  --> src\embedded_llm\model_manager.rs:43:5
+   |
+43 |     Q5_K_M,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Q5KM`
+
+warning: unused import: `super::*`
+ --> src\embedded_llm\context_cache.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+  --> src\embedded_llm\real_inference.rs:13:7
+   |
+13 | #[cfg(feature = "llama-cpp")]
+   |       ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+   = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+  --> src\embedded_llm\real_inference.rs:35:7
+   |
+35 | #[cfg(feature = "llama-cpp")]
+   |       ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+   = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+  --> src\embedded_llm\real_inference.rs:41:11
+   |
+41 | #[cfg(not(feature = "llama-cpp"))]
+   |           ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+   = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unused import: `std::collections::HashMap`
+  --> src\embedded_llm\real_inference.rs:10:5
+   |
+10 | use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+  --> src\embedded_llm\real_inference.rs:67:11
+   |
+67 |     #[cfg(feature = "llama-cpp")]
+   |           ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+   = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:118:15
+    |
+118 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:134:11
+    |
+134 |     #[cfg(feature = "llama-cpp")]
+    |           ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:218:15
+    |
+218 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:249:15
+    |
+249 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:316:15
+    |
+316 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:400:15
+    |
+400 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:438:15
+    |
+438 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:463:15
+    |
+463 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:506:15
+    |
+506 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:544:15
+    |
+544 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:584:15
+    |
+584 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:654:15
+    |
+654 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:693:15
+    |
+693 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:730:15
+    |
+730 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `llama-cpp`
+   --> src\embedded_llm\real_inference.rs:764:15
+    |
+764 |     #[cfg(not(feature = "llama-cpp"))]
+    |               ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `automerge`, `candle-inference`, 
+`crdt-automerge`, `cuda`, `custom-protocol`, `debug-logging`, `default`, `enterprise`, 
+`metal`, `rag`, `vulkan`, `wasm-plugins`, and `wasmtime`
+    = help: consider adding `llama-cpp` as a feature in `Cargo.toml`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for 
+more information about checking conditional configuration
+
+warning: unused imports: `Context` and `Result`
+ --> src\mcp\server.rs:6:14
+  |
+6 | use anyhow::{Result, Context};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\mcp\server.rs:9:5
+  |
+9 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `async_trait::async_trait`
+ --> src\mcp\client.rs:7:5
+  |
+7 | use async_trait::async_trait;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\mcp\client.rs:8:5
+  |
+8 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+ --> src\mcp\client.rs:9:5
+  |
+9 | use tokio::sync::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\mcp\tools.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\mcp\tools.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> src\mcp\tools.rs:10:5
+   |
+10 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\mcp\prompts.rs:6:5
+  |
+6 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `Read` and `Write`
+  --> src\rag\vector_store.rs:13:15
+   |
+13 | use std::io::{Read, Write, BufReader, BufWriter};
+   |               ^^^^  ^^^^^
+
+warning: unused import: `ArrayView1`
+  --> src\rag\vector_store.rs:17:23
+   |
+17 | use ndarray::{Array1, ArrayView1};
+   |                       ^^^^^^^^^^
+
+warning: unused imports: `Context` and `Result`
+  --> src\rag\vector_store.rs:20:14
+   |
+20 | use anyhow::{Result, Context};
+   |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `warn`
+  --> src\rag\vector_store.rs:21:24
+   |
+21 | use log::{debug, info, warn};
+   |                        ^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\rag\embeddings.rs:8:5
+  |
+8 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `Context` and `Result`
+  --> src\rag\embeddings.rs:13:14
+   |
+13 | use anyhow::{Result, Context};
+   |              ^^^^^^  ^^^^^^^
+
+warning: unused imports: `debug`, `info`, and `warn`
+  --> src\rag\embeddings.rs:14:11
+   |
+14 | use log::{debug, info, warn};
+   |           ^^^^^  ^^^^  ^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+  --> src\rag\embeddings.rs:15:5
+   |
+15 | use tokio::sync::RwLock;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Array1` and `Array2`
+  --> src\rag\embeddings.rs:16:15
+   |
+16 | use ndarray::{Array1, Array2};
+   |               ^^^^^^  ^^^^^^
+
+warning: unused import: `Result`
+ --> src\git_crdt\yjs_adapter.rs:5:14
+  |
+5 | use anyhow::{Result, Context};
+  |              ^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\git_crdt\git_persistence.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\git_crdt\ai_merge.rs:5:22
+  |
+5 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `WebSocketStream`
+  --> src\git_crdt\websocket_sync.rs:13:39
+   |
+13 | use tokio_tungstenite::{accept_async, WebSocketStream};
+   |                                       ^^^^^^^^^^^^^^^
+
+warning: unused import: `TelegramSession`
+ --> src\telegram\commands.rs:6:40
+  |
+6 | use crate::telegram::{TelegramMessage, TelegramSession, PendingAction};
+  |                                        ^^^^^^^^^^^^^^^
+
+warning: unused import: `Result as SqliteResult`
+ --> src\agents\memory.rs:5:36
+  |
+5 | use rusqlite::{Connection, params, Result as SqliteResult};
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Duration`
+ --> src\agents\branch_manager.rs:7:17
+  |
+7 | use std::time::{Duration, SystemTime, UNIX_EPOCH};
+  |                 ^^^^^^^^
+
+warning: unused imports: `SystemTime` and `UNIX_EPOCH`
+ --> src\agents\sync_enforcer.rs:7:36
+  |
+7 | use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+  |                                    ^^^^^^^^^^  ^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\update\delta.rs:5:22
+  |
+5 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\update\rollback.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\update\rollback.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\update\models.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\update\models.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `sha2::Sha256`
+   --> src\update\models.rs:238:5
+    |
+238 | use sha2::Sha256;
+    |     ^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\update\mod.rs:22:22
+   |
+22 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\plugin_sandbox\runtime.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\plugin_sandbox\runtime.rs:8:5
+  |
+8 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\plugin_sandbox\mod.rs:15:22
+   |
+15 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `flate2::read::GzDecoder`
+   --> src\plugin_sandbox\mod.rs:347:5
+    |
+347 | use flate2::read::GzDecoder;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+   --> src\accessibility\mod.rs:139:9
+    |
+139 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\benchmark\startup.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Ordering`
+  --> src\benchmark\startup.rs:11:36
+   |
+11 | use std::sync::atomic::{AtomicU64, Ordering};
+   |                                    ^^^^^^^^
+
+warning: unused import: `Mutex`
+  --> src\benchmark\memory.rs:12:27
+   |
+12 | use tokio::sync::{RwLock, Mutex};
+   |                           ^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+ --> src\vscode_compat\api\commands.rs:6:5
+  |
+6 | use tokio::sync::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::path::PathBuf`
+ --> src\vscode_compat\api\workspace.rs:5:5
+  |
+5 | use std::path::PathBuf;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `uuid::Uuid`
+ --> src\vscode_compat\commands.rs:9:5
+  |
+9 | use uuid::Uuid;
+  |     ^^^^^^^^^^
+
+warning: unused import: `uuid::Uuid`
+  --> src\vscode_compat\extension_host.rs:16:5
+   |
+16 | use uuid::Uuid;
+   |     ^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\vscode_compat\mod.rs:35:22
+   |
+35 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\lsp_tower\backend.rs:5:5
+  |
+5 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `get_language_capabilities`
+  --> src\lsp_tower\backend.rs:13:39
+   |
+13 | use super::{LspConfig, DocumentState, get_language_capabilities};
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\lsp_transport\client.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+ --> src\lsp_transport\client.rs:7:5
+  |
+7 | use tokio::sync::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `warn`
+  --> src\lsp_transport\client.rs:10:24
+   |
+10 | use log::{debug, info, warn};
+   |                        ^^^^
+
+warning: unused import: `TransportConfig`
+  --> src\lsp_transport\client.rs:12:38
+   |
+12 | use super::transport::{LspTransport, TransportConfig, get_language_server_config};
+   |                                      ^^^^^^^^^^^^^^^
+
+warning: unused import: `self`
+ --> src\lsp_transport\transport.rs:6:15
+  |
+6 | use std::io::{self, BufRead, BufReader, Write};
+  |               ^^^^
+
+warning: unused import: `ChildStdout`
+ --> src\lsp_transport\transport.rs:7:39
+  |
+7 | use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+  |                                       ^^^^^^^^^^^
+
+warning: unused import: `warn`
+  --> src\lsp_transport\transport.rs:14:31
+   |
+14 | use log::{debug, error, info, warn};
+   |                               ^^^^
+
+warning: unused label
+   --> src\lsp_transport\transport.rs:214:9
+    |
+214 |         'outer: loop {
+    |         ^^^^^^
+    |
+    = note: `#[warn(unused_labels)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `info` and `warn`
+ --> src\lsp_transport\dispatcher.rs:9:18
+  |
+9 | use log::{debug, info, warn};
+  |                  ^^^^  ^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\lsp_transport\semantic_tokens.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: ambiguous glob re-exports
+  --> src\lsp_transport\mod.rs:16:9
+   |
+16 | pub use inlay_hints::*;
+   |         ^^^^^^^^^^^^^^ the name `Range` in the type namespace is first re-exported here
+17 | pub use code_lens::*;
+   |         ------------ but the name `Range` in the type namespace is also re-exported here
+   |
+   = note: `#[warn(ambiguous_glob_reexports)]` on by default
+
+warning: ambiguous glob re-exports
+  --> src\lsp_transport\mod.rs:16:9
+   |
+16 | pub use inlay_hints::*;
+   |         ^^^^^^^^^^^^^^ the name `Position` in the type namespace is first re-exported here
+17 | pub use code_lens::*;
+   |         ------------ but the name `Position` in the type namespace is also re-exported 
+here
+
+warning: ambiguous glob re-exports
+  --> src\lsp_transport\mod.rs:16:9
+   |
+16 | pub use inlay_hints::*;
+   |         ^^^^^^^^^^^^^^ the name `Command` in the type namespace is first re-exported here
+17 | pub use code_lens::*;
+   |         ------------ but the name `Command` in the type namespace is also re-exported here
+
+warning: unused import: `UpdateEvent`
+ --> src\collab\sync.rs:6:71
+  |
+6 | use yrs::{Doc, Text, TextRef, Transact, ReadTxn, StateVector, Update, UpdateEvent};
+  |                                                                       ^^^^^^^^^^^
+
+warning: unused imports: `Context` and `Result`
+  --> src\collab\sync.rs:10:14
+   |
+10 | use anyhow::{Result, Context};
+   |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `StateVector`
+ --> src\collab\document.rs:4:50
+  |
+4 | use yrs::{Doc, Text, TextRef, Transact, ReadTxn, StateVector, Update};
+  |                                                  ^^^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\collab\document.rs:7:13
+  |
+7 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\collab\document.rs:8:5
+  |
+8 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\collab\mod.rs:16:22
+   |
+16 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused imports: `debug`, `error`, and `warn`
+  --> src\collab\mod.rs:17:11
+   |
+17 | use log::{debug, info, warn, error};
+   |           ^^^^^        ^^^^  ^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\debug\client.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `RwLock`
+ --> src\debug\client.rs:8:25
+  |
+8 | use tokio::sync::{mpsc, RwLock};
+  |                         ^^^^^^
+
+warning: unused imports: `error` and `warn`
+  --> src\debug\client.rs:11:24
+   |
+11 | use log::{debug, info, warn, error};
+   |                        ^^^^  ^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\debug\server.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused imports: `RwLock` and `mpsc`
+ --> src\debug\server.rs:7:19
+  |
+7 | use tokio::sync::{mpsc, RwLock, broadcast};
+  |                   ^^^^  ^^^^^^
+
+warning: unused import: `info`
+  --> src\debug\server.rs:10:18
+   |
+10 | use log::{debug, info};
+   |                  ^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\debug\session.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `RwLock`
+ --> src\debug\session.rs:7:25
+  |
+7 | use tokio::sync::{mpsc, RwLock, broadcast};
+  |                         ^^^^^^
+
+warning: unused import: `debug`
+  --> src\debug\session.rs:10:11
+   |
+10 | use log::{debug, info};
+   |           ^^^^^
+
+warning: ambiguous glob re-exports
+  --> src\debug\mod.rs:14:9
+   |
+14 | pub use client::*;
+   |         ^^^^^^^^^ the name `DebugAdapterConfig` in the type namespace is first 
+re-exported here
+...
+20 | pub use debug_adapter::*;
+   |         ---------------- but the name `DebugAdapterConfig` in the type namespace is also 
+re-exported here
+
+warning: unused import: `std::path::PathBuf`
+  --> src\trust\mod.rs:15:5
+   |
+15 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `HashSet`
+  --> src\memory\mod.rs:16:43
+   |
+16 | use std::collections::{HashMap, VecDeque, HashSet};
+   |                                           ^^^^^^^
+
+warning: unused import: `std::path::PathBuf`
+  --> src\memory\mod.rs:17:5
+   |
+17 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\quality\mod.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+ --> src\quality\mod.rs:8:5
+  |
+8 | use tokio::sync::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\autonomous\mod.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `RwLock`
+ --> src\autonomous\mod.rs:8:25
+  |
+8 | use tokio::sync::{mpsc, RwLock};
+  |                         ^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\buffer\rope_buffer.rs:7:13
+  |
+7 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `Cursor` and `Selection`
+  --> src\buffer\rope_buffer.rs:10:38
+   |
+10 | use super::{TextBuffer, BufferStats, Cursor, Selection, EditResult, Edit, EditKind};
+   |                                      ^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\buffer\gap_buffer.rs:5:13
+  |
+5 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::ops::Range`
+ --> src\buffer\gap_buffer.rs:6:5
+  |
+6 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `EditKind`
+ --> src\buffer\gap_buffer.rs:8:43
+  |
+8 | use super::{TextBuffer, EditResult, Edit, EditKind};
+  |                                           ^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+   --> src\buffer\gap_buffer.rs:154:27
+    |
+154 |         self.gap_start -= (end - start);
+    |                           ^           ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+154 -         self.gap_start -= (end - start);
+154 +         self.gap_start -= end - start;
+    |
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\buffer\piece_table.rs:6:13
+  |
+6 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::ops::Range`
+ --> src\buffer\piece_table.rs:7:5
+  |
+7 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Deserialize`
+ --> src\auth\jwt_handler.rs:8:13
+  |
+8 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^
+
+warning: unused imports: `Claims` and `User`
+ --> src\auth\session.rs:5:19
+  |
+5 | use crate::auth::{User, Claims};
+  |                   ^^^^  ^^^^^^
+
+warning: unused import: `PasswordHasher`
+   --> src\auth\mod.rs:176:51
+    |
+176 |         use argon2::password_hash::{PasswordHash, PasswordHasher};
+    |                                                   ^^^^^^^^^^^^^^
+
+warning: unused import: `EphemeralSecret`
+  --> src\e2ee\mod.rs:13:20
+   |
+13 | use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
+   |                    ^^^^^^^^^^^^^^^
+
+warning: unused import: `OsRng`
+  --> src\e2ee\mod.rs:14:76
+   |
+14 | use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, aead::{Aead, KeyInit, OsRng}};
+   |                                                                            ^^^^^
+
+warning: unused imports: `VectorMetadata` and `VectorSearchResult`
+ --> src\chat_sidebar\rag_chat.rs:7:49
+  |
+7 | use crate::rag::vector_store::{HnswVectorStore, VectorSearchResult, VectorMetadata};
+  |                                                 ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\chat_sidebar\rag_chat.rs:8:22
+  |
+8 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\chat_sidebar\context_builder.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused imports: `PathBuf` and `Path`
+ --> src\chat_sidebar\context_builder.rs:7:17
+  |
+7 | use std::path::{Path, PathBuf};
+  |                 ^^^^  ^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\chat_sidebar\code_aware.rs:6:5
+  |
+6 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `MCPServer`
+ --> src\agent_editor\agent.rs:8:38
+  |
+8 | use crate::mcp::{ToolRegistry, Tool, MCPServer};
+  |                                      ^^^^^^^^^
+
+warning: unused imports: `Context` and `Result`
+  --> src\agent_editor\agent.rs:10:14
+   |
+10 | use anyhow::{Result, Context};
+   |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\agent_editor\tools.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\agent_editor\executor.rs:8:22
+  |
+8 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\agent_editor\planner.rs:5:22
+  |
+5 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `WebSocketStream`
+  --> src\p2p\webrtc.rs:12:25
+   |
+12 | use tokio_tungstenite::{WebSocketStream, connect_async, tungstenite::Message as 
+WsMessage};
+   |                         ^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode`
+  --> src\p2p\webrtc.rs:13:5
+   |
+13 | use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `StateChange`
+  --> src\p2p\webrtc.rs:15:40
+   |
+15 | use super::{PeerId, Peer, PeerMessage, StateChange};
+   |                                        ^^^^^^^^^^^
+
+warning: unused imports: `Result` and `bail`
+ --> src\p2p\sync.rs:6:14
+  |
+6 | use anyhow::{Result, Context, bail};
+  |              ^^^^^^           ^^^^
+
+warning: unused import: `Transaction`
+  --> src\p2p\sync.rs:11:35
+   |
+11 | use yrs::{Doc, ReadTxn, Transact, Transaction, Text, Map, Array,};
+   |                                   ^^^^^^^^^^^
+
+warning: unused import: `AwarenessUpdate`
+  --> src\p2p\sync.rs:14:28
+   |
+14 | use yrs::sync::{Awareness, AwarenessUpdate};
+   |                            ^^^^^^^^^^^^^^^
+
+warning: unused import: `yrs::sync::protocol::SyncMessage`
+  --> src\p2p\sync.rs:15:5
+   |
+15 | use yrs::sync::protocol::SyncMessage;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PeerMessage`
+  --> src\p2p\sync.rs:17:21
+   |
+17 | use super::{PeerId, PeerMessage, DocumentEdit, CursorPosition, Selection};
+   |                     ^^^^^^^^^^^
+
+warning: unused import: `Result`
+  --> src\p2p\mod.rs:14:14
+   |
+14 | use anyhow::{Result, Context};
+   |              ^^^^^^
+
+error[E0728]: `await` is only allowed inside `async` functions and blocks
+   --> src\inference\mod.rs:221:31
+    |
+221 |             .map(|m| m.read().await.info.name.clone())
+    |                  ---          ^^^^^ only allowed inside `async` functions and blocks
+    |                  |
+    |                  this is not `async`
+
+error[E0728]: `await` is only allowed inside `async` functions and blocks
+   --> src\inference\mod.rs:272:31
+    |
+272 |             .map(|m| m.read().await.info.name.clone())
+    |                  ---          ^^^^^ only allowed inside `async` functions and blocks
+    |                  |
+    |                  this is not `async`
+
+warning: use of deprecated function `base64::decode`: Use Engine::decode
+   --> src\p2p\mod.rs:355:31
+    |
+355 |         let decoded = base64::decode(code)
+    |                               ^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `base64::encode`: Use Engine::encode
+   --> src\p2p\mod.rs:376:30
+    |
+376 |         let base64 = base64::encode(&encoded);
+    |                              ^^^^^^
+
+error[E0107]: struct takes 1 generic argument but 2 generic arguments were supplied
+  --> src\rag\vector_store.rs:81:12
+   |
+81 |     index: Hnsw<f32, Pcg64>,
+   |            ^^^^    ------- help: remove the unnecessary generic argument
+   |            |
+   |            expected 1 generic argument
+   |
+note: struct defined here, with 1 generic parameter: `T`
+  --> src\rag\vector_store.rs:2:12
+   |
+ 2 | pub struct Hnsw<T> { _marker: std::marker::PhantomData<T> }
+   |            ^^^^ -
+
+error[E0782]: expected a type, found a trait
+  --> src\p2p\sync.rs:98:11
+   |
+98 |     text: Text,
+   |           ^^^^
+   |
+help: you might be missing a type parameter
+   |
+94 ~ struct SyncedDocument<T: Text> {
+95 |     /// Yrs document
+96 |     doc: Doc,
+97 |     /// Main text content
+98 ~     text: T,
+   |
+
+error[E0107]: enum takes 2 generic arguments but 1 generic argument was supplied
+   --> src\trust\mod.rs:293:106
+    |
+293 |     pub fn grant_request(&mut self, request_id: &str, scope: PermissionScope, reason: 
+Option<String>) -> Result<()> {
+    |                                                                                          
+                ^^^^^^ -- supplied 1 generic argument
+    |                                                                                          
+                |
+    |                                                                                          
+                expected 2 generic arguments
+    |
+help: add missing generic argument
+    |
+293 |     pub fn grant_request(&mut self, request_id: &str, scope: PermissionScope, reason: 
+Option<String>) -> Result<(), E> {
+    |                                                                                          
+                         +++
+
+error[E0107]: enum takes 2 generic arguments but 1 generic argument was supplied
+   --> src\trust\mod.rs:325:71
+    |
+325 |     pub fn deny_request(&mut self, request_id: &str, reason: &str) -> Result<()> {
+    |                                                                       ^^^^^^ -- supplied 
+1 generic argument
+    |                                                                       |
+    |                                                                       expected 2 generic 
+arguments
+    |
+help: add missing generic argument
+    |
+325 |     pub fn deny_request(&mut self, request_id: &str, reason: &str) -> Result<(), E> {
+    |                                                                                +++
+
+warning: variable does not need to be mutable
+   --> src\commands\embedded_llm.rs:144:13
+    |
+144 |         let mut engine = engine.write().await;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> src\commands\embedded_llm.rs:162:13
+    |
+162 |         let mut engine = engine.write().await;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+error[E0499]: cannot borrow `state` as mutable more than once at a time
+   --> src\commands\collaboration.rs:107:5
+    |
+101 |     let room = state.rooms.get_mut(&request.room_id).ok_or("Room not found")?;
+    |                ----- first mutable borrow occurs here
+...
+107 |     state.current_room = Some(request.room_id.clone());
+    |     ^^^^^ second mutable borrow occurs here
+108 |     state.connected = true;
+109 |     Ok(room.clone())
+    |        ---- first borrow later used here
+
+error[E0499]: cannot borrow `state` as mutable more than once at a time
+   --> src\commands\collaboration.rs:108:5
+    |
+101 |     let room = state.rooms.get_mut(&request.room_id).ok_or("Room not found")?;
+    |                ----- first mutable borrow occurs here
+...
+108 |     state.connected = true;
+    |     ^^^^^ second mutable borrow occurs here
+109 |     Ok(room.clone())
+    |        ---- first borrow later used here
+
+error[E0277]: the trait bound `&tree_sitter::Language: 
+std::convert::From<tree_sitter_language::LanguageFn>` is not satisfied
+   --> src\ai\quality_gate.rs:179:56
+    |
+179 |         parser.set_language(tree_sitter_rust::LANGUAGE.into())?;
+    |                                                        ^^^^ the trait 
+`std::convert::From<tree_sitter_language::LanguageFn>` is not implemented for 
+`&tree_sitter::Language`
+    |
+help: the trait `std::convert::From<tree_sitter_language::LanguageFn>` is not implemented for 
+`&tree_sitter::Language`
+      but it is implemented for `tree_sitter::Language`
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tree-sitter-0.24.7\b
+inding_rust\lib.rs:422:1
+    |
+422 | impl From<LanguageFn> for Language {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for that trait implementation, expected `tree_sitter::Language`, found 
+`&tree_sitter::Language`
+    = note: required for `tree_sitter_language::LanguageFn` to implement 
+`Into<&tree_sitter::Language>`
+
+error[E0277]: the trait bound `&tree_sitter::Language: 
+std::convert::From<tree_sitter_language::LanguageFn>` is not satisfied
+   --> src\ai\quality_gate.rs:188:73
+    |
+188 |         parser.set_language(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?;
+    |                                                                         ^^^^ the trait 
+`std::convert::From<tree_sitter_language::LanguageFn>` is not implemented for 
+`&tree_sitter::Language`
+    |
+help: the trait `std::convert::From<tree_sitter_language::LanguageFn>` is not implemented for 
+`&tree_sitter::Language`
+      but it is implemented for `tree_sitter::Language`
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tree-sitter-0.24.7\b
+inding_rust\lib.rs:422:1
+    |
+422 | impl From<LanguageFn> for Language {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for that trait implementation, expected `tree_sitter::Language`, found 
+`&tree_sitter::Language`
+    = note: required for `tree_sitter_language::LanguageFn` to implement 
+`Into<&tree_sitter::Language>`
+
+error[E0277]: the trait bound `&tree_sitter::Language: 
+std::convert::From<tree_sitter_language::LanguageFn>` is not satisfied
+   --> src\ai\quality_gate.rs:197:58
+    |
+197 |         parser.set_language(tree_sitter_python::LANGUAGE.into())?;
+    |                                                          ^^^^ the trait 
+`std::convert::From<tree_sitter_language::LanguageFn>` is not implemented for 
+`&tree_sitter::Language`
+    |
+help: the trait `std::convert::From<tree_sitter_language::LanguageFn>` is not implemented for 
+`&tree_sitter::Language`
+      but it is implemented for `tree_sitter::Language`
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tree-sitter-0.24.7\b
+inding_rust\lib.rs:422:1
+    |
+422 | impl From<LanguageFn> for Language {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: for that trait implementation, expected `tree_sitter::Language`, found 
+`&tree_sitter::Language`
+    = note: required for `tree_sitter_language::LanguageFn` to implement 
+`Into<&tree_sitter::Language>`
+
+error[E0308]: mismatched types
+   --> src\lsp\completion_engine.rs:315:40
+    |
+315 |             join_all(vec![symbol_task, pattern_task, keyword_task, snippet_task, 
+ai_task]).await;
+    |                                        ^^^^^^^^^^^^ expected future, found a different 
+future
+    |
+    = help: consider `await`ing on both `Future`s
+    = note: distinct uses of `impl Trait` result in different opaque types
+
+warning: variable does not need to be mutable
+   --> src\lsp\completion_engine.rs:560:13
+    |
+560 |         let mut client = ai_client.lock().await;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\swarm_ai\p2p_swarm.rs:283:14
+    |
+283 |         let (mut reader, mut writer) = socket.into_split();
+    |              ----^^^^^^
+    |              |
+    |              help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\swarm_ai\p2p_swarm.rs:360:13
+    |
+360 |         let mut current_shape = input_shape.clone();
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\swarm_ai\mod.rs:156:17
+    |
+156 |             let mut swarm = swarm.write().await;
+    |                 ----^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+error[E0308]: mismatched types
+   --> src\swarm_ai\mod.rs:194:9
+    |
+194 |         registry.list_models().await
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Result<Vec<ModelInfo>, Error>`, found 
+`Result<Vec<ModelMetadata>, Error>`
+    |
+    = note: expected enum `std::result::Result<Vec<swarm_ai::ModelInfo>, _>`
+               found enum `std::result::Result<Vec<model_registry::ModelMetadata>, _>`
+
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> src\embedded_llm\engine.rs:403:30
+    |
+403 |             _ => Ok(Box::new(backends::CpuBackend::new(config.n_threads)?)),
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the `?` 
+operator cannot be applied to type `CpuBackend`
+    |
+help: the trait `Try` is not implemented for `CpuBackend`
+   --> src\embedded_llm\backends.rs:9:1
+    |
+  9 | pub struct CpuBackend {
+    | ^^^^^^^^^^^^^^^^^^^^^
+
+error[E0596]: cannot borrow `self.context_cache` as mutable, as it is behind a `&` reference
+   --> src\embedded_llm\engine.rs:455:31
+    |
+455 |         if let Some(cached) = self.context_cache.get(&cache_key) {
+    |                               ^^^^^^^^^^^^^^^^^^ `self` is a `&` reference, so it cannot 
+be borrowed as mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+452 |     pub async fn complete(&mut self, request: &InferenceRequest) -> 
+anyhow::Result<InferenceResponse> {
+    |                            +++
+
+error[E0596]: cannot borrow `self.context_cache` as mutable, as it is behind a `&` reference
+   --> src\embedded_llm\engine.rs:481:9
+    |
+481 |         self.context_cache.insert(cache_key, CachedContext {
+    |         ^^^^^^^^^^^^^^^^^^ `self` is a `&` reference, so it cannot be borrowed as mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+452 |     pub async fn complete(&mut self, request: &InferenceRequest) -> 
+anyhow::Result<InferenceResponse> {
+    |                            +++
+
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+   --> src\mcp\server.rs:498:31
+    |
+498 |                 match prompts.get(&params.name, params.arguments.unwrap_or_default()) {
+    |                               ^^^               ------------------------------------ 
+unexpected argument #2 of type `HashMap<std::string::String, std::string::String>`
+    |
+note: method defined here
+   --> src\mcp\prompts.rs:101:12
+    |
+101 |     pub fn get(&self, name: &str) -> Option<&PromptTemplate> {
+    |            ^^^
+help: remove the extra argument
+    |
+498 -                 match prompts.get(&params.name, params.arguments.unwrap_or_default()) {
+498 +                 match prompts.get(&params.name) {
+    |
+
+error[E0308]: mismatched types
+   --> src\mcp\server.rs:499:21
+    |
+498 |                 match prompts.get(&params.name, params.arguments.unwrap_or_default()) {
+    |                       --------------------------------------------------------------- 
+this expression has type `std::option::Option<&PromptTemplate>`
+499 |                     Ok(result) => Ok(MCPResponse {
+    |                     ^^^^^^^^^^ expected `Option<&PromptTemplate>`, found `Result<_, _>`
+    |
+    = note: expected enum `std::option::Option<&PromptTemplate>`
+               found enum `std::result::Result<_, _>`
+
+error[E0308]: mismatched types
+   --> src\mcp\server.rs:503:21
+    |
+498 |                 match prompts.get(&params.name, params.arguments.unwrap_or_default()) {
+    |                       --------------------------------------------------------------- 
+this expression has type `std::option::Option<&PromptTemplate>`
+...
+503 |                     Err(e) => Ok(MCPResponse {
+    |                     ^^^^^^ expected `Option<&PromptTemplate>`, found `Result<_, _>`
+    |
+    = note: expected enum `std::option::Option<&PromptTemplate>`
+               found enum `std::result::Result<_, _>`
+
+error[E0521]: borrowed data escapes outside of method
+   --> src\update\mod.rs:178:13
+    |
+167 |       pub async fn download_update(&self, info: &UpdateInfo) -> Result<PathBuf> {
+    |                                    -----
+    |                                    |
+    |                                    `self` is a reference that is only valid in the 
+method body
+    |                                    let's call the lifetime of this reference `'1`
+...
+178 | /             self.delta_updater.download_and_apply_delta(
+179 | |                 &info.delta_url.as_ref().unwrap(),
+180 | |                 &target_dir,
+181 | |                 |progress| {
+...   |
+186 | |             ).await
+    | |             ^
+    | |             |
+    | |_____________`self` escapes the method body here
+    |               argument requires that `'1` must outlive `'static`
+
+error[E0505]: cannot move out of `status` because it is borrowed
+   --> src\update\mod.rs:276:14
+    |
+267 |         let status = self.status.read().await;
+    |             ------ binding `status` declared here
+...
+273 |         let version = status.available_version.as_ref()
+    |                       ------ borrow of `status` occurs here
+...
+276 |         drop(status);
+    |              ^^^^^^ move out of `status` occurs here
+...
+282 |         let new_version_dir = self.versions_dir.join(version);
+    |                                                      ------- borrow later used here
+
+error[E0596]: cannot borrow `self.rollback_manager` as mutable, as it is behind a `&` reference
+   --> src\update\mod.rs:279:9
+    |
+279 |         self.rollback_manager.create_restore_point()?;
+    |         ^^^^^^^^^^^^^^^^^^^^^ `self` is a `&` reference, so it cannot be borrowed as 
+mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+266 |     pub async fn install_update(&mut self) -> Result<()> {
+    |                                  +++
+
+error[E0277]: the trait bound `&MemorySample: std::default::Default` is not satisfied
+   --> src\benchmark\memory.rs:445:41
+    |
+445 |             let first = samples.front().unwrap_or_default();
+    |                                         ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `&MemorySample`
+    |
+note: required by a bound in `std::option::Option::<T>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:1093:5
+
+error[E0277]: the trait bound `&MemorySample: std::default::Default` is not satisfied
+   --> src\benchmark\memory.rs:446:39
+    |
+446 |             let last = samples.back().unwrap_or_default();
+    |                                       ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `&MemorySample`
+    |
+note: required by a bound in `std::option::Option::<T>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:1093:5
+
+error[E0277]: the trait bound `TokioRuntime: std::default::Default` is not satisfied
+   --> src\benchmark\memory.rs:624:49
+    |
+624 |         let rt = tokio::runtime::Runtime::new().unwrap_or_default();
+    |                                                 ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `TokioRuntime`
+    |
+note: required by a bound in `std::result::Result::<T, E>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\result.rs:1265:5
+
+error[E0599]: no method named `try_clone` found for reference `&std::process::ChildStdin` in 
+the current scope
+   --> src\vscode_compat\extension_runtime.rs:263:35
+    |
+263 |             let mut stdin = stdin.try_clone()?;
+    |                                   ^^^^^^^^^
+    |
+help: there is a method `clone` with a similar name
+    |
+263 -             let mut stdin = stdin.try_clone()?;
+263 +             let mut stdin = stdin.clone()?;
+    |
+
+error[E0282]: type annotations needed
+   --> src\vscode_compat\openvsx.rs:189:13
+    |
+189 |         let extensions = search_response.extensions.into_iter().map(|ext| {
+    |             ^^^^^^^^^^
+...
+224 |         log::info!("Found {} extensions from Open VSX", extensions.len());
+    |                                                         ---------- type must be known at 
+this point
+    |
+help: consider giving `extensions` an explicit type
+    |
+189 |         let extensions: Vec<_> = search_response.extensions.into_iter().map(|ext| {
+    |                       ++++++++
+
+error[E0382]: borrow of moved value: `ext_data.namespace`
+   --> src\vscode_compat\openvsx.rs:255:23
+    |
+249 |             namespace: ext_data.namespace,
+    |                        ------------------ value moved here
+...
+255 |                 name: ext_data.namespace.clone(),
+    |                       ^^^^^^^^^^^^^^^^^^ value borrowed here after move
+    |
+    = note: move occurs because `ext_data.namespace` has type `std::string::String`, which 
+does not implement the `Copy` trait
+
+error[E0382]: borrow of moved value: `ext_data.namespace`
+   --> src\vscode_compat\openvsx.rs:314:23
+    |
+308 |             namespace: ext_data.namespace,
+    |                        ------------------ value moved here
+...
+314 |                 name: ext_data.namespace.clone(),
+    |                       ^^^^^^^^^^^^^^^^^^ value borrowed here after move
+    |
+    = note: move occurs because `ext_data.namespace` has type `std::string::String`, which 
+does not implement the `Copy` trait
+
+error[E0061]: this function takes 0 arguments but 2 arguments were supplied
+   --> src\vscode_compat\mod.rs:260:20
+    |
+260 |         let host = ExtensionHost::new(extension_id.to_string(), 
+extension.extension_path.clone())?;
+    |                    ^^^^^^^^^^^^^^^^^^ ------------------------  
+-------------------------------- unexpected argument #2 of type `PathBuf`
+    |                                       |
+    |                                       unexpected argument #1 of type 
+`std::string::String`
+    |
+note: associated function defined here
+   --> src\vscode_compat\extension_host.rs:129:12
+    |
+129 |     pub fn new() -> Self {
+    |            ^^^
+help: remove the extra arguments
+    |
+260 -         let host = ExtensionHost::new(extension_id.to_string(), 
+extension.extension_path.clone())?;
+260 +         let host = ExtensionHost::new()?;
+    |
+
+error[E0277]: the `?` operator can only be applied to values that implement `Try`
+   --> src\vscode_compat\mod.rs:260:20
+    |
+260 |         let host = ExtensionHost::new(extension_id.to_string(), 
+extension.extension_path.clone())?;
+    |                    
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the `?` 
+operator cannot be applied to type `extension_host::ExtensionHost`
+    |
+help: the trait `Try` is not implemented for `extension_host::ExtensionHost`
+   --> src\vscode_compat\extension_host.rs:47:1
+    |
+ 47 | pub struct ExtensionHost {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0282]: type annotations needed
+   --> src\vscode_compat\mod.rs:260:13
+    |
+260 |         let host = ExtensionHost::new(extension_id.to_string(), 
+extension.extension_path.clone())?;
+    |             ^^^^
+261 |         host.activate(&context).await?;
+    |         ---- type must be known at this point
+    |
+help: consider giving `host` an explicit type
+    |
+260 |         let host: /* Type */ = ExtensionHost::new(extension_id.to_string(), 
+extension.extension_path.clone())?;
+    |                 ++++++++++++
+
+error[E0277]: `&mut extension_host::ExtensionHost` is not a future
+   --> src\vscode_compat\mod.rs:286:18
+    |
+286 |             host.await?;
+    |                  ^^^^^ `&mut extension_host::ExtensionHost` is not a future
+    |
+help: the trait `futures_util::Future` is not implemented for `extension_host::ExtensionHost`
+   --> src\vscode_compat\extension_host.rs:47:1
+    |
+ 47 | pub struct ExtensionHost {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: &mut extension_host::ExtensionHost must be a future or must implement `IntoFuture` 
+to be awaited
+    = note: required for `&mut extension_host::ExtensionHost` to implement 
+`futures_util::Future`
+    = note: required for `&mut extension_host::ExtensionHost` to implement 
+`std::future::IntoFuture`
+help: remove the `.await`
+    |
+286 -             host.await?;
+286 +             host?;
+    |
+
+error[E0515]: cannot return value referencing temporary value
+   --> src\vscode_compat\mod.rs:297:9
+    |
+297 |         self.extensions.read().await.values().collect()
+    |         ----------------------------^^^^^^^^^^^^^^^^^^^
+    |         |
+    |         returns a value referencing data owned by the current function
+    |         temporary value created here
+
+error[E0505]: cannot move out of `extensions` because it is borrowed
+   --> src\vscode_compat\mod.rs:334:22
+    |
+308 |         let extensions = self.extensions.read().await;
+    |             ---------- binding `extensions` declared here
+309 |         
+310 |         for (id, ext) in extensions.iter() {
+    |                          ---------- borrow of `extensions` occurs here
+...
+334 |                 drop(extensions);
+    |                      ^^^^^^^^^^ move out of `extensions` occurs here
+
+error[E0382]: use of moved value: `extensions`
+   --> src\vscode_compat\mod.rs:334:22
+    |
+308 |         let extensions = self.extensions.read().await;
+    |             ---------- move occurs because `extensions` has type 
+`tokio::sync::RwLockReadGuard<'_, HashMap<std::string::String, LoadedExtension>>`, which does 
+not implement the `Copy` trait
+309 |         
+310 |         for (id, ext) in extensions.iter() {
+    |         ---------------------------------- inside of this loop
+...
+334 |                 drop(extensions);
+    |                      ^^^^^^^^^^ value moved here, in previous iteration of loop
+    |
+help: consider moving the expression out of the loop so it is only moved once
+    |
+310 ~         let mut value = drop(extensions);
+311 ~         for (id, ext) in extensions.iter() {
+312 |             if ext.state != ExtensionState::Inactive {
+...
+334 |             if should_activate {
+335 ~                 value;
+    |
+
+error[E0277]: the trait bound `CustomNotification: 
+tower_lsp::lsp_types::notification::Notification` is not satisfied
+  --> src\lsp_tower\backend.rs:63:14
+   |
+63 |             .send_notification::<CustomNotification>(method, params)
+   |              ^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `tower_lsp::lsp_types::notification::Notification` is not implemented for 
+`CustomNotification`
+  --> src\lsp_tower\backend.rs:70:1
+   |
+70 | struct CustomNotification;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+note: there are multiple different versions of crate `lsp_types` in the dependency graph
+  --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lsp-types-0.94.1\src\
+notification.rs:5:1
+   |
+ 5 | pub trait Notification {
+   | ^^^^^^^^^^^^^^^^^^^^^^ this is the expected trait
+   |
+  ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lsp-types-0.95.1\src\
+notification.rs:5:1
+   |
+ 5 | pub trait Notification {
+   | ---------------------- this is the found trait
+   = help: you can use `cargo tree` to explore your dependency tree
+   = help: the following other types implement trait 
+`tower_lsp::lsp_types::notification::Notification`:
+             tower_lsp::lsp_types::notification::Cancel
+             tower_lsp::lsp_types::notification::DidChangeConfiguration
+             tower_lsp::lsp_types::notification::DidChangeTextDocument
+             tower_lsp::lsp_types::notification::DidChangeWatchedFiles
+             tower_lsp::lsp_types::notification::DidChangeWorkspaceFolders
+             tower_lsp::lsp_types::notification::DidCloseTextDocument
+             tower_lsp::lsp_types::notification::DidCreateFiles
+             tower_lsp::lsp_types::notification::DidDeleteFiles
+           and 14 others
+
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+   --> src\lsp_tower\backend.rs:63:14
+    |
+ 63 |             .send_notification::<CustomNotification>(method, params)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^         ------ unexpected argument 
+#2 of type `serde_json::Value`
+    |
+note: method defined here
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tower-lsp-0.20.0\src
+\service\client.rs:442:18
+    |
+442 |     pub async fn send_notification<N>(&self, params: N::Params)
+    |                  ^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+    |
+ 63 -             .send_notification::<CustomNotification>(method, params)
+ 63 +             .send_notification::<CustomNotification>(method)
+    |
+
+error[E0277]: the trait bound `CustomNotification: 
+tower_lsp::lsp_types::notification::Notification` is not satisfied
+   --> src\lsp_tower\backend.rs:62:9
+    |
+ 62 | /         self.client
+ 63 | |             .send_notification::<CustomNotification>(method, params)
+    | |____________________________________________________________________^ unsatisfied trait 
+bound
+    |
+help: the trait `tower_lsp::lsp_types::notification::Notification` is not implemented for 
+`CustomNotification`
+   --> src\lsp_tower\backend.rs:70:1
+    |
+ 70 | struct CustomNotification;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+note: there are multiple different versions of crate `lsp_types` in the dependency graph
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lsp-types-0.94.1\src
+\notification.rs:5:1
+    |
+  5 | pub trait Notification {
+    | ^^^^^^^^^^^^^^^^^^^^^^ this is the expected trait
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lsp-types-0.95.1\src
+\notification.rs:5:1
+    |
+  5 | pub trait Notification {
+    | ---------------------- this is the found trait
+    = help: you can use `cargo tree` to explore your dependency tree
+    = help: the following other types implement trait 
+`tower_lsp::lsp_types::notification::Notification`:
+              tower_lsp::lsp_types::notification::Cancel
+              tower_lsp::lsp_types::notification::DidChangeConfiguration
+              tower_lsp::lsp_types::notification::DidChangeTextDocument
+              tower_lsp::lsp_types::notification::DidChangeWatchedFiles
+              tower_lsp::lsp_types::notification::DidChangeWorkspaceFolders
+              tower_lsp::lsp_types::notification::DidCloseTextDocument
+              tower_lsp::lsp_types::notification::DidCreateFiles
+              tower_lsp::lsp_types::notification::DidDeleteFiles
+            and 14 others
+note: required by a bound in `tower_lsp::Client::send_notification`
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tower-lsp-0.20.0\src
+\service\client.rs:444:12
+    |
+442 |     pub async fn send_notification<N>(&self, params: N::Params)
+    |                  ----------------- required by a bound in this associated function
+443 |     where
+444 |         N: lsp_types::notification::Notification,
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in 
+`Client::send_notification`
+
+error[E0277]: the trait bound `CustomNotification: 
+tower_lsp::lsp_types::notification::Notification` is not satisfied
+   --> src\lsp_tower\backend.rs:64:14
+    |
+ 64 |             .await;
+    |              ^^^^^ unsatisfied trait bound
+    |
+help: the trait `tower_lsp::lsp_types::notification::Notification` is not implemented for 
+`CustomNotification`
+   --> src\lsp_tower\backend.rs:70:1
+    |
+ 70 | struct CustomNotification;
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^
+note: there are multiple different versions of crate `lsp_types` in the dependency graph
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lsp-types-0.94.1\src
+\notification.rs:5:1
+    |
+  5 | pub trait Notification {
+    | ^^^^^^^^^^^^^^^^^^^^^^ this is the expected trait
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\lsp-types-0.95.1\src
+\notification.rs:5:1
+    |
+  5 | pub trait Notification {
+    | ---------------------- this is the found trait
+    = help: you can use `cargo tree` to explore your dependency tree
+    = help: the following other types implement trait 
+`tower_lsp::lsp_types::notification::Notification`:
+              tower_lsp::lsp_types::notification::Cancel
+              tower_lsp::lsp_types::notification::DidChangeConfiguration
+              tower_lsp::lsp_types::notification::DidChangeTextDocument
+              tower_lsp::lsp_types::notification::DidChangeWatchedFiles
+              tower_lsp::lsp_types::notification::DidChangeWorkspaceFolders
+              tower_lsp::lsp_types::notification::DidCloseTextDocument
+              tower_lsp::lsp_types::notification::DidCreateFiles
+              tower_lsp::lsp_types::notification::DidDeleteFiles
+            and 14 others
+note: required by a bound in `tower_lsp::Client::send_notification`
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tower-lsp-0.20.0\src
+\service\client.rs:444:12
+    |
+442 |     pub async fn send_notification<N>(&self, params: N::Params)
+    |                  ----------------- required by a bound in this associated function
+443 |     where
+444 |         N: lsp_types::notification::Notification,
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in 
+`Client::send_notification`
+
+warning: use of deprecated field `tower_lsp::lsp_types::SymbolInformation::deprecated`: Use 
+tags instead
+   --> src\lsp_tower\backend.rs:883:29
+    |
+883 | ...                   deprecated: None,
+    |                       ^^^^^^^^^^^^^^^^
+
+error[E0063]: missing field `tags` in initializer of `tower_lsp::lsp_types::SymbolInformation`
+   --> src\lsp_tower\backend.rs:880:38
+    |
+880 |                         symbols.push(SymbolInformation {
+    |                                      ^^^^^^^^^^^^^^^^^ missing `tags`
+
+error[E0689]: can't call method `saturating_sub` on ambiguous numeric type `{integer}`
+   --> src\lsp_tower\backend.rs:920:45
+    |
+920 |                 indent_level = indent_level.saturating_sub(1);
+    |                                             ^^^^^^^^^^^^^^
+    |
+help: you must specify a type for this binding, like `i32`
+    |
+913 |         let mut indent_level: i32 = 0;
+    |                             +++++
+
+error[E0599]: no method named `read_exact` found for struct `std::io::BufReader<R>` in the 
+current scope
+   --> src\lsp_transport\transport.rs:240:36
+    |
+240 |             if let Err(e) = reader.read_exact(&mut buffer) {
+    |                                    ^^^^^^^^^^ method not found in 
+`std::io::BufReader<std::process::ChildStdout>`
+    |
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\std\src\io\mod.rs:1044:8
+    |
+    = note: the method is available for `std::io::BufReader<std::process::ChildStdout>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Read` which provides `read_exact` is implemented but not in scope; perhaps you 
+want to import it
+    |
+  6 + use std::io::Read;
+    |
+
+error[E0382]: borrow of moved value: `callback`
+   --> src\chat_sidebar\rag_chat.rs:252:9
+    |
+170 |         mut callback: impl FnMut(StreamChunk) + Send + 'static,
+    |         ------------ move occurs because `callback` has type `impl FnMut(StreamChunk) + 
+Send + 'static`, which does not implement the `Copy` trait
+...
+239 |         let response = llm.complete_stream(&request, move |token: &str| {
+    |                                                      ------------------ value moved into 
+closure here
+240 |             callback(StreamChunk {
+    |             -------- variable moved due to use in closure
+...
+252 |         callback(StreamChunk {
+    |         ^^^^^^^^ value borrowed here after move
+    |
+help: if `impl FnMut(StreamChunk) + Send + 'static` implemented `Clone`, you could clone the 
+value
+   --> src\chat_sidebar\rag_chat.rs:170:23
+    |
+170 |         mut callback: impl FnMut(StreamChunk) + Send + 'static,
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ consider constraining 
+this type parameter with `Clone`
+...
+240 |             callback(StreamChunk {
+    |             -------- you could clone this value
+
+error[E0308]: mismatched types
+   --> src\chat_sidebar\streaming.rs:107:51
+    |
+107 |         self.active_streams.read().await.contains(message_id)
+    |                                          -------- ^^^^^^^^^^ expected `&String`, found 
+`&str`
+    |                                          |
+    |                                          arguments to this method are incorrect
+    |
+    = note: expected reference `&std::string::String`
+               found reference `&str`
+note: method defined here
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\slice\mod.rs:2586:12
+
+error[E0308]: mismatched types
+   --> src\agent_editor\agent.rs:209:28
+    |
+209 |                       if let Ok(entries) = walkdir::WalkDir::new(dir_path)
+    |  ____________________________^^^^^^^^^^^___-
+    | |                            |
+    | |                            expected `Vec<DirEntry>`, found `Result<_, _>`
+210 | |                         .max_depth(5)
+211 | |                         .into_iter()
+212 | |                         .filter_map(|e| e.ok())
+213 | |                         .filter(|e| e.file_type().is_file())
+214 | |                         .take(limit * 2) // Limit files to scan
+215 | |                         .collect::<Vec<_>>()
+    | |____________________________________________- this expression has type 
+`Vec<walkdir::DirEntry>`
+    |
+    = note: expected struct `Vec<walkdir::DirEntry>`
+                 found enum `std::result::Result<_, _>`
+
+error[E0282]: type annotations needed
+   --> src\agent_editor\agent.rs:218:40
+    |
+218 | ...                   let path = entry.path();
+    |                                  ^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> src\agent_editor\agent.rs:222:44
+    |
+222 | ...                   .and_then(|e| e.to_str())
+    |                                  ^  - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+222 |                                 .and_then(|e: /* Type */| e.to_str())
+    |                                             ++++++++++++
+
+error[E0596]: cannot borrow `self.approval_workflow` as mutable, as it is behind a `&` 
+reference
+   --> src\agent_editor\agent.rs:584:23
+    |
+584 |         let pending = self.approval_workflow.approve(approval_id)?;
+    |                       ^^^^^^^^^^^^^^^^^^^^^^ `self` is a `&` reference, so it cannot be 
+borrowed as mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+583 |     pub async fn approve(&mut self, approval_id: &str, context: &AgentContext) -> 
+anyhow::Result<AgentResult> {
+    |                           +++
+
+error[E0599]: no method named `mode` found for struct `std::fs::Permissions` in the current 
+scope
+   --> src\agent_editor\executor.rs:180:46
+    |
+180 |                 permissions: m.permissions().mode(),
+    |                                              ^^^^ method not found in 
+`std::fs::Permissions`
+
+error[E0061]: this function takes 1 argument but 0 arguments were supplied
+   --> src\p2p\sync.rs:179:29
+    |
+179 |             let awareness = Awareness::new();
+    |                             ^^^^^^^^^^^^^^-- argument #1 of type `yrs::Doc` is missing
+    |
+note: associated function defined here
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\yrs-0.18.8\src\sync\
+awareness.rs:42:12
+    |
+ 42 |     pub fn new(doc: Doc) -> Self {
+    |            ^^^
+help: provide the argument
+    |
+179 |             let awareness = Awareness::new(/* yrs::Doc */);
+    |                                            ++++++++++++++
+
+error[E0599]: no method named `encode_v1` found for struct `yrs::Doc` in the current scope
+   --> src\p2p\sync.rs:332:63
+    |
+332 |         let state = txn.encode_state_as_update_v1(&synced.doc.encode_v1());
+    |                                                               ^^^^^^^^^ method not found 
+in `yrs::Doc`
+
+warning: variable does not need to be mutable
+   --> src\p2p\mod.rs:214:27
+    |
+214 |         let (shutdown_tx, mut shutdown_rx) = mpsc::channel(1);
+    |                           ----^^^^^^^^^^^
+    |                           |
+    |                           help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\p2p\mod.rs:281:22
+    |
+281 |         let (webrtc, mut message_rx) = WebRTCManager::new(
+    |                      ----^^^^^^^^^^
+    |                      |
+    |                      help: remove this `mut`
+
+error[E0596]: cannot borrow `webrtc` as mutable, as it is not declared as mutable
+   --> src\p2p\mod.rs:287:15
+    |
+287 |         match webrtc.connect_signaling(
+    |               ^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+281 |         let (mut webrtc, mut message_rx) = WebRTCManager::new(
+    |              +++
+
+error[E0592]: duplicate definitions with name `get`
+   --> src\mcp\prompts.rs:118:5
+    |
+101 |     pub fn get(&self, name: &str) -> Option<&PromptTemplate> {
+    |     -------------------------------------------------------- other definition for `get`
+...
+118 |     pub fn get(&self, name: &str, args: HashMap<String, String>) -> 
+anyhow::Result<GetPromptResult> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^ duplicate definitions for `get`
+
+error[E0277]: the trait bound `&std::path::Path: std::default::Default` is not satisfied
+  --> src\files\local_history.rs:73:55
+   |
+73 |         std::fs::create_dir_all(content_path.parent().unwrap_or_default()).ok();
+   |                                                       ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `&std::path::Path`
+   |
+note: required by a bound in `std::option::Option::<T>::unwrap_or_default`
+  --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:1093:5
+help: consider removing this method call, as the receiver has type `PathBuf` and `PathBuf: 
+std::default::Default` trivially holds
+   |
+73 -         std::fs::create_dir_all(content_path.parent().unwrap_or_default()).ok();
+73 +         std::fs::create_dir_all(content_path.unwrap_or_default()).ok();
+   |
+
+error[E0277]: the trait bound `smart_selection::SelectionRange: std::marker::Copy` is not 
+satisfied
+  --> src\lsp\smart_selection.rs:87:39
+   |
+87 |         self.selection_history.last().copied()
+   |                                       ^^^^^^ unsatisfied trait bound
+   |
+help: the trait `std::marker::Copy` is not implemented for `smart_selection::SelectionRange`
+  --> src\lsp\smart_selection.rs:15:1
+   |
+15 | pub struct SelectionRange {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^
+note: required by a bound in `std::option::Option::<&T>::copied`
+  --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:2052:5
+
+warning: unreachable expression
+   --> src\lsp\lsp_manager.rs:226:9
+    |
+224 |             return "x86_64-pc-windows-msvc.exe".to_string();
+    |             ----------------------------------------------- any code following this 
+expression is unreachable
+225 |         }
+226 |         "unknown".to_string()
+    |         ^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+    |
+    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `components` found for struct `sysinfo::System` in the current 
+scope
+   --> src\embedded_llm\engine.rs:130:31
+    |
+130 |         let gpu_name = system.components()
+    |                               ^^^^^^^^^^ method not found in `sysinfo::System`
+
+error[E0282]: type annotations needed
+   --> src\embedded_llm\engine.rs:132:20
+    |
+132 |             .find(|c| c.label().to_lowercase().contains("gpu") || 
+    |                    ^  - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+132 |             .find(|c: /* Type */| c.label().to_lowercase().contains("gpu") || 
+    |                     ++++++++++++
+
+error[E0282]: type annotations needed
+   --> src\embedded_llm\engine.rs:136:19
+    |
+136 |             .map(|c| c.label().to_string());
+    |                   ^  - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+136 |             .map(|c: /* Type */| c.label().to_string());
+    |                    ++++++++++++
+
+error[E0369]: binary operation `<=` cannot be applied to type `memory_tiers::MemoryTier`
+   --> src\embedded_llm\model_manager.rs:216:43
+    |
+216 |             .filter(|m| m.min_memory_tier <= tier)
+    |                         ----------------- ^^ ---- memory_tiers::MemoryTier
+    |                         |
+    |                         memory_tiers::MemoryTier
+    |
+note: an implementation of `PartialOrd` might be missing for `memory_tiers::MemoryTier`
+   --> src\embedded_llm\memory_tiers.rs:11:1
+    |
+ 11 | pub enum MemoryTier {
+    | ^^^^^^^^^^^^^^^^^^^ must implement `PartialOrd`
+help: consider annotating `memory_tiers::MemoryTier` with `#[derive(PartialEq, PartialOrd)]`
+   --> src\embedded_llm\memory_tiers.rs:11:1
+    |
+ 11 + #[derive(PartialEq, PartialOrd)]
+ 12 | pub enum MemoryTier {
+    |
+
+error[E0599]: no method named `max_elements` found for struct `vector_store::Params` in the 
+current scope
+  --> src\rag\vector_store.rs:93:14
+   |
+ 3 |   pub struct Params { pub ef_construction: usize, pub m: usize }
+   |   ----------------- method `max_elements` not found for this struct
+...
+92 |           let params = Params::new()
+   |  ______________________-
+93 | |             .max_elements(config.max_elements)
+   | |             -^^^^^^^^^^^^ method not found in `vector_store::Params`
+   | |_____________|
+   |
+
+error[E0599]: no function or associated item named `new` found for struct `Hnsw<T>` in the 
+current scope
+  --> src\rag\vector_store.rs:99:27
+   |
+ 2 | pub struct Hnsw<T> { _marker: std::marker::PhantomData<T> }
+   | ------------------ function or associated item `new` not found for this struct
+...
+99 |         let index = Hnsw::new(params, config.dimension, rng);
+   |                           ^^^ function or associated item not found in `Hnsw<_>`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Paint` which provides `new` is implemented but not in scope; perhaps you want to 
+import it
+   |
+ 2 + use yansi::Paint;
+   |
+
+error[E0599]: no method named `max_elements` found for struct `vector_store::Params` in the 
+current scope
+   --> src\rag\vector_store.rs:145:14
+    |
+  3 |   pub struct Params { pub ef_construction: usize, pub m: usize }
+    |   ----------------- method `max_elements` not found for this struct
+...
+144 |           let params = Params::new()
+    |  ______________________-
+145 | |             .max_elements(config.max_elements)
+    | |             -^^^^^^^^^^^^ method not found in `vector_store::Params`
+    | |_____________|
+    |
+
+error[E0599]: no function or associated item named `new` found for struct `Hnsw<T>` in the 
+current scope
+   --> src\rag\vector_store.rs:151:27
+    |
+  2 | pub struct Hnsw<T> { _marker: std::marker::PhantomData<T> }
+    | ------------------ function or associated item `new` not found for this struct
+...
+151 |         let index = Hnsw::new(params, config.dimension, rng);
+    |                           ^^^ function or associated item not found in `Hnsw<_>`
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Paint` which provides `new` is implemented but not in scope; perhaps you want to 
+import it
+    |
+  2 + use yansi::Paint;
+    |
+
+error[E0599]: no method named `ok` found for struct `Stemmer` in the current scope
+   --> src\rag\embeddings.rs:151:89
+    |
+151 |         let stemmer = 
+rust_stemmers::Stemmer::create(rust_stemmers::Algorithm::English).ok();
+    |                                                                                         
+^^
+    |
+help: there is a method `or` with a similar name, but with different arguments
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tower-http-0.6.8\src
+\follow_redirect\policy\mod.rs:165:5
+    |
+165 | /     fn or<P, B, E>(self, other: P) -> Or<Self, P>
+166 | |     where
+167 | |         Self: Policy<B, E> + Sized,
+168 | |         P: Policy<B, E>;
+    | |________________________^
+
+error[E0277]: the trait bound `YjsDocument: serde::Serialize` is not satisfied
+    --> src\git_crdt\yjs_adapter.rs:175:31
+     |
+ 175 |         Ok(serde_json::to_vec(&self.document)?)
+     |            ------------------ ^^^^^^^^^^^^^^ unsatisfied trait bound
+     |            |
+     |            required by a bound introduced by this call
+     |
+help: the trait `git::_::_serde::Serialize` is not implemented for `YjsDocument`
+    --> src\git_crdt\yjs_adapter.rs:18:1
+     |
+  18 | pub struct YjsDocument {
+     | ^^^^^^^^^^^^^^^^^^^^^^
+     = note: for local types consider adding `#[derive(serde::Serialize)]` to your 
+`YjsDocument` type
+     = note: for types from other crates check whether the crate offers a `serde` feature flag
+     = help: the following other types implement trait `git::_::_serde::Serialize`:
+               &'a T
+               &'a mut T
+               ()
+               (T,)
+               (T0, T1)
+               (T0, T1, T2)
+               (T0, T1, T2, T3)
+               (T0, T1, T2, T3, T4)
+             and 2046 others
+note: required by a bound in `serde_json::to_vec`
+    --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde_json-1.0.149\
+src\ser.rs:2215:17
+     |
+2213 | pub fn to_vec<T>(value: &T) -> Result<Vec<u8>>
+     |        ------ required by a bound in this function
+2214 | where
+2215 |     T: ?Sized + Serialize,
+     |                 ^^^^^^^^^ required by this bound in `to_vec`
+     = note: the full name for the type has been written to 'C:\Users\nkpen\.gemini\antigravity
+\scratch\Kyro_IDE\src-tauri\target\debug\deps\kyro_ide-22ef386d21058432.long-type-1524867447410
+109626.txt'
+     = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `YjsDocument: serde::Deserialize<'de>` is not satisfied
+    --> src\git_crdt\yjs_adapter.rs:180:37
+     |
+ 180 |         let document: YjsDocument = serde_json::from_slice(data)?;
+     |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+     |
+help: the trait `git::_::_serde::Deserialize<'_>` is not implemented for `YjsDocument`
+    --> src\git_crdt\yjs_adapter.rs:18:1
+     |
+  18 | pub struct YjsDocument {
+     | ^^^^^^^^^^^^^^^^^^^^^^
+     = note: for local types consider adding `#[derive(serde::Deserialize)]` to your 
+`YjsDocument` type
+     = note: for types from other crates check whether the crate offers a `serde` feature flag
+     = help: the following other types implement trait `git::_::_serde::Deserialize<'de>`:
+               `&'a [u8]` implements `git::_::_serde::Deserialize<'de>`
+               `&'a serde_json::value::RawValue` implements `git::_::_serde::Deserialize<'de>`
+               `&'a std::path::Path` implements `git::_::_serde::Deserialize<'de>`
+               `&'a str` implements `git::_::_serde::Deserialize<'de>`
+               `&'p jsonptr::pointer::Pointer` implements `git::_::_serde::Deserialize<'de>`
+               `()` implements `git::_::_serde::Deserialize<'de>`
+               `(T,)` implements `git::_::_serde::Deserialize<'de>`
+               `(T0, T1)` implements `git::_::_serde::Deserialize<'de>`
+             and 2073 others
+note: required by a bound in `serde_json::from_slice`
+    --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde_json-1.0.149\
+src\de.rs:2659:8
+     |
+2657 | pub fn from_slice<'a, T>(v: &'a [u8]) -> Result<T>
+     |        ---------- required by a bound in this function
+2658 | where
+2659 |     T: de::Deserialize<'a>,
+     |        ^^^^^^^^^^^^^^^^^^^ required by this bound in `from_slice`
+     = note: the full name for the type has been written to 'C:\Users\nkpen\.gemini\antigravity
+\scratch\Kyro_IDE\src-tauri\target\debug\deps\kyro_ide-22ef386d21058432.long-type-1524867447410
+109626.txt'
+     = note: consider using `--verbose` to print the full type name to the console
+
+error[E0369]: binary operation `<` cannot be applied to type `NotificationPriority`
+  --> src\telegram\notifications.rs:98:68
+   |
+98 |         let insert_pos = self.queue.iter().position(|n| n.priority < 
+notification.priority)
+   |                                                         ---------- ^ 
+--------------------- NotificationPriority
+   |                                                         |
+   |                                                         NotificationPriority
+   |
+note: an implementation of `PartialOrd` might be missing for `NotificationPriority`
+  --> src\telegram\notifications.rs:59:1
+   |
+59 | pub enum NotificationPriority {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ must implement `PartialOrd`
+help: consider annotating `NotificationPriority` with `#[derive(PartialEq, PartialOrd)]`
+   |
+59 + #[derive(PartialEq, PartialOrd)]
+60 | pub enum NotificationPriority {
+   |
+
+error[E0599]: no method named `optional` found for enum `std::result::Result<T, E>` in the 
+current scope
+   --> src\agents\memory.rs:222:14
+    |
+213 |           let wip = stmt
+    |  ___________________-
+214 | |             .query_row(params![agent_id], |row| {
+215 | |                 Ok(WorkInProgress {
+216 | |                     task: row.get(0)?,
+...   |
+221 | |             })
+222 | |             .optional()
+    | |             -^^^^^^^^ method not found in `std::result::Result<WorkInProgress, 
+rusqlite::Error>`
+    | |_____________|
+    |
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rusqlite-0.31.0\src\
+lib.rs:279:8
+    |
+279 |       fn optional(self) -> Result<Option<T>>;
+    |          -------- the method is available for `std::result::Result<WorkInProgress, 
+rusqlite::Error>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `OptionalExtension` which provides `optional` is implemented but not in scope; 
+perhaps you want to import it
+    |
+  5 + use rusqlite::OptionalExtension;
+    |
+
+error[E0282]: type annotations needed
+   --> src\agents\memory.rs:223:23
+    |
+223 |             .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+    |                       ^                            - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+223 |             .map_err(|e: /* Type */| AgentError::DatabaseError(e.to_string()))?;
+    |                        ++++++++++++
+
+error[E0599]: no method named `hour` found for struct `chrono::DateTime<Tz>` in the current 
+scope
+   --> src\update\channels.rs:134:42
+    |
+134 |             let now = chrono::Utc::now().hour() as u8;
+    |                                          ^^^^
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\chrono-0.4.44\src\tr
+aits.rs:285:8
+    |
+285 |     fn hour(&self) -> u32;
+    |        ---- the method is available for `chrono::DateTime<Utc>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Timelike` which provides `hour` is implemented but not in scope; perhaps you want 
+to import it
+    |
+  5 + use chrono::Timelike;
+    |
+help: there is a method `hour12` with a similar name
+    |
+134 |             let now = chrono::Utc::now().hour12() as u8;
+    |                                              ++
+
+error[E0599]: no method named `hour` found for struct `chrono::DateTime<Tz>` in the current 
+scope
+   --> src\update\mod.rs:411:50
+    |
+411 |                     let now = chrono::Utc::now().hour() as u8;
+    |                                                  ^^^^
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\chrono-0.4.44\src\tr
+aits.rs:285:8
+    |
+285 |     fn hour(&self) -> u32;
+    |        ---- the method is available for `chrono::DateTime<Utc>` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Timelike` which provides `hour` is implemented but not in scope; perhaps you want 
+to import it
+    |
+  9 + use chrono::Timelike;
+    |
+help: there is a method `hour12` with a similar name
+    |
+411 |                     let now = chrono::Utc::now().hour12() as u8;
+    |                                                      ++
+
+error[E0271]: type mismatch resolving `<&[&str] as IntoIterator>::Item == &str`
+   --> src\plugin_sandbox\mod.rs:301:48
+    |
+301 |         let cap_set = CapabilitySet::from_iter(capabilities);
+    |                       ------------------------ ^^^^^^^^^^^^ expected `&str`, found 
+`&&str`
+    |                       |
+    |                       required by a bound introduced by this call
+    |
+    = note: expected reference `&_`
+               found reference `&&_`
+note: required by a bound in `capabilities::CapabilitySet::from_iter`
+   --> src\plugin_sandbox\capabilities.rs:189:42
+    |
+189 |     pub fn from_iter<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
+    |                                          ^^^^^^^^^^^^^^ required by this bound in 
+`CapabilitySet::from_iter`
+
+error[E0282]: type annotations needed
+   --> src\benchmark\startup.rs:284:41
+    |
+284 | ...                   let activation_events = manifest.get("activationEvents")
+    |                           ^^^^^^^^^^^^^^^^^
+...
+289 | ...                   let is_critical = activation_events.iter().any(|e| e == "*");
+    |                                         ----------------- type must be known at this 
+point
+    |
+help: consider giving `activation_events` an explicit type
+    |
+284 |                                     let activation_events: Vec<_> = 
+manifest.get("activationEvents")
+    |                                                          ++++++++
+
+error[E0277]: the trait bound `TokioRuntime: std::default::Default` is not satisfied
+   --> src\benchmark\startup.rs:665:61
+    |
+665 |                     let rt = tokio::runtime::Runtime::new().unwrap_or_default();
+    |                                                             ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `TokioRuntime`
+    |
+note: required by a bound in `std::result::Result::<T, E>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\result.rs:1265:5
+
+error[E0277]: the trait bound `TokioRuntime: std::default::Default` is not satisfied
+   --> src\benchmark\startup.rs:680:61
+    |
+680 |                     let rt = tokio::runtime::Runtime::new().unwrap_or_default();
+    |                                                             ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `TokioRuntime`
+    |
+note: required by a bound in `std::result::Result::<T, E>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\result.rs:1265:5
+
+warning: unreachable expression
+   --> src\benchmark\memory.rs:306:9
+    |
+302 |                 return status.ullTotalPhys;
+    |                 -------------------------- any code following this expression is 
+unreachable
+...
+306 |         8 * 1024 * 1024 * 1024 // Default 8GB
+    |         ^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+
+error[E0277]: the trait bound `std::cmp::Ordering: std::default::Default` is not satisfied
+   --> src\benchmark\mod.rs:314:44
+    |
+314 |     sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or_default());
+    |                                            ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `std::cmp::Ordering`
+    |
+note: required by a bound in `std::option::Option::<T>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:1093:5
+
+error[E0599]: the method `lines` exists for enum `std::option::Option<std::string::String>`, 
+but its trait bounds were not satisfied
+   --> src\vscode_compat\extension_host.rs:234:22
+    |
+233 | /                 String::from_utf8(output.stdout).ok()
+234 | |                     .lines()
+    | |                     -^^^^^ method cannot be called on 
+`std::option::Option<std::string::String>` due to unsatisfied trait bounds
+    | |_____________________|
+    |
+    |
+    = note: the following trait bounds were not satisfied:
+            `std::option::Option<std::string::String>: BufRead`
+            which is required by `&mut std::option::Option<std::string::String>: BufRead`
+note: the method `lines` exists on the type `std::string::String`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\str\mod.rs:1297:5
+help: use the `?` operator to extract the `std::string::String` value, propagating an 
+`Option::None` value to the caller
+    |
+233 |                 String::from_utf8(output.stdout).ok()?
+    |                                                      +
+
+error[E0282]: type annotations needed
+   --> src\vscode_compat\extension_host.rs:236:27
+    |
+236 |                     .map(|s| PathBuf::from(s.trim()))
+    |                           ^                - type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+236 |                     .map(|s: /* Type */| PathBuf::from(s.trim()))
+    |                            ++++++++++++
+
+error[E0308]: mismatched types
+   --> src\vscode_compat\extension_host.rs:535:16
+    |
+535 |         if let Some(dependencies) = &manifest.extension_dependencies {
+    |                ^^^^^^^^^^^^^^^^^^   -------------------------------- this expression has 
+type `&Vec<std::string::String>`
+    |                |
+    |                expected `Vec<String>`, found `Option<_>`
+    |
+    = note: expected struct `Vec<std::string::String>`
+                 found enum `std::option::Option<_>`
+
+error[E0308]: mismatched types
+   --> src\vscode_compat\extension_host.rs:593:16
+    |
+593 |         if let Some(activation_events) = &manifest.activation_events {
+    |                ^^^^^^^^^^^^^^^^^^^^^^^   --------------------------- this expression has 
+type `&Vec<std::string::String>`
+    |                |
+    |                expected `Vec<String>`, found `Option<_>`
+    |
+    = note: expected struct `Vec<std::string::String>`
+                 found enum `std::option::Option<_>`
+
+error[E0282]: type annotations needed
+   --> src\vscode_compat\extension_host.rs:595:23
+    |
+595 |                 match event.as_str() {
+    |                       ^^^^^ cannot infer type
+
+error[E0599]: no method named `is_none` found for struct `Vec<std::string::String>` in the 
+current scope
+   --> src\vscode_compat\extension_host.rs:627:36
+    |
+627 |         manifest.activation_events.is_none()
+    |                                    ^^^^^^^ method not found in `Vec<std::string::String>`
+
+error[E0308]: mismatched types
+   --> src\vscode_compat\extension_host.rs:668:24
+    |
+668 |                 if let Some(cmds) = &commands.commands {
+    |                        ^^^^^^^^^^   ------------------ this expression has type 
+`&Vec<vscode_compat::manifest::CommandContribution>`
+    |                        |
+    |                        expected `Vec<CommandContribution>`, found `Option<_>`
+    |
+    = note: expected struct `Vec<vscode_compat::manifest::CommandContribution>`
+                 found enum `std::option::Option<_>`
+
+error[E0277]: the trait bound `ExtensionIdentifier: std::default::Default` is not satisfied
+  --> src\vscode_compat\manifest.rs:11:35
+   |
+11 | #[derive(Debug, Clone, Serialize, Deserialize)]
+   |                                   ^^^^^^^^^^^ the trait `std::default::Default` is not 
+implemented for `ExtensionIdentifier`
+   |
+   = note: this error originates in the derive macro `Deserialize` (in Nightly builds, run 
+with -Z macro-backtrace for more info)
+help: consider annotating `ExtensionIdentifier` with `#[derive(Default)]`
+   |
+90 + #[derive(Default)]
+91 | pub struct ExtensionIdentifier {
+   |
+
+error[E0308]: mismatched types
+   --> src\vscode_compat\protocol.rs:304:41
+    |
+304 |               params: Some(Params::Object(serde_json::to_value(params)
+    |  __________________________--------------_^
+    | |                          |
+    | |                          arguments to this enum variant are incorrect
+305 | |                 .unwrap_or_default()
+306 | |                 .as_object()
+307 | |                 .cloned()
+308 | |                 .unwrap_or_default())),
+    | |____________________________________^ expected `HashMap<String, Value>`, found 
+`Map<String, Value>`
+    |
+    = note: expected struct `HashMap<std::string::String, serde_json::Value>`
+               found struct `serde_json::Map<std::string::String, serde_json::Value>`
+note: tuple variant defined here
+   --> src\vscode_compat\protocol.rs:51:5
+    |
+ 51 |     Object(HashMap<String, serde_json::Value>),
+    |     ^^^^^^
+
+error[E0308]: mismatched types
+   --> src\vscode_compat\protocol.rs:359:17
+    |
+358 |               params: Some(Params::Object(
+    |                            -------------- arguments to this enum variant are incorrect
+359 | /                 serde_json::to_value(data)
+360 | |                     .unwrap_or_default()
+361 | |                     .as_object()
+362 | |                     .cloned()
+363 | |                     .unwrap_or_default()
+    | |________________________________________^ expected `HashMap<String, Value>`, found 
+`Map<String, Value>`
+    |
+    = note: expected struct `HashMap<std::string::String, serde_json::Value>`
+               found struct `serde_json::Map<std::string::String, serde_json::Value>`
+note: tuple variant defined here
+   --> src\vscode_compat\protocol.rs:51:5
+    |
+ 51 |     Object(HashMap<String, serde_json::Value>),
+    |     ^^^^^^
+
+error[E0605]: non-primitive cast: `std::option::Option<u64>` as `std::option::Option<u32>`
+   --> src\lsp_transport\semantic_tokens.rs:188:46
+    |
+188 |         .map(|arr| arr.iter().filter_map(|v| v.as_u64() as 
+Option<u32>).collect::<Vec<_>>())
+    |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^ an `as` 
+expression can only be used to convert between primitive types or to coerce to a specific 
+trait object
+
+error[E0308]: mismatched types
+   --> src\lsp_transport\code_lens.rs:141:13
+    |
+141 |             arguments,
+    |             ^^^^^^^^^ expected `Option<Vec<Value>>`, found `Option<Value>`
+    |
+    = note: expected enum `std::option::Option<Vec<serde_json::Value>>`
+               found enum `std::option::Option<serde_json::Value>`
+
+error[E0599]: no method named `get_string` found for struct `TextRef` in the current scope
+   --> src\collab\sync.rs:38:19
+    |
+ 38 |         self.text.get_string(&txn)
+    |                   ^^^^^^^^^^ method not found in `TextRef`
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\yrs-0.18.8\src\types
+\mod.rs:230:8
+    |
+230 |     fn get_string<T: ReadTxn>(&self, txn: &T) -> String;
+    |        ---------- the method is available for `TextRef` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `GetString` which provides `get_string` is implemented but not in scope; perhaps 
+you want to import it
+    |
+  5 + use yrs::GetString;
+    |
+
+error[E0599]: no method named `encode_v1` found for struct `yrs::Transaction<'doc>` in the 
+current scope
+   --> src\collab\sync.rs:118:13
+    |
+118 |         txn.encode_v1()
+    |             ^^^^^^^^^
+    |
+help: there is a method `encode_diff_v1` with a similar name, but with different arguments
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\yrs-0.18.8\src\trans
+action.rs:61:5
+    |
+ 61 |     fn encode_diff_v1(&self, state_vector: &StateVector) -> Vec<u8> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0599]: no method named `get_string` found for struct `TextRef` in the current scope
+   --> src\collab\document.rs:27:19
+    |
+ 27 |         self.text.get_string(&txn)
+    |                   ^^^^^^^^^^ method not found in `TextRef`
+    |
+   ::: C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\yrs-0.18.8\src\types
+\mod.rs:230:8
+    |
+230 |     fn get_string<T: ReadTxn>(&self, txn: &T) -> String;
+    |        ---------- the method is available for `TextRef` here
+    |
+    = help: items from traits can only be used if the trait is in scope
+help: trait `GetString` which provides `get_string` is implemented but not in scope; perhaps 
+you want to import it
+    |
+  3 + use yrs::GetString;
+    |
+
+error[E0599]: no method named `encode_v1` found for struct `yrs::Transaction<'doc>` in the 
+current scope
+  --> src\collab\document.rs:84:13
+   |
+84 |         txn.encode_v1()
+   |             ^^^^^^^^^
+   |
+help: there is a method `encode_diff_v1` with a similar name, but with different arguments
+  --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\yrs-0.18.8\src\transa
+ction.rs:61:5
+   |
+61 |     fn encode_diff_v1(&self, state_vector: &StateVector) -> Vec<u8> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: `collab::sync::CollabDocument` doesn't implement `std::fmt::Debug`
+  --> src\collab\mod.rs:27:5
+   |
+24 | #[derive(Debug, Clone)]
+   |          ----- in this derive macro expansion
+...
+27 |     pub document: Arc<RwLock<CollabDocument>>,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `std::fmt::Debug` is not 
+implemented for `collab::sync::CollabDocument`
+   |
+   = note: add `#[derive(Debug)]` to `collab::sync::CollabDocument` or manually `impl 
+std::fmt::Debug for collab::sync::CollabDocument`
+help: the trait `std::fmt::Debug` is implemented for `Arc<T, A>`
+  --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\alloc\src\sync.rs:3700:1
+help: consider annotating `collab::sync::CollabDocument` with `#[derive(Debug)]`
+  --> src\collab\sync.rs:14:1
+   |
+14 + #[derive(Debug)]
+15 | pub struct CollabDocument {
+   |
+
+error[E0308]: mismatched types
+  --> src\debug\client.rs:37:28
+   |
+37 |                 args: vec!["-m", "debugpy.adapter".to_string()],
+   |                            ^^^^ expected `String`, found `&str`
+   |
+help: try using a conversion method
+   |
+37 |                 args: vec!["-m".to_string(), "debugpy.adapter".to_string()],
+   |                                ++++++++++++
+
+warning: unreachable expression
+   --> src\debug\debug_adapter.rs:225:9
+    |
+223 |             return "x86_64-windows".to_string();
+    |             ----------------------------------- any code following this expression is 
+unreachable
+224 |         }
+225 |         "unknown".to_string()
+    |         ^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+
+error[E0277]: the `?` operator can only be used in a method that returns `Result` or `Option` 
+(or another type that implements `FromResidual`)
+   --> src\trust\mod.rs:228:82
+    |
+221 | /     pub fn request_permission(
+222 | |         &mut self,
+223 | |         agent_id: &str,
+224 | |         permission: Permission,
+225 | |         context: &str,
+226 | |     ) -> PermissionResult {
+    | |_________________________- this function should return `Result` or `Option` to accept 
+`?`
+227 |           let agent = self.agents.get(agent_id)
+228 |               .ok_or_else(|| anyhow::anyhow!("Agent not registered: {}", agent_id))?;
+    |                                                                                    ^ 
+cannot use the `?` operator in a method that returns `PermissionResult`
+
+error[E0308]: mismatched types
+   --> src\memory\mod.rs:282:21
+    |
+282 |                     symbol,
+    |                     ^^^^^^ expected `Value`, found `SymbolInfo`
+
+error[E0308]: mismatched types
+   --> src\memory\mod.rs:294:25
+    |
+294 |                 symbol: node.clone(),
+    |                         ^^^^^^^^^^^^ expected `Value`, found `SymbolNode`
+
+error[E0308]: mismatched types
+   --> src\memory\mod.rs:302:25
+    |
+302 |                 symbol: entry.clone(),
+    |                         ^^^^^^^^^^^^^ expected `Value`, found `DocEntry`
+
+error[E0277]: the trait bound `RopeSlice<'_>: std::default::Default` is not satisfied
+   --> src\buffer\rope_buffer.rs:162:53
+    |
+162 |         self.rope.get_slice(range.start..range.end).unwrap_or_default()
+    |                                                     ^^^^^^^^^^^^^^^^^ the trait 
+`std::default::Default` is not implemented for `RopeSlice<'_>`
+    |
+note: required by a bound in `std::option::Option::<T>::unwrap_or_default`
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:1093:5
+help: consider removing this method call, as the receiver has type `Rope` and `Rope: 
+std::default::Default` trivially holds
+    |
+162 -         self.rope.get_slice(range.start..range.end).unwrap_or_default()
+162 +         self.rope.unwrap_or_default()
+    |
+
+error[E0599]: no method named `ok` found for enum `edit::EditResult` in the current scope
+   --> src\buffer\gap_buffer.rs:42:29
+    |
+ 42 |         buf.insert(0, text).ok();
+    |                             ^^
+    |
+   ::: src\buffer\edit.rs:89:1
+    |
+ 89 | pub enum EditResult {
+    | ------------------- method `ok` not found for this enum
+    |
+help: there is a method `or` with a similar name, but with different arguments
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tower-http-0.6.8\src
+\follow_redirect\policy\mod.rs:165:5
+    |
+165 | /     fn or<P, B, E>(self, other: P) -> Or<Self, P>
+166 | |     where
+167 | |         Self: Policy<B, E> + Sized,
+168 | |         P: Policy<B, E>;
+    | |________________________^
+
+error[E0277]: `StaticSecret` doesn't implement `std::fmt::Debug`
+  --> src\e2ee\mod.rs:70:5
+   |
+65 | #[derive(Debug)]
+   |          ----- in this derive macro expansion
+...
+70 |     pub local_keypair: (StaticSecret, PublicKey),
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `std::fmt::Debug` is not 
+implemented for `StaticSecret`
+   |
+   = help: the following other types implement trait `std::fmt::Debug`:
+             ()
+             (A, Z, Y, X, W, V, U, T)
+             (B, A, Z, Y, X, W, V, U, T)
+             (C, B, A, Z, Y, X, W, V, U, T)
+             (D, C, B, A, Z, Y, X, W, V, U, T)
+             (E, D, C, B, A, Z, Y, X, W, V, U, T)
+             (T,)
+             (U, T)
+           and 5 others
+
+error[E0308]: mismatched types
+  --> src\chat_sidebar\streaming.rs:21:29
+   |
+21 |             active_streams: Vec::new(),
+   |                             ^^^^^^^^^^ expected `Arc<RwLock<Vec<String>>>`, found `Vec<_>`
+   |
+   = note: expected struct `Arc<tauri::async_runtime::RwLock<Vec<std::string::String>>>`
+              found struct `Vec<_>`
+
+error[E0308]: mismatched types
+  --> src\agent_editor\approval.rs:93:24
+   |
+93 |             .unwrap_or(0)
+   |              --------- ^ expected `Duration`, found integer
+   |              |
+   |              arguments to this method are incorrect
+   |
+help: the return type of this call is `{integer}` due to the type of the argument passed
+  --> src\agent_editor\approval.rs:90:19
+   |
+90 |           let now = SystemTime::now()
+   |  ___________________^
+91 | |             .duration_since(UNIX_EPOCH)
+92 | |             .map_err(|_| log::warn!("System time error in clear_expired"))
+93 | |             .unwrap_or(0)
+   | |________________________-^
+   |                          |
+   |                          this argument influences the return type of `unwrap_or`
+note: method defined here
+  --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\result.rs:1590:18
+
+error[E0308]: mismatched types
+   --> src\agent_editor\planner.rs:180:32
+    |
+180 |                     .unwrap_or(start_line) as usize;
+    |                      --------- ^^^^^^^^^^ expected `i64`, found `usize`
+    |                      |
+    |                      arguments to this method are incorrect
+    |
+help: the return type of this call is `usize` due to the type of the argument passed
+   --> src\agent_editor\planner.rs:178:32
+    |
+178 |                   let end_line = edit.get("end_line")
+    |  ________________________________^
+179 | |                     .and_then(|e| e.as_i64())
+180 | |                     .unwrap_or(start_line) as usize;
+    | |________________________________----------^
+    |                                  |
+    |                                  this argument influences the return type of `unwrap_or`
+note: method defined here
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf\library\core\src\option.rs:1038:18
+help: you can convert a `usize` to an `i64` and panic if the converted value doesn't fit
+    |
+180 |                     .unwrap_or(start_line.try_into().unwrap()) as usize;
+    |                                          ++++++++++++++++++++
+
+warning: unused import: `Digest`
+  --> src\swarm_ai\local_inference.rs:13:20
+   |
+13 | use sha2::{Sha256, Digest};
+   |                    ^^^^^^
+
+warning: unused import: `Context`
+  --> src\rag\mod.rs:14:22
+   |
+14 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `Write`
+  --> src\vscode_compat\extension_host.rs:10:35
+   |
+10 | use std::io::{BufRead, BufReader, Write};
+   |                                   ^^^^^
+
+warning: unused import: `BufRead`
+   --> src\debug\client.rs:403:27
+    |
+403 |             use std::io::{BufRead, Read};
+    |                           ^^^^^^^
+
+warning: unused import: `Digest`
+   --> src\auth\jwt_handler.rs:121:24
+    |
+121 |     use sha2::{Sha256, Digest};
+    |                        ^^^^^^
+
+warning: unused variable: `root_uri`
+   --> src\commands\lsp_real.rs:109:49
+    |
+109 | pub async fn lsp_start_server(language: String, root_uri: String) -> 
+Result<LspServerStatus, String> {
+    |                                                 ^^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_root_uri`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:135:34
+    |
+135 | pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> 
+Result<Vec<CompletionItem>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an 
+underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:135:47
+    |
+135 | pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> 
+Result<Vec<CompletionItem>, String> {
+    |                                               ^^^^ help: if this is intentional, prefix 
+it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:135:58
+    |
+135 | pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> 
+Result<Vec<CompletionItem>, String> {
+    |                                                          ^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:146:34
+    |
+146 | pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> 
+Result<Option<Location>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an 
+underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:146:47
+    |
+146 | pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> 
+Result<Option<Location>, String> {
+    |                                               ^^^^ help: if this is intentional, prefix 
+it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:146:58
+    |
+146 | pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> 
+Result<Option<Location>, String> {
+    |                                                          ^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:151:24
+    |
+151 | pub async fn lsp_hover(uri: String, line: u32, character: u32) -> 
+Result<Option<HoverResult>, String> {
+    |                        ^^^ help: if this is intentional, prefix it with an underscore: 
+`_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:151:37
+    |
+151 | pub async fn lsp_hover(uri: String, line: u32, character: u32) -> 
+Result<Option<HoverResult>, String> {
+    |                                     ^^^^ help: if this is intentional, prefix it with an 
+underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:151:48
+    |
+151 | pub async fn lsp_hover(uri: String, line: u32, character: u32) -> 
+Result<Option<HoverResult>, String> {
+    |                                                ^^^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:162:34
+    |
+162 | pub async fn lsp_format_document(uri: String) -> Result<Vec<TextEdit>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an 
+underscore: `_uri`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:167:31
+    |
+167 | pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> 
+Result<Vec<CodeAction>, String> {
+    |                               ^^^ help: if this is intentional, prefix it with an 
+underscore: `_uri`
+
+warning: unused variable: `start_line`
+   --> src\commands\lsp_real.rs:167:44
+    |
+167 | pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> 
+Result<Vec<CodeAction>, String> {
+    |                                            ^^^^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_start_line`
+
+warning: unused variable: `end_line`
+   --> src\commands\lsp_real.rs:167:61
+    |
+167 | pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> 
+Result<Vec<CodeAction>, String> {
+    |                                                             ^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_end_line`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:172:34
+    |
+172 | pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> 
+Result<Vec<Location>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an 
+underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:172:47
+    |
+172 | pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> 
+Result<Vec<Location>, String> {
+    |                                               ^^^^ help: if this is intentional, prefix 
+it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:172:58
+    |
+172 | pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> 
+Result<Vec<Location>, String> {
+    |                                                          ^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:177:25
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> 
+Result<Vec<TextEdit>, String> {
+    |                         ^^^ help: if this is intentional, prefix it with an underscore: 
+`_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:177:38
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> 
+Result<Vec<TextEdit>, String> {
+    |                                      ^^^^ help: if this is intentional, prefix it with 
+an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:177:49
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> 
+Result<Vec<TextEdit>, String> {
+    |                                                 ^^^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_character`
+
+warning: unused variable: `new_name`
+   --> src\commands\lsp_real.rs:177:65
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> 
+Result<Vec<TextEdit>, String> {
+    |                                                                 ^^^^^^^^ help: if this 
+is intentional, prefix it with an underscore: `_new_name`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:182:33
+    |
+182 | pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> 
+Result<Option<String>, String> {
+    |                                 ^^^ help: if this is intentional, prefix it with an 
+underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:182:46
+    |
+182 | pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> 
+Result<Option<String>, String> {
+    |                                              ^^^^ help: if this is intentional, prefix 
+it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:182:57
+    |
+182 | pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> 
+Result<Option<String>, String> {
+    |                                                         ^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `language`
+   --> src\ai\quality_gate.rs:262:50
+    |
+262 |     async fn check_formatting(&self, code: &str, language: &str) -> CheckResult {
+    |                                                  ^^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_language`
+
+warning: unused variable: `language`
+   --> src\lsp\wasm_loader.rs:324:35
+    |
+324 |     pub fn get_completions(&self, language: &str, content: &str, position: Position) -> 
+anyhow::Result<Vec<Completion>> {
+    |                                   ^^^^^^^^ help: if this is intentional, prefix it with 
+an underscore: `_language`
+
+warning: unused variable: `content`
+   --> src\lsp\wasm_loader.rs:324:51
+    |
+324 |     pub fn get_completions(&self, language: &str, content: &str, position: Position) -> 
+anyhow::Result<Vec<Completion>> {
+    |                                                   ^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_content`
+
+warning: unused variable: `position`
+   --> src\lsp\wasm_loader.rs:324:66
+    |
+324 |     pub fn get_completions(&self, language: &str, content: &str, position: Position) -> 
+anyhow::Result<Vec<Completion>> {
+    |                                                                  ^^^^^^^^ help: if this 
+is intentional, prefix it with an underscore: `_position`
+
+warning: unused variable: `language`
+   --> src\lsp\wasm_loader.rs:330:35
+    |
+330 |     pub fn get_diagnostics(&self, language: &str, content: &str) -> 
+anyhow::Result<Vec<Diagnostic>> {
+    |                                   ^^^^^^^^ help: if this is intentional, prefix it with 
+an underscore: `_language`
+
+warning: unused variable: `content`
+   --> src\lsp\wasm_loader.rs:330:51
+    |
+330 |     pub fn get_diagnostics(&self, language: &str, content: &str) -> 
+anyhow::Result<Vec<Diagnostic>> {
+    |                                                   ^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_content`
+
+error[E0382]: use of moved value: `range`
+  --> src\lsp\smart_selection.rs:45:25
+   |
+42 |             let range = node_to_range(node, source);
+   |                 ----- move occurs because `range` has type 
+`smart_selection::SelectionRange`, which does not implement the `Copy` trait
+43 |             self.selection_history = vec![range];
+   |                                           ----- value moved here
+44 |             self.current_index = 0;
+45 |             return Some(range);
+   |                         ^^^^^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+43 |             self.selection_history = vec![range.clone()];
+   |                                                ++++++++
+
+error[E0382]: use of moved value: `parent_range`
+  --> src\lsp\smart_selection.rs:70:33
+   |
+65 |                 let parent_range = node_to_range(p, &[]);
+   |                     ------------ move occurs because `parent_range` has type 
+`smart_selection::SelectionRange`, which does not implement the `Copy` trait
+...
+68 |                     self.selection_history.push(parent_range);
+   |                                                 ------------ value moved here
+69 |                     self.current_index = self.selection_history.len() - 1;
+70 |                     return Some(parent_range);
+   |                                 ^^^^^^^^^^^^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+68 |                     self.selection_history.push(parent_range.clone());
+   |                                                             ++++++++
+
+warning: unused variable: `max_tokens`
+   --> src\swarm_ai\local_inference.rs:383:9
+    |
+383 |         max_tokens: u32,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_max_tokens`
+
+warning: unused variable: `full_prompt`
+   --> src\swarm_ai\speculative_decoder.rs:151:13
+    |
+151 |         let full_prompt = format!("{}{}", prompt, draft.full_text);
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_full_prompt`
+
+warning: unused variable: `similarity_threshold`
+  --> src\swarm_ai\kv_cache.rs:96:43
+   |
+96 |     pub fn get_fuzzy(&self, prompt: &str, similarity_threshold: f32) -> Option<String> {
+   |                                           ^^^^^^^^^^^^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_similarity_threshold`
+
+error[E0502]: cannot borrow `self.entries` as mutable because it is also borrowed as immutable
+   --> src\swarm_ai\kv_cache.rs:177:13
+    |
+171 |         let mut entries: Vec<_> = self.entries.iter()
+    |                                   ------------ immutable borrow occurs here
+...
+176 |         for (key, _) in entries.into_iter().take(to_remove) {
+    |                         ----------------------------------- immutable borrow later used 
+here
+177 |             self.entries.remove(key);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+warning: unused variable: `reader`
+   --> src\swarm_ai\p2p_swarm.rs:283:14
+    |
+283 |         let (mut reader, mut writer) = socket.into_split();
+    |              ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_reader`
+
+warning: unused variable: `peer_id`
+   --> src\swarm_ai\p2p_swarm.rs:363:25
+    |
+363 |             if let Some(peer_id) = assignments.get(&layer_idx) {
+    |                         ^^^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_peer_id`
+
+warning: unused variable: `variance`
+   --> src\swarm_ai\p2p_swarm.rs:396:17
+    |
+396 |             let variance = context.iter()
+    |                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_variance`
+
+error[E0716]: temporary value dropped while borrowed
+  --> src\embedded_llm\backends.rs:67:23
+   |
+57 |     async fn infer_stream_boxed(
+   |         - borrow might be used here, when `callback` is dropped and runs the destructor 
+for type `Box<dyn FnMut(&str) + std::marker::Send>`
+...
+67 |             callback(&format!("{} ", word));
+   |                       ^^^^^^^^^^^^^^^^^^^^ - temporary value is freed at the end of this 
+statement
+   |                       |
+   |                       creates a temporary value which is freed while still in use
+   |
+   = note: consider using a `let` binding to create a longer lived value
+   = note: this error originates in the macro `format` (in Nightly builds, run with -Z 
+macro-backtrace for more info)
+
+warning: unused variable: `request`
+   --> src\embedded_llm\backends.rs:256:31
+    |
+256 |     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
+    |                               ^^^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_request`
+
+error[E0716]: temporary value dropped while borrowed
+   --> src\embedded_llm\backends.rs:277:23
+    |
+270 |     async fn infer_stream_boxed(
+    |         - borrow might be used here, when `callback` is dropped and runs the destructor 
+for type `Box<dyn FnMut(&str) + std::marker::Send>`
+...
+277 |             callback(&format!("{} ", word));
+    |                       ^^^^^^^^^^^^^^^^^^^^ - temporary value is freed at the end of this 
+statement
+    |                       |
+    |                       creates a temporary value which is freed while still in use
+    |
+    = note: consider using a `let` binding to create a longer lived value
+    = note: this error originates in the macro `format` (in Nightly builds, run with -Z 
+macro-backtrace for more info)
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+   --> src\embedded_llm\model_manager.rs:101:17
+    |
+ 96 |         for path_str in &self.model_paths {
+    |                         -----------------
+    |                         |
+    |                         immutable borrow occurs here
+    |                         immutable borrow later used here
+...
+101 |                 self.scan_directory(&path)?;
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> src\embedded_llm\context_cache.rs:45:21
+   |
+40 |         if let Some(cached) = self.cache.get(key) {
+   |                               ---------- immutable borrow occurs here
+...
+45 |                     self.touch(key);
+   |                     ^^^^^^^^^^^^^^^ mutable borrow occurs here
+46 |                     return Some(cached.clone());
+   |                                 ------ immutable borrow later used here
+
+warning: unused variable: `start`
+   --> src\embedded_llm\real_inference.rs:224:13
+    |
+224 |         let start = Instant::now();
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_start`
+
+error[E0502]: cannot borrow `self.vocabulary` as immutable because it is also borrowed as 
+mutable
+   --> src\rag\embeddings.rs:188:59
+    |
+188 |             self.vocabulary.entry(term.clone()).or_insert(self.vocabulary.len());
+    |             ---------------                     --------- ^^^^^^^^^^^^^^^ immutable 
+borrow occurs here
+    |             |                                   |
+    |             |                                   mutable borrow later used by call
+    |             mutable borrow occurs here
+
+warning: unused variable: `embedder`
+   --> src\rag\embeddings.rs:398:19
+    |
+398 | pub fn embed_code(embedder: &dyn Embedder, code: &str, language: &str) -> 
+anyhow::Result<EmbeddingResult> {
+    |                   ^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_embedder`
+
+warning: unused variable: `language`
+   --> src\rag\embeddings.rs:398:56
+    |
+398 | pub fn embed_code(embedder: &dyn Embedder, code: &str, language: &str) -> 
+anyhow::Result<EmbeddingResult> {
+    |                                                        ^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `text`
+   --> src\rag\mod.rs:244:40
+    |
+244 |     async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
+    |                                        ^^^^ help: if this is intentional, prefix it with 
+an underscore: `_text`
+
+error[E0382]: use of partially moved value: `operation`
+   --> src\git_crdt\yjs_adapter.rs:101:39
+    |
+ 83 |             Operation::Insert { position, text, .. } => {
+    |                                           ---- value partially moved here
+...
+101 |         self.document.operations.push(operation);
+    |                                       ^^^^^^^^^ value used here after partial move
+    |
+    = note: partial move occurs because value has type `std::string::String`, which does not 
+implement the `Copy` trait
+help: borrow this binding in the pattern to avoid moving the value
+    |
+ 83 |             Operation::Insert { position, ref text, .. } => {
+    |                                           +++
+
+warning: unused variable: `prompt`
+   --> src\git_crdt\ai_merge.rs:107:41
+    |
+107 |     async fn generate_resolution(&self, prompt: &str, conflict: &MergeConflict) -> 
+Result<MergeSuggestion> {
+    |                                         ^^^^^^ help: if this is intentional, prefix it 
+with an underscore: `_prompt`
+
+warning: unused variable: `user_id`
+   --> src\git_crdt\mod.rs:116:59
+    |
+116 |     pub async fn create_session(&self, document_id: &str, user_id: &str) -> 
+Result<String> {
+    |                                                           ^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_user_id`
+
+warning: unused variable: `session_id`
+   --> src\git_crdt\mod.rs:194:42
+    |
+194 |     pub async fn resolve_conflict(&self, session_id: &str, conflict: &MergeConflict) -> 
+Result<String> {
+    |                                          ^^^^^^^^^^ help: if this is intentional, prefix 
+it with an underscore: `_session_id`
+
+warning: variable does not need to be mutable
+   --> src\update\delta.rs:133:13
+    |
+133 |         let mut old_pos = 0usize;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `old_pos`
+   --> src\update\delta.rs:133:13
+    |
+133 |         let mut old_pos = 0usize;
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_old_pos`
+
+warning: unused variable: `context`
+  --> src\plugin_sandbox\runtime.rs:41:32
+   |
+41 |     pub fn activate(&mut self, context: &PluginContext) -> Result<()> {
+   |                                ^^^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_context`
+
+warning: unused variable: `command`
+  --> src\plugin_sandbox\runtime.rs:84:31
+   |
+84 |     pub fn execute(&mut self, command: &str, args: &serde_json::Value) -> 
+Result<serde_json::Value> {
+   |                               ^^^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_command`
+
+warning: unused variable: `args`
+  --> src\plugin_sandbox\runtime.rs:84:46
+   |
+84 |     pub fn execute(&mut self, command: &str, args: &serde_json::Value) -> 
+Result<serde_json::Value> {
+   |                                              ^^^^ help: if this is intentional, prefix it 
+with an underscore: `_args`
+
+error[E0502]: cannot borrow `*self` as immutable because it is also borrowed as mutable
+   --> src\plugin_sandbox\mod.rs:294:9
+    |
+290 |         let plugin = self.plugins.get_mut(plugin_id)
+    |                      ------------ mutable borrow occurs here
+...
+294 |         self.check_capability(plugin_id, command)?;
+    |         ^^^^ immutable borrow occurs here
+295 |         
+296 |         plugin.execute(command, args)
+    |         ------ mutable borrow later used here
+
+warning: variable does not need to be mutable
+   --> src\accessibility\mod.rs:114:13
+    |
+114 |         let mut config = AccessibilityConfig::default();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable `stack` is assigned to, but never used
+  --> src\benchmark\lsp_perf.rs:72:13
+   |
+72 |         let mut stack = 0;
+   |             ^^^^^^^^^
+   |
+   = note: consider using `_stack` instead
+
+warning: value assigned to `stack` is never read
+  --> src\benchmark\lsp_perf.rs:75:36
+   |
+75 |                 '(' | '[' | '{' => stack += 1,
+   |                                    ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `stack` is never read
+  --> src\benchmark\lsp_perf.rs:76:36
+   |
+76 |                 ')' | ']' | '}' => stack -= 1,
+   |                                    ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+error[E0596]: cannot borrow `self.keybindings` as mutable, as it is behind a `&` reference
+   --> src\vscode_compat\commands.rs:368:13
+    |
+368 |             self.keybindings.entry(key.clone())
+    |             ^^^^^^^^^^^^^^^^ `self` is a `&` reference, so it cannot be borrowed as 
+mutable
+    |
+help: consider changing this to be a mutable reference
+    |
+363 |     pub fn register_command(&mut self, command: RegisteredCommand) {
+    |                              +++
+
+warning: unused variable: `stdin`
+   --> src\vscode_compat\extension_host.rs:172:13
+    |
+172 |         let stdin = child.stdin.take().context("Failed to get stdin")?;
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_stdin`
+
+error[E0502]: cannot borrow `*self` as immutable because it is also borrowed as mutable
+   --> src\vscode_compat\extension_host.rs:572:12
+    |
+562 |         let extension = self.extensions.get_mut(extension_id)
+    |                         --------------- mutable borrow occurs here
+...
+572 |         if self.should_activate(&extension.manifest) {
+    |            ^^^^                 ------------------- mutable borrow later used here
+    |            |
+    |            immutable borrow occurs here
+
+warning: unused variable: `version`
+   --> src\vscode_compat\marketplace.rs:251:65
+    |
+251 |     pub async fn get_readme(&self, publisher: &str, name: &str, version: &str) -> 
+Result<String> {
+    |                                                                 ^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_version`
+
+error[E0507]: cannot move out of `self.state` which is behind a shared reference
+   --> src\vscode_compat\mod.rs:386:20
+    |
+386 |             state: self.state,
+    |                    ^^^^^^^^^^ move occurs because `self.state` has type 
+`extension_host::ExtensionState`, which does not implement the `Copy` trait
+    |
+help: consider cloning the value if the performance cost is acceptable
+    |
+386 |             state: self.state.clone(),
+    |                              ++++++++
+
+warning: unused variable: `query`
+  --> src\extensions\registry.rs:27:32
+   |
+27 |     pub async fn search(&self, query: &str) -> anyhow::Result<Vec<ExtensionMetadata>> {
+   |                                ^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_query`
+
+warning: unused variable: `metadata`
+   --> src\extensions\registry.rs:108:44
+    |
+108 |     pub async fn download_extension(&self, metadata: &ExtensionMetadata, dest: &Path) -> 
+anyhow::Result<()> {
+    |                                            ^^^^^^^^ help: if this is intentional, prefix 
+it with an underscore: `_metadata`
+
+warning: unused variable: `query`
+  --> src\extensions\github_marketplace.rs:45:32
+   |
+45 |     pub async fn search(&self, query: &str) -> anyhow::Result<Vec<GitHubExtension>> {
+   |                                ^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_query`
+
+warning: unused variable: `owner`
+   --> src\extensions\github_marketplace.rs:103:38
+    |
+103 |     pub async fn get_versions(&self, owner: &str, repo: &str) -> 
+anyhow::Result<Vec<ExtensionVersion>> {
+    |                                      ^^^^^ help: if this is intentional, prefix it with 
+an underscore: `_owner`
+
+warning: unused variable: `repo`
+   --> src\extensions\github_marketplace.rs:103:51
+    |
+103 |     pub async fn get_versions(&self, owner: &str, repo: &str) -> 
+anyhow::Result<Vec<ExtensionVersion>> {
+    |                                                   ^^^^ help: if this is intentional, 
+prefix it with an underscore: `_repo`
+
+warning: unused variable: `owner`
+   --> src\extensions\github_marketplace.rs:117:34
+    |
+117 |     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> 
+anyhow::Result<Vec<u8>> {
+    |                                  ^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_owner`
+
+warning: unused variable: `repo`
+   --> src\extensions\github_marketplace.rs:117:47
+    |
+117 |     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> 
+anyhow::Result<Vec<u8>> {
+    |                                               ^^^^ help: if this is intentional, prefix 
+it with an underscore: `_repo`
+
+warning: unused variable: `version`
+   --> src\extensions\github_marketplace.rs:117:59
+    |
+117 |     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> 
+anyhow::Result<Vec<u8>> {
+    |                                                           ^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_version`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:422:68
+    |
+422 |     async fn compute_diagnostics(&self, _uri: &Url, content: &str, language_id: &str) -> 
+Vec<Diagnostic> {
+    |                                                                    ^^^^^^^^^^^ help: if 
+this is intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:795:51
+    |
+795 |     async fn get_references(&self, content: &str, language_id: &str, position: Position) 
+-> Vec<Location> {
+    |                                                   ^^^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:956:53
+    |
+956 |     async fn get_rename_edits(&self, content: &str, language_id: &str, position: 
+Position, new_name: &str) -> Vec<TextEdit> {
+    |                                                     ^^^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:550:32
+    |
+550 |     fn rust_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                                ^^^^^^^^^^^ help: if this is intentional, prefix it with 
+an underscore: `_text_before`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:564:34
+    |
+564 |     fn python_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                                  ^^^^^^^^^^^ help: if this is intentional, prefix it 
+with an underscore: `_text_before`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:578:33
+    |
+578 |     fn js_ts_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                                 ^^^^^^^^^^^ help: if this is intentional, prefix it with 
+an underscore: `_text_before`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:592:30
+    |
+592 |     fn go_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                              ^^^^^^^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_text_before`
+
+warning: unused variable: `request`
+  --> src\debug\server.rs:92:43
+   |
+92 |     async fn handle_initialize(&mut self, request: &Request) -> Result<serde_json::Value> 
+{
+   |                                           ^^^^^^^ help: if this is intentional, prefix it 
+with an underscore: `_request`
+
+warning: unused variable: `request`
+   --> src\debug\server.rs:121:39
+    |
+121 |     async fn handle_launch(&mut self, request: &Request) -> Result<serde_json::Value> {
+    |                                       ^^^^^^^ help: if this is intentional, prefix it 
+with an underscore: `_request`
+
+error[E0382]: borrow of moved value: `identity`
+   --> src\trust\mod.rs:215:23
+    |
+208 |     pub fn register_agent(&mut self, identity: AgentIdentity) {
+    |                                      -------- move occurs because `identity` has type 
+`AgentIdentity`, which does not implement the `Copy` trait
+209 |         self.agents.insert(identity.id.clone(), identity);
+    |                                                 -------- value moved here
+...
+215 |                 name: identity.name.clone(),
+    |                       ^^^^^^^^^^^^^ value borrowed here after move
+    |
+help: consider cloning the value if the performance cost is acceptable
+    |
+209 |         self.agents.insert(identity.id.clone(), identity.clone());
+    |                                                         ++++++++
+
+warning: unused variable: `has_cuda`
+   --> src\quality\mod.rs:144:57
+    |
+144 |     fn determine_tier(&self, ram_mb: u64, vram_mb: u64, has_cuda: bool, has_metal: bool) 
+-> ExperienceTier {
+    |                                                         ^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_has_cuda`
+
+warning: unused variable: `path`
+  --> src\autonomous\verifier.rs:62:13
+   |
+62 |         let path = Path::new(file_path);
+   |             ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `project_path`
+   --> src\autonomous\mod.rs:193:56
+    |
+193 |     async fn create_plan(&mut self, description: &str, project_path: &str) -> 
+Result<ExecutionPlan, String> {
+    |                                                        ^^^^^^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_project_path`
+
+warning: unused variable: `description`
+   --> src\autonomous\mod.rs:217:42
+    |
+217 |     async fn decompose_into_tasks(&self, description: &str) -> Result<Vec<Task>, String> 
+{
+    |                                          ^^^^^^^^^^^ help: if this is intentional, 
+prefix it with an underscore: `_description`
+
+warning: unused variable: `path`
+  --> src\inference\model.rs:54:23
+   |
+54 | fn load_gguf_metadata(path: &Path) -> Result<ModelMetadata> {
+   |                       ^^^^ help: if this is intentional, prefix it with an underscore: 
+`_path`
+
+warning: unused variable: `path`
+  --> src\inference\model.rs:67:30
+   |
+67 | fn load_safetensors_metadata(path: &Path) -> Result<ModelMetadata> {
+   |                              ^^^^ help: if this is intentional, prefix it with an 
+underscore: `_path`
+
+warning: unused variable: `path`
+  --> src\inference\model.rs:80:26
+   |
+80 | fn load_pytorch_metadata(path: &Path) -> Result<ModelMetadata> {
+   |                          ^^^^ help: if this is intentional, prefix it with an underscore: 
+`_path`
+
+warning: unused variable: `model`
+   --> src\inference\mod.rs:180:13
+    |
+180 |         let model = model.read().await;
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_model`
+
+warning: unused variable: `text`
+   --> src\inference\mod.rs:595:31
+    |
+595 |     pub async fn embed(&self, text: &str) -> Result<Vec<f32>> {
+    |                               ^^^^ help: if this is intentional, prefix it with an 
+underscore: `_text`
+
+warning: unused variable: `end`
+  --> src\buffer\edit.rs:38:33
+   |
+38 |     pub fn delete(start: usize, end: usize, deleted: String) -> Self {
+   |                                 ^^^ help: if this is intentional, prefix it with an 
+underscore: `_end`
+
+warning: unused variable: `end`
+  --> src\buffer\edit.rs:49:34
+   |
+49 |     pub fn replace(start: usize, end: usize, text: String, deleted: String) -> Self {
+   |                                  ^^^ help: if this is intentional, prefix it with an 
+underscore: `_end`
+
+warning: variable does not need to be mutable
+   --> src\buffer\edit.rs:138:17
+    |
+138 |             let mut offset = 0i64;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+error[E0515]: cannot return value referencing local variable `entries`
+   --> src\auth\audit.rs:121:9
+    |
+121 |         entries.iter().rev().take(limit).collect()
+    |         -------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         |
+    |         returns a value referencing data owned by the current function
+    |         `entries` is borrowed here
+
+warning: unused variable: `query`
+  --> src\chat_sidebar\context_builder.rs:27:9
+   |
+27 |         query: &str,
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_query`
+
+warning: unused variable: `word_count`
+   --> src\chat_sidebar\context_builder.rs:213:13
+    |
+213 |         let word_count = text.split_whitespace().count();
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_word_count`
+
+warning: unused variable: `result`
+   --> src\agent_editor\agent.rs:440:20
+    |
+440 |                 Ok(result) => {
+    |                    ^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_result`
+
+warning: unused variable: `context`
+   --> src\agent_editor\agent.rs:482:53
+    |
+482 |     fn validate_action(&self, action: &AgentAction, context: &AgentContext) -> 
+anyhow::Result<()> {
+    |                                                     ^^^^^^^ help: if this is 
+intentional, prefix it with an underscore: `_context`
+
+warning: unreachable pattern
+   --> src\agent_editor\tools.rs:212:17
+    |
+195 |                 "rs" => "rust",
+    |                 ---- matches all the relevant values
+...
+212 |                 "rs" => "rust",
+    |                 ^^^^ no value can reach this
+    |
+    = note: `#[warn(unreachable_patterns)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `meta`
+   --> src\agent_editor\executor.rs:203:33
+    |
+203 |                     if let Some(meta) = &rollback.original_metadata {
+    |                                 ^^^^ help: if this is intentional, prefix it with an 
+underscore: `_meta`
+
+warning: variable does not need to be mutable
+   --> src\agent_editor\executor.rs:236:17
+    |
+236 |             let mut current_start = hunk.new_start;
+    |                 ----^^^^^^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: unused variable: `context`
+   --> src\agent_editor\planner.rs:242:70
+    |
+242 |     pub fn plan_quick_fix(&self, file_path: &str, description: &str, context: 
+&AgentContext) -> ExecutionPlan {
+    |                                                                      ^^^^^^^ help: if 
+this is intentional, prefix it with an underscore: `_context`
+
+warning: unused variable: `query`
+   --> src\agent_store\mod.rs:142:43
+    |
+142 |     pub async fn search_github(&mut self, query: &str) -> 
+anyhow::Result<Vec<AgentDefinition>> {
+    |                                           ^^^^^ help: if this is intentional, prefix it 
+with an underscore: `_query`
+
+warning: unused variable: `message_tx`
+   --> src\p2p\webrtc.rs:279:9
+    |
+279 |         message_tx: &mpsc::Sender<PeerMessage>,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: 
+`_message_tx`
+
+warning: unused variable: `shutdown_rx`
+   --> src\p2p\mod.rs:214:27
+    |
+214 |         let (shutdown_tx, mut shutdown_rx) = mpsc::channel(1);
+    |                           ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with 
+an underscore: `_shutdown_rx`
+
+warning: unused variable: `message_rx`
+   --> src\p2p\mod.rs:281:22
+    |
+281 |         let (webrtc, mut message_rx) = WebRTCManager::new(
+    |                      ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an 
+underscore: `_message_rx`
+
+Some errors have detailed explanations: E0061, E0063, E0107, E0271, E0277, E0282, E0308, 
+E0369, E0382...
+For more information about an error, try `rustc --explain E0061`.
+warning: `kyro-ide` (lib) generated 283 warnings
+error: could not compile `kyro-ide` (lib) due to 124 previous errors; 283 warnings emitted

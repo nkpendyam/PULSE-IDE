@@ -1,0 +1,223 @@
+name: Kyro IDE CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Lint and Format Check
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Check Formatting
+        working-directory: src-tauri
+        run: cargo fmt -- --check
+      
+      - name: Clippy Lint
+        working-directory: src-tauri
+        run: cargo clippy --all-features -- -D warnings
+
+  # Unit Tests
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run Tests
+        working-directory: src-tauri
+        run: cargo test --all-features --lib --tests
+
+  # Security Audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+      
+      - name: Run Security Audit
+        working-directory: src-tauri
+        run: cargo audit
+
+  # Build Verification (Reproducible)
+  reproducible:
+    name: Reproducible Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build Release
+        working-directory: src-tauri
+        run: cargo build --release
+      
+      - name: Generate Build Hash
+        working-directory: src-tauri
+        run: |
+          if [ -f target/release/kyro-ide ]; then
+            sha256sum target/release/kyro-ide > build.hash
+          elif [ -f target/release/libkyro_ide.so ]; then
+            sha256sum target/release/libkyro_ide.so > build.hash
+          else
+            echo "No release binary found, generating hash from lib"
+            sha256sum target/release/*.rlib > build.hash || echo "no-binary" > build.hash
+          fi
+          echo "Build hash: $(cat build.hash)"
+      
+      - name: Upload Build Hash
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-hash
+          path: src-tauri/build.hash
+
+  # Code Coverage
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      
+      - name: Install cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
+      
+      - name: Generate Coverage
+        working-directory: src-tauri
+        run: cargo llvm-cov --all-features --lcov --output-path lcov.info --lib --tests
+      
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: src-tauri/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Documentation
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build Documentation
+        working-directory: src-tauri
+        run: cargo doc --no-deps --all-features
+      
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: src-tauri/target/doc

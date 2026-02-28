@@ -1,0 +1,14 @@
+/home/z/my-project/src-tauri/target/debug/deps/mac-76b068f6e4f17d06.d: /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/lib.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/test.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/mem.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/format.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/syntax_ext.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/matches.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/inspect.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/cfg.rs
+
+/home/z/my-project/src-tauri/target/debug/deps/libmac-76b068f6e4f17d06.rlib: /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/lib.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/test.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/mem.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/format.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/syntax_ext.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/matches.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/inspect.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/cfg.rs
+
+/home/z/my-project/src-tauri/target/debug/deps/libmac-76b068f6e4f17d06.rmeta: /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/lib.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/test.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/mem.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/format.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/syntax_ext.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/matches.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/inspect.rs /home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/cfg.rs
+
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/lib.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/test.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/mem.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/format.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/syntax_ext.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/matches.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/inspect.rs:
+/home/z/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/mac-0.1.1/src/cfg.rs:
