@@ -1,11 +1,20 @@
 //! AI Integration for KYRO IDE
+//!
+//! This module provides multiple AI backends:
+//! - Local inference via llama.cpp
+//! - HTTP-based inference (Ollama, LM Studio, vLLM)
+//! - Cloud API fallback
+//!
+//! Priority: Local > HTTP Local > Cloud API
 
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
 pub mod quality_gate;
+pub mod real_ai_service;
 
 pub use quality_gate::{AiQualityGate, QualityGateConfig, QualityGateResult, QualityContext};
+pub use real_ai_service::{AiService, AiBackendConfig, CompletionRequest, CompletionResponse, ConversationMessage};
 
 pub struct AiClient {
     pub client: Client,

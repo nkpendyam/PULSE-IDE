@@ -1,7 +1,12 @@
 //! Real LLM Inference using llama.cpp
 //!
-//! This module provides actual GGUF model inference using the llama-cpp-rs crate.
+//! This module provides actual GGUF model inference using multiple backends.
 //! Supports CPU, CUDA, Metal, and Vulkan backends.
+//!
+//! ## Backends
+//! - `llama-cpp` feature: Direct llama.cpp bindings
+//! - Candle: HuggingFace Candle framework
+//! - HTTP fallback: Ollama, LM Studio, vLLM
 
 use anyhow::{Result, Context, bail};
 use std::path::{Path, PathBuf};
@@ -13,9 +18,11 @@ use std::time::Instant;
 #[cfg(feature = "llama-cpp")]
 use llama_cpp::{
     LlamaContext, LlamaModel, LlamaParams, SessionParams,
-   _standard_sampler::StandardSampler,
-    models::ModelLoadingError,
+    standard_sampler::StandardSampler,
 };
+
+#[cfg(feature = "candle-inference")]
+use candle_core::Device;
 
 use super::{
     EmbeddedLLMConfig, InferenceRequest, InferenceResponse, 

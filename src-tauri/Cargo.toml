@@ -119,9 +119,14 @@ flate2 = "1.0"
 wasmtime = { version = "20", optional = true, default-features = false, features = ["cranelift", "pooling-allocator"] }
 
 # ============ Embedded LLM (llama.cpp) ============
-# Real GGUF model inference - commented out due to version conflict with tree-sitter 0.24
-# Will be replaced by AirLLM integration in Phase 3
-# llama_cpp = { version = "0.3", features = ["static"], optional = true }
+# Real GGUF model inference using candle (HuggingFace)
+candle-core = { version = "0.4", optional = true }
+candle-nn = { version = "0.4", optional = true }
+candle-transformers = { version = "0.4", optional = true }
+tokenizers = { version = "0.15", optional = true }
+
+# Alternative: llama-cpp bindings
+llama-cpp = { version = "0.3", optional = true, default-features = false, features = ["std"] }
 
 # ============ DAP (Debug Adapter Protocol) ============
 dap = "0.4.1-alpha1"  # Debug Adapter Protocol types and client
@@ -191,15 +196,8 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
-# ============ Platform-Specific Static Linking ============
-
-# Linux MUSL static binary
-[target.x86_64-unknown-linux-musl]
-linker = "x86_64-linux-musl-gcc"
-
-# Windows MinGW static
-[target.x86_64-pc-windows-gnu]
-linker = "x86_64-w64-mingw32-gcc"
+# ============ Platform-Specific Static Linking (via .cargo/config.toml) ============
+# Note: Linker configuration should be in .cargo/config.toml, not Cargo.toml
 
 # ============ Features ============
 
@@ -207,11 +205,14 @@ linker = "x86_64-w64-mingw32-gcc"
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
-# Embedded LLM (llama.cpp static linking) - disabled pending AirLLM migration
-# embedded-llm = ["llama_cpp"]
+# Embedded LLM (llama.cpp) - REAL implementation
+llama-cpp = ["dep:llama-cpp"]
 
-# Candle ML framework (alternative inference)
-candle-inference = []
+# Candle ML framework (HuggingFace inference)
+candle-inference = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:tokenizers"]
+
+# Full local AI support
+local-ai = ["llama-cpp", "candle-inference"]
 
 # WASM Plugin System
 wasm-plugins = ["wasmtime"]

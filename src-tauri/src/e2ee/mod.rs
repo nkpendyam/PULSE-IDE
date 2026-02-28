@@ -10,12 +10,14 @@
 //! - Post-quantum ready (X448 support)
 
 use serde::{Deserialize, Serialize};
-use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret, StaticSecret};
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, aead::{Aead, KeyInit, OsRng}};
+use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
+use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, aead::{Aead, KeyInit}};
 use hkdf::Hkdf;
 use sha2::Sha256;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use rand::rngs::OsRng;
+use rand::RngCore;
 
 pub mod double_ratchet;
 pub mod key_exchange;
