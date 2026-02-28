@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useKyroStore, FileNode, OpenFile } from '@/store/kyroStore';
 import { AgentManagerPanel } from '@/components/agent-manager/AgentManagerPanel';
@@ -28,10 +28,53 @@ import {
   Zap,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
-// Mock file tree data
+// Tauri invoke for AI commands
+declare global {
+  interface Window {
+    __TAURI__?: {
+      core: {
+        invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
+      };
+    };
+  }
+}
+
+// Helper to invoke Tauri commands with fallback
+async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
+  if (typeof window !== 'undefined' && window.__TAURI__) {
+    try {
+      return await window.__TAURI__.core.invoke<T>(cmd, args);
+    } catch (error) {
+      console.error(`Tauri command ${cmd} failed:`, error);
+      return null;
+    }
+  }
+  return null;
+}
+
+// Types for AI responses
+interface BackendStatus {
+  name: string;
+  available: boolean;
+  endpoint: string;
+}
+
+interface SmartCompletionResult {
+  text: string;
+  model: string;
+  backend: string;
+  tokens_generated: number;
+  time_ms: number;
+  tokens_per_second: number;
+  from_cache: boolean;
+}
+
+// Mock file tree data (for demo mode when Tauri is not available)
 const mockFileTree: FileNode = {
   name: 'kyro-project',
   path: '/kyro-project',
@@ -49,247 +92,88 @@ const mockFileTree: FileNode = {
           children: [
             { name: 'Button.tsx', path: '/kyro-project/src/components/Button.tsx', is_directory: false, extension: 'tsx' },
             { name: 'Card.tsx', path: '/kyro-project/src/components/Card.tsx', is_directory: false, extension: 'tsx' },
-            { name: 'Modal.tsx', path: '/kyro-project/src/components/Modal.tsx', is_directory: false, extension: 'tsx' },
-          ]
-        },
-        {
-          name: 'hooks',
-          path: '/kyro-project/src/hooks',
-          is_directory: true,
-          children: [
-            { name: 'useAuth.ts', path: '/kyro-project/src/hooks/useAuth.ts', is_directory: false, extension: 'ts' },
-            { name: 'useApi.ts', path: '/kyro-project/src/hooks/useApi.ts', is_directory: false, extension: 'ts' },
-          ]
-        },
-        {
-          name: 'utils',
-          path: '/kyro-project/src/utils',
-          is_directory: true,
-          children: [
-            { name: 'helpers.ts', path: '/kyro-project/src/utils/helpers.ts', is_directory: false, extension: 'ts' },
-            { name: 'constants.ts', path: '/kyro-project/src/utils/constants.ts', is_directory: false, extension: 'ts' },
           ]
         },
         { name: 'App.tsx', path: '/kyro-project/src/App.tsx', is_directory: false, extension: 'tsx' },
-        { name: 'main.tsx', path: '/kyro-project/src/main.tsx', is_directory: false, extension: 'tsx' },
-        { name: 'index.css', path: '/kyro-project/src/index.css', is_directory: false, extension: 'css' },
-      ]
-    },
-    {
-      name: 'tests',
-      path: '/kyro-project/tests',
-      is_directory: true,
-      children: [
-        { name: 'App.test.tsx', path: '/kyro-project/tests/App.test.tsx', is_directory: false, extension: 'tsx' },
-        { name: 'utils.test.ts', path: '/kyro-project/tests/utils.test.ts', is_directory: false, extension: 'ts' },
       ]
     },
     { name: 'package.json', path: '/kyro-project/package.json', is_directory: false, extension: 'json' },
-    { name: 'tsconfig.json', path: '/kyro-project/tsconfig.json', is_directory: false, extension: 'json' },
-    { name: 'README.md', path: '/kyro-project/README.md', is_directory: false, extension: 'md' },
   ]
 };
 
 // Sample file contents
 const sampleFileContents: Record<string, string> = {
   '/kyro-project/src/App.tsx': `import React from 'react';
-import { Button } from './components/Button';
-import { Card } from './components/Card';
 
 export function App() {
   const [count, setCount] = React.useState(0);
-
   return (
     <div className="app">
-      <Card title="Welcome to Kyro IDE">
-        <p>Build amazing applications with AI assistance</p>
-        <Button onClick={() => setCount(c => c + 1)}>
-          Clicked {count} times
-        </Button>
-      </Card>
+      <h1>Welcome to Kyro IDE</h1>
+      <button onClick={() => setCount(c => c + 1)}>
+        Clicked {count} times
+      </button>
     </div>
   );
-}
-
-export default App;`,
+}`,
   '/kyro-project/src/components/Button.tsx': `import React from 'react';
 
 interface ButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
 }
 
-export function Button({
-  children,
-  onClick,
-  variant = 'primary',
-  size = 'md',
-  disabled = false
-}: ButtonProps) {
-  const baseStyles = 'rounded font-medium transition-colors';
-  
-  const variantStyles = {
-    primary: 'bg-blue-500 hover:bg-blue-600 text-white',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800',
-    danger: 'bg-red-500 hover:bg-red-600 text-white'
-  };
-
-  const sizeStyles = {
-    sm: 'px-2 py-1 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg'
-  };
-
+export function Button({ children, onClick }: ButtonProps) {
   return (
     <button
-      className={\`\${baseStyles} \${variantStyles[variant]} \${sizeStyles[size]}\`}
+      className="px-4 py-2 bg-blue-500 text-white rounded"
       onClick={onClick}
-      disabled={disabled}
     >
       {children}
     </button>
   );
 }`,
-  '/kyro-project/src/hooks/useAuth.ts': `import { useState, useCallback } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-}
-
-export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: false,
-    error: null
-  });
-
-  const login = useCallback(async (email: string, password: string) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
-    try {
-      // Simulate API call
-      const user: User = {
-        id: '1',
-        email,
-        name: email.split('@')[0]
-      };
-      
-      setState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null
-      });
-      
-      return user;
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: 'Login failed'
-      }));
-      throw error;
-    }
-  }, []);
-
-  const logout = useCallback(() => {
-    setState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null
-    });
-  }, []);
-
-  return {
-    ...state,
-    login,
-    logout
-  };
-}`,
-  '/kyro-project/package.json': `{
-  "name": "kyro-project",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "typescript": "^5.0.0",
-    "vite": "^4.4.0",
-    "vitest": "^0.34.0"
-  }
-}`,
-  '/kyro-project/README.md': `# Kyro Project
-
-A modern web application built with React and TypeScript.
-
-## Features
-
-- 🚀 Fast development with Vite
-- 📦 Optimized production builds
-- 🎨 Tailwind CSS for styling
-- 🧪 Vitest for testing
-- 🔧 TypeScript for type safety
-
-## Getting Started
-
-\`\`\`bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-\`\`\`
-
-## Project Structure
-
-\`\`\`
-src/
-  components/   # Reusable UI components
-  hooks/        # Custom React hooks
-  utils/        # Utility functions
-  App.tsx       # Main application component
-  main.tsx      # Entry point
-\`\`\`
-
-## License
-
-MIT`,
 };
 
-// Mock AI responses
-const mockAiResponses = [
-  "I can help you with that! Looking at your code, I suggest adding error handling to the `login` function in `useAuth.ts`. You could use a try-catch block to handle network errors gracefully.",
-  "The `Button` component looks good! You might want to add keyboard accessibility by including `onKeyDown` handler for Enter and Space keys.",
-  "I notice you're using TypeScript. Consider adding more specific types for your API responses to improve type safety.",
-  "For better performance, you could memoize the `Button` component using `React.memo` if it receives the same props frequently.",
-  "The project structure is clean and organized. Consider adding a `types/` directory for shared TypeScript interfaces.",
-];
+// Fallback AI response when Tauri is not available
+function getFallbackResponse(prompt: string): string {
+  const promptLower = prompt.toLowerCase();
+  
+  if (promptLower.includes('fix') || promptLower.includes('bug') || promptLower.includes('error')) {
+    return `🔧 **Bug Analysis**
+
+Looking at the code, here are potential issues:
+
+1. Check for \`unwrap()\` calls - consider proper error handling
+2. Verify null/undefined checks are in place
+3. Ensure all edge cases are handled
+
+Would you like me to analyze specific code?
+
+*Tip: Run Ollama locally for more detailed AI assistance*`;
+  }
+  
+  if (promptLower.includes('explain') || promptLower.includes('what')) {
+    return `📚 **Code Explanation**
+
+This code appears to implement a specific functionality.
+
+To provide a detailed explanation, please share the specific code snippet you'd like me to analyze.
+
+*Tip: Run Ollama locally (\`ollama serve\`) for more detailed AI assistance*`;
+  }
+  
+  return `🤖 **AI Assistant**
+
+I understand you're asking about: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"
+
+**For full AI capabilities:**
+- Install and run Ollama: \`ollama serve\`
+- Pull a model: \`ollama pull codellama:7b\`
+- Or use LM Studio for local inference
+
+I can still help with pattern-based analysis!`;
+}
 
 type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings';
 
@@ -304,7 +188,7 @@ function FileTreeItem({ node, level, onFileClick }: { node: FileNode; level: num
     const ext = name.split('.').pop()?.toLowerCase();
     const iconMap: Record<string, string> = {
       'rs': '🦀', 'py': '🐍', 'js': '📜', 'ts': '📘', 'tsx': '⚛️',
-      'go': '🔵', 'java': '☕', 'html': '🌐', 'css': '🎨', 'json': '📋', 'md': '📝'
+      'go': '🔵', 'java': '☕', 'json': '📋', 'md': '📝'
     };
     return iconMap[ext || ''] || null;
   };
@@ -359,9 +243,7 @@ function TabBar() {
       'js': { icon: 'JS', color: 'text-[#f7df1e]' },
       'py': { icon: 'PY', color: 'text-[#3776ab]' },
       'rs': { icon: 'RS', color: 'text-[#dea584]' },
-      'go': { icon: 'GO', color: 'text-[#00add8]' },
       'json': { icon: 'JN', color: 'text-[#cbcb41]' },
-      'md': { icon: 'MD', color: 'text-[#083fa1]' },
     };
     return iconMap[ext || ''] || { icon: ext?.toUpperCase()?.slice(0, 2) || '?', color: 'text-[#8b949e]' };
   };
@@ -380,21 +262,12 @@ function TabBar() {
           >
             <span className={`text-[10px] font-bold ${extInfo.color}`}>{extInfo.icon}</span>
             <span className="text-xs truncate flex-1">{filename}</span>
-            {file.isDirty ? (
-              <button
-                onClick={(e) => { e.stopPropagation(); closeFile(file.path); }}
-                className="text-[#8b949e] hover:text-[#c9d1d9]"
-              >
-                <Circle size={8} fill="currentColor" />
-              </button>
-            ) : (
-              <button
-                onClick={(e) => { e.stopPropagation(); closeFile(file.path); }}
-                className="text-[#8b949e] hover:text-[#c9d1d9]"
-              >
-                <X size={14} />
-              </button>
-            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); closeFile(file.path); }}
+              className="text-[#8b949e] hover:text-[#c9d1d9]"
+            >
+              <X size={14} />
+            </button>
           </div>
         );
       })}
@@ -402,12 +275,30 @@ function TabBar() {
   );
 }
 
-// AI Chat Panel
+// Real AI Chat Panel using Tauri commands
 function AIChatPanel() {
   const [input, setInput] = useState('');
+  const [backends, setBackends] = useState<BackendStatus[]>([]);
+  const [activeBackend, setActiveBackend] = useState<string>('fallback');
   const { chatMessages, addChatMessage, clearChatMessages, isAiLoading, setAiLoading } = useKyroStore();
 
-  const handleSend = useCallback(() => {
+  // Detect available AI backends on mount
+  useEffect(() => {
+    async function detectBackends() {
+      const result = await invokeTauri<BackendStatus[]>('detect_ai_backends');
+      if (result) {
+        setBackends(result);
+        // Find first available backend
+        const available = result.find(b => b.available);
+        if (available) {
+          setActiveBackend(available.name);
+        }
+      }
+    }
+    detectBackends();
+  }, []);
+
+  const handleSend = useCallback(async () => {
     if (!input.trim() || isAiLoading) return;
 
     const userMessage = input.trim();
@@ -420,17 +311,50 @@ function AIChatPanel() {
     });
     setAiLoading(true);
 
-    // Mock AI response
-    setTimeout(() => {
-      const response = mockAiResponses[Math.floor(Math.random() * mockAiResponses.length)];
+    try {
+      // Try to use Tauri command
+      const result = await invokeTauri<SmartCompletionResult>('smart_ai_completion', {
+        prompt: userMessage,
+        systemPrompt: 'You are KYRO, an AI coding assistant integrated into an IDE. Help with code analysis, debugging, and development tasks.',
+        context: null,
+        history: [],
+        temperature: 0.7,
+        maxTokens: 2048
+      });
+
+      if (result) {
+        addChatMessage({
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: result.text,
+          timestamp: new Date()
+        });
+        setActiveBackend(result.backend);
+      } else {
+        // Fallback if Tauri returned null
+        const fallbackText = getFallbackResponse(userMessage);
+        addChatMessage({
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: fallbackText,
+          timestamp: new Date()
+        });
+        setActiveBackend('fallback');
+      }
+    } catch (error) {
+      console.error('AI completion error:', error);
+      // Use fallback response
+      const fallbackText = getFallbackResponse(userMessage);
       addChatMessage({
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: fallbackText,
         timestamp: new Date()
       });
+      setActiveBackend('fallback');
+    } finally {
       setAiLoading(false);
-    }, 1000 + Math.random() * 1000);
+    }
   }, [input, isAiLoading, addChatMessage, setAiLoading]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -440,12 +364,24 @@ function AIChatPanel() {
     }
   };
 
+  const getBackendIcon = () => {
+    switch (activeBackend) {
+      case 'ollama': return <Wifi size={12} className="text-green-400" />;
+      case 'lmstudio': return <Wifi size={12} className="text-blue-400" />;
+      case 'vllm': return <Wifi size={12} className="text-purple-400" />;
+      case 'local': return <Zap size={12} className="text-yellow-400" />;
+      default: return <WifiOff size={12} className="text-orange-400" />;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#0d1117]">
       <div className="h-9 bg-[#161b22] border-b border-[#30363d] flex items-center px-3 justify-between">
         <div className="flex items-center gap-2">
           <Sparkles size={14} className="text-purple-400" />
           <span className="text-xs font-medium">AI Assistant</span>
+          {getBackendIcon()}
+          <span className="text-[10px] text-[#8b949e] capitalize">{activeBackend}</span>
         </div>
         <button
           onClick={clearChatMessages}
@@ -461,7 +397,11 @@ function AIChatPanel() {
           <div className="text-center py-8">
             <div className="text-4xl mb-2">🤖</div>
             <p className="text-sm text-[#8b949e] mb-2">AI Assistant Ready</p>
-            <p className="text-xs text-[#8b949e]">Ask me anything about your code!</p>
+            <p className="text-xs text-[#8b949e]">
+              {activeBackend === 'fallback' 
+                ? 'Run Ollama or LM Studio for full AI features'
+                : `Using ${activeBackend} backend`}
+            </p>
           </div>
         )}
 
@@ -535,10 +475,6 @@ function StatusBar() {
             {gitStatus.behind > 0 && <span className="text-orange-400">↓{gitStatus.behind}</span>}
           </>
         )}
-        <span className="flex items-center gap-1">
-          <AlertCircle size={12} className="text-green-400" /> 0
-          <CheckCircle2 size={12} className="text-yellow-400 ml-2" /> 0
-        </span>
       </div>
       <div className="flex items-center gap-4">
         {currentFile && (
@@ -582,8 +518,8 @@ export default function Home() {
       ahead: 2,
       behind: 0,
       staged: [{ path: 'src/App.tsx', status: 'modified' }],
-      unstaged: [{ path: 'src/components/Button.tsx', status: 'modified' }],
-      untracked: ['tests/new-test.ts']
+      unstaged: [],
+      untracked: []
     });
   }, [setFileTree, setGitStatus]);
 
@@ -594,14 +530,8 @@ export default function Home() {
       'ts': 'typescript',
       'tsx': 'typescript',
       'js': 'javascript',
-      'jsx': 'javascript',
-      'py': 'python',
-      'rs': 'rust',
-      'go': 'go',
       'json': 'json',
       'md': 'markdown',
-      'css': 'css',
-      'html': 'html'
     };
 
     const file: OpenFile = {
@@ -621,7 +551,6 @@ export default function Home() {
   }, [setEditorContent]);
 
   const handleEditorMount = useCallback((editor: unknown) => {
-    // Cast to Monaco editor type
     const monacoEditor = editor as {
       onDidChangeCursorPosition: (callback: (e: { position: { lineNumber: number; column: number } }) => void) => void;
     };
@@ -752,31 +681,11 @@ export default function Home() {
               )}
               {activePanel === 'git' && (
                 <div className="p-2">
-                  <div className="mb-2">
-                    <div className="text-xs text-[#8b949e] mb-1 px-1">Staged Changes</div>
-                    <div className="bg-[#161b22] rounded p-1 text-xs">
-                      <div className="flex items-center gap-1 p-1 hover:bg-[#21262d] rounded cursor-pointer">
-                        <span className="text-green-400">M</span>
-                        <span>src/App.tsx</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mb-2">
-                    <div className="text-xs text-[#8b949e] mb-1 px-1">Changes</div>
-                    <div className="bg-[#161b22] rounded p-1 text-xs">
-                      <div className="flex items-center gap-1 p-1 hover:bg-[#21262d] rounded cursor-pointer">
-                        <span className="text-yellow-400">M</span>
-                        <span>src/components/Button.tsx</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-[#8b949e] mb-1 px-1">Untracked</div>
-                    <div className="bg-[#161b22] rounded p-1 text-xs">
-                      <div className="flex items-center gap-1 p-1 hover:bg-[#21262d] rounded cursor-pointer">
-                        <span className="text-[#8b949e]">U</span>
-                        <span>tests/new-test.ts</span>
-                      </div>
+                  <div className="text-xs text-[#8b949e] mb-1 px-1">Changes</div>
+                  <div className="bg-[#161b22] rounded p-1 text-xs">
+                    <div className="flex items-center gap-1 p-1 hover:bg-[#21262d] rounded cursor-pointer">
+                      <span className="text-green-400">M</span>
+                      <span>src/App.tsx</span>
                     </div>
                   </div>
                 </div>
@@ -798,7 +707,6 @@ export default function Home() {
                       <select className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-xs">
                         <option>Dark (Default)</option>
                         <option>Light</option>
-                        <option>High Contrast</option>
                       </select>
                     </div>
                     <div>
@@ -806,14 +714,6 @@ export default function Home() {
                       <input
                         type="number"
                         defaultValue={14}
-                        className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[#8b949e] mb-1">Tab Size</label>
-                      <input
-                        type="number"
-                        defaultValue={2}
                         className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-xs"
                       />
                     </div>
@@ -845,15 +745,13 @@ export default function Home() {
                       automaticLayout: true,
                       tabSize: 2,
                       lineNumbers: 'on',
-                      renderWhitespace: 'selection',
-                      bracketPairColorization: { enabled: true },
                     }}
                   />
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-[#8b949e]">
                     <Layout size={48} className="mb-4 opacity-50" />
                     <p className="text-lg mb-2">No file open</p>
-                    <p className="text-xs">Select a file from the explorer to start editing</p>
+                    <p className="text-xs">Select a file from the explorer</p>
                   </div>
                 )}
               </div>
