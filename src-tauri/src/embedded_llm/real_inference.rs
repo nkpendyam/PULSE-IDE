@@ -12,7 +12,6 @@ use anyhow::{Result, Context, bail};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::{RwLock, Mutex};
-use std::collections::HashMap;
 use std::time::Instant;
 
 #[cfg(feature = "llama-cpp")]

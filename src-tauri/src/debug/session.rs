@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock, broadcast};
+use tokio::sync::{mpsc, broadcast};
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
-use log::{debug, info};
+use log::info;
 
 use super::client::{DebugClient, DebugAdapterConfig, DebugState};
 use super::types::*;

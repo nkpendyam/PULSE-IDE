@@ -2,12 +2,10 @@
 //!
 //! Tool registry and execution for MCP
 
-use super::*;
-use anyhow::{Result, Context};
+use anyhow::Result;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 
 /// Tool function type
 pub type ToolFn = Box<dyn Fn(HashMap<String, serde_json::Value>) -> Pin<Box<dyn Future<Output = Result<serde_json::Value>> + Send>> + Send + Sync>;

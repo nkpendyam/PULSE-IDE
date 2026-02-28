@@ -5,15 +5,10 @@
 //! - Fallback hash-based embeddings for zero-dependency mode
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 
 use serde::{Deserialize, Serialize};
-use anyhow::{Result, Context};
-use log::{debug, info, warn};
-use tokio::sync::RwLock;
-use ndarray::{Array1, Array2};
 
 /// Embedding model configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

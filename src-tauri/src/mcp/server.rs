@@ -3,10 +3,8 @@
 //! Exposes IDE functionality as MCP tools for AI agents
 
 use super::*;
-use anyhow::{Result, Context};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
 
 /// MCP Server for KRO_IDE
 pub struct MCPServer {

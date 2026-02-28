@@ -3,8 +3,7 @@
 //! Server-side debug adapter implementation for hosting debug sessions
 
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock, broadcast};
+use tokio::sync::broadcast;
 use serde_json::json;
 use anyhow::Result;
 use log::{debug, info};

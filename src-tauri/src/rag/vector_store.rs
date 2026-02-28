@@ -10,15 +10,14 @@ impl Params { pub fn new() -> Self { Self { ef_construction: 200, m: 16 } } }
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::io::{Read, Write, BufReader, BufWriter};
+use std::io::{BufReader, BufWriter};
 
 use serde::{Deserialize, Serialize};
 
-use ndarray::{Array1, ArrayView1};
+use ndarray::Array1;
 use rand_pcg::Pcg64;
 use rand::SeedableRng;
-use anyhow::{Result, Context};
-use log::{debug, info, warn};
+use log::{debug, info};
 use tokio::sync::RwLock;
 use bincode;
 

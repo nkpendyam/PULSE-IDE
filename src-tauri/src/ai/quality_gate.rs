@@ -3,7 +3,7 @@
 //! Validates AI suggestions before showing them to users.
 //! Ensures 85%+ acceptance rate through syntax, type, and test validation.
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;

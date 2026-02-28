@@ -3,7 +3,6 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 /// Command handler type
 pub type CommandHandler = Arc<dyn Fn(Vec<serde_json::Value>) -> serde_json::Value + Send + Sync>;

@@ -3,13 +3,11 @@
 //! High-level LSP client that wraps the transport layer.
 
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use serde_json::{json, Value};
 use anyhow::{Result, Context};
-use log::{debug, info, warn};
+use log::{debug, info};
 
-use super::transport::{LspTransport, TransportConfig, get_language_server_config};
+use super::transport::{LspTransport, get_language_server_config};
 
 /// LSP Client state
 pub struct LspClient {

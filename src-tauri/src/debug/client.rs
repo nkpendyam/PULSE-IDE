@@ -4,11 +4,10 @@
 
 use std::collections::HashMap;
 use std::process::{Child, Command, Stdio};
-use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc;
 use serde_json::json;
 use anyhow::{Result, Context, bail};
-use log::{debug, info, warn, error};
+use log::{debug, info};
 
 use super::types::*;
 

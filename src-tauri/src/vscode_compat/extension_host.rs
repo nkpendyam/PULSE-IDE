@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use anyhow::{Result, Context};
 use tokio::sync::{mpsc, oneshot, RwLock as AsyncRwLock};
-use uuid::Uuid;
 
 use super::api::ExtensionContext;
 use super::manifest::ExtensionManifest;

@@ -2,7 +2,6 @@
 //!
 //! LRU cache for inference results to avoid redundant computation
 
-use super::*;
 use std::collections::HashMap;
 use std::time::SystemTime;
 

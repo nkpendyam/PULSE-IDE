@@ -3,7 +3,6 @@
 //! Core inference engine that interfaces with llama.cpp static library
 
 use super::*;
-use anyhow::{Result, Context};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;

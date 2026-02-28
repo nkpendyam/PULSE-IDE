@@ -3,12 +3,9 @@
 //! Loads language grammars and LSP logic as WASM modules
 //! for extensible, sandboxed language support
 
-use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 
 /// WASM Grammar Loader
 pub struct WasmGrammarLoader {

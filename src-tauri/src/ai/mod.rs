@@ -8,7 +8,6 @@
 //! Priority: Local > HTTP Local > Cloud API
 
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 
 pub mod quality_gate;
 pub mod real_ai_service;

@@ -10,10 +10,10 @@
 //! - DOCS: Documentation
 //! - BROWSER: Web interaction
 
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::{SwarmAIEngine, ModelInfo};
+use super::SwarmAIEngine;
 
 /// Agent types available in KYRO
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

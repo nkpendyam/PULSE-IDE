@@ -3,7 +3,7 @@
 //! This module handles model discovery, download, and management
 //! for both local and distributed inference.
 
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

@@ -1,9 +1,8 @@
 //! Terminal management for KYRO IDE
 
 use portable_pty::{native_pty_system, PtySize, CommandBuilder};
-use std::io::{Read, Write};
+use std::io::Write;
 use std::collections::HashMap;
-use tauri::{WebviewWindow, Emitter};
 
 pub struct TerminalManager {
     terminals: HashMap<String, TerminalSession>,

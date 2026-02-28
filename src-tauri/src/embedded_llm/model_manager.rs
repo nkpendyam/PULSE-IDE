@@ -3,7 +3,7 @@
 //! Handles model discovery, download, and lifecycle management
 
 use super::*;
-use anyhow::{Result, Context};
+use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 

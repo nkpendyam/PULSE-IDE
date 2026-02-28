@@ -3,7 +3,7 @@
 //! Tracks file changes locally without git, allowing undo of saves
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs;
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};

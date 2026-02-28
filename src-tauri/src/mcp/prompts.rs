@@ -3,7 +3,6 @@
 //! Prompt templates for consistent AI agent behavior
 
 use super::*;
-use anyhow::Result;
 use std::collections::HashMap;
 
 /// Prompt template

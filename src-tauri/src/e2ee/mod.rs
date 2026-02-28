@@ -16,8 +16,6 @@ use hkdf::Hkdf;
 use sha2::Sha256;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use rand::rngs::OsRng;
-use rand::RngCore;
 
 pub mod double_ratchet;
 pub mod key_exchange;

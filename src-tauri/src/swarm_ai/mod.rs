@@ -23,7 +23,6 @@ pub use agents::AgentOrchestrator;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use anyhow::Result;
 
 /// Configuration for the Swarm AI engine
 #[derive(Debug, Clone, Serialize, Deserialize)]

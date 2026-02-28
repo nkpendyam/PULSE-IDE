@@ -5,11 +5,11 @@
 //!
 //! Based on: https://arxiv.org/abs/2211.17192
 
-use anyhow::{Result, Context};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use super::local_inference::{LocalInferenceEngine, InferenceParams};
+use super::local_inference::LocalInferenceEngine;
 
 /// Speculative decoder that uses a small model to draft and large model to verify
 pub struct SpeculativeDecoder {

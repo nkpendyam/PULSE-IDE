@@ -7,7 +7,6 @@ use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use hkdf::Hkdf;
 use sha2::Sha256;
 use serde::{Deserialize, Serialize};
-use rand::rngs::OsRng;
 
 /// X3DH key exchange result
 #[derive(Debug)]

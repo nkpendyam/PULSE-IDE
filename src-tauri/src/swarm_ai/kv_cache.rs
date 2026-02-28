@@ -3,7 +3,6 @@
 //! This module provides a key-value cache for storing LLM responses,
 //! enabling instant retrieval for repeated or similar prompts.
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

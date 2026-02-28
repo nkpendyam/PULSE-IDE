@@ -8,9 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use sha2::{Sha256, Digest};
+use sha2::Digest;
 
 /// Local inference engine that manages llama.cpp processes
 pub struct LocalInferenceEngine {

@@ -4,9 +4,6 @@
 
 use super::*;
 use anyhow::Result;
-use async_trait::async_trait;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use std::collections::HashMap;
 
 /// MCP Client for connecting to external MCP servers

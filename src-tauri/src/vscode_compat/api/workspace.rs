@@ -2,7 +2,6 @@
 //! Implements vscode.workspace namespace
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 /// Workspace folder
 #[derive(Debug, Clone, Serialize, Deserialize)]
