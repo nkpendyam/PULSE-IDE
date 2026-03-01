@@ -18,7 +18,9 @@ use std::time::{Duration, Instant};
 use uuid::Uuid;
 
 /// Maximum number of parallel agents
-pub const MAX_PARALLEL_AGENTS: usize = 8;
+/// Reduced from 8 to 1 to respect hardware limits on consumer devices.
+/// True parallel execution requires 100GB+ VRAM.
+pub const MAX_PARALLEL_AGENTS: usize = 1;
 
 /// Agent types with specialized capabilities
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -44,17 +46,21 @@ pub enum AgentType {
 }
 
 impl AgentType {
+    /// Return the recommended model tag for this agent type.
+    /// Note: Actual model used will depend on hardware tier (e.g., 7B vs 1.5B).
     pub fn default_model(&self) -> &'static str {
+        // All agents use the same base model to save VRAM.
+        // Specialized behavior comes from system prompts, not different model weights.
         match self {
-            AgentType::CodeGenerator => "codellama:34b-instruct",
-            AgentType::CodeReviewer => "llama3:70b",
-            AgentType::TestGenerator => "codellama:13b-instruct",
-            AgentType::Documenter => "llama3:8b",
-            AgentType::Refactorer => "codellama:34b-instruct",
-            AgentType::BugFixer => "llama3:70b",
-            AgentType::SecurityAnalyzer => "llama3:70b",
-            AgentType::PerformanceOptimizer => "codellama:34b-instruct",
-            AgentType::Custom(_) => "llama3:8b",
+            AgentType::CodeGenerator => "default-local",
+            AgentType::CodeReviewer => "default-local",
+            AgentType::TestGenerator => "default-local",
+            AgentType::Documenter => "default-local",
+            AgentType::Refactorer => "default-local",
+            AgentType::BugFixer => "default-local",
+            AgentType::SecurityAnalyzer => "default-local",
+            AgentType::PerformanceOptimizer => "default-local",
+            AgentType::Custom(_) => "default-local",
         }
     }
 

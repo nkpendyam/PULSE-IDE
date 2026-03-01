@@ -28,6 +28,8 @@ pub struct ModelSpec {
     pub hf_repo: Option<String>,
     /// SHA256 hash for verification
     pub sha256: Option<String>,
+    /// Download URL (direct GGUF link)
+    pub url: Option<String>,
     /// Recommended memory tier
     pub min_memory_tier: MemoryTier,
 }
@@ -63,16 +65,29 @@ impl std::fmt::Display for Quantization {
 }
 
 /// Pre-configured models for KRO_IDE
-pub const BUILTIN_MODELS: &[(&str, &str, u64, MemoryTier)] = &[
-    // (name, hf_repo, size_bytes, min_tier)
-    ("phi-2b-q4_k_m", "microsoft/phi-2", 1_500_000_000, MemoryTier::Cpu),
-    ("tinyllama-1.1b-q4_k_m", "TinyLlama/TinyLlama-1.1B-Chat-v1.0", 800_000_000, MemoryTier::Cpu),
-    ("qwen3-4b-q4_k_m", "Qwen/Qwen2.5-3B-Instruct", 2_500_000_000, MemoryTier::Low4GB),
-    ("qwen3-8b-q4_k_m", "Qwen/Qwen2.5-7B-Instruct", 4_800_000_000, MemoryTier::Medium8GB),
-    ("nemotron-9b-q4_k_m", "nvidia/Nemotron-Mini-4B-Instruct", 5_500_000_000, MemoryTier::Medium8GB),
-    ("codellama-7b-q4_k_m", "codellama/CodeLlama-7b-Instruct-hf", 4_200_000_000, MemoryTier::Medium8GB),
-    ("deepseek-coder-6.7b-q4_k_m", "deepseek-ai/deepseek-coder-6.7b-instruct", 4_000_000_000, MemoryTier::Medium8GB),
-    ("mistral-7b-q4_k_m", "mistralai/Mistral-7B-Instruct-v0.3", 4_300_000_000, MemoryTier::Medium8GB),
+pub const BUILTIN_MODELS: &[(&str, &str, &str, u64, MemoryTier)] = &[
+    // (name, hf_repo, url, size_bytes, min_tier)
+    (
+        "phi-2b-q4_k_m", 
+        "TheBloke/phi-2-GGUF", 
+        "https://huggingface.co/TheBloke/phi-2-GGUF/resolve/main/phi-2.Q4_K_M.gguf",
+        1_500_000_000, 
+        MemoryTier::Cpu
+    ),
+    (
+        "tinyllama-1.1b-q4_k_m", 
+        "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF", 
+        "https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
+        800_000_000, 
+        MemoryTier::Cpu
+    ),
+    (
+        "qwen2.5-coder-7b-q4_k_m", 
+        "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF", 
+        "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
+        4_800_000_000, 
+        MemoryTier::Medium8GB
+    ),
 ];
 
 /// Model manager
@@ -103,7 +118,7 @@ impl ModelManager {
         }
         
         // Add builtin model specs if not found
-        for (name, hf_repo, size, tier) in BUILTIN_MODELS {
+        for (name, hf_repo, url, size, tier) in BUILTIN_MODELS {
             if !self.available_models.contains_key(*name) {
                 self.available_models.insert(name.to_string(), ModelSpec {
                     name: name.to_string(),
@@ -115,6 +130,7 @@ impl ModelManager {
                     architecture: "llama".to_string(),
                     hf_repo: Some(hf_repo.to_string()),
                     sha256: None,
+                    url: Some(url.to_string()),
                     min_memory_tier: *tier,
                 });
             }
@@ -175,6 +191,7 @@ impl ModelManager {
             architecture: "llama".to_string(),
             hf_repo: None,
             sha256: None,
+            url: None,
             min_memory_tier: tier,
         })
     }
@@ -225,48 +242,78 @@ impl ModelManager {
     }
     
     /// Download a model (async, with progress callback)
-    pub async fn download_model(
-        &self,
+    pub async fn download_model<F>(
+        &mut self,
         name: &str,
-        progress: impl Fn(f32) + Send + 'static,
-    ) -> Result<PathBuf> {
-        let spec = self.get_spec(name)?;
+        progress: F,
+    ) -> Result<PathBuf> 
+    where F: Fn(f32) + Send + 'static {
+        // Need to clone spec to avoid borrow issues
+        let spec = self.get_spec(name)?.clone();
         
-        let hf_repo = spec.hf_repo.as_ref()
-            .ok_or_else(|| anyhow::anyhow!("No HuggingFace repo for model: {}", name))?;
+        // Determine URL
+        let url = if let Some(u) = &spec.url {
+            u.clone()
+        } else if let Some(hf_repo) = &spec.hf_repo {
+             format!(
+                "https://huggingface.co/{}/resolve/main/{}.gguf",
+                hf_repo, name
+            )
+        } else {
+            anyhow::bail!("No URL or HuggingFace repo for model: {}", name);
+        };
         
-        // Construct download URL
-        let url = format!(
-            "https://huggingface.co/{}/resolve/main/{}.gguf",
-            hf_repo, name
-        );
+        // Determine destination path
+        let dest_dir = if self.model_paths.is_empty() {
+             PathBuf::from("models")
+        } else {
+             PathBuf::from(shellexpand::tilde(&self.model_paths[0]).into_owned())
+        };
         
-        // Download with progress
-        let dest_dir = PathBuf::from(shellexpand::tilde(&self.model_paths[0]).into_owned());
-        std::fs::create_dir_all(&dest_dir)?;
+        if !dest_dir.exists() {
+            std::fs::create_dir_all(&dest_dir)?;
+        }
+        
         let dest_path = dest_dir.join(format!("{}.gguf", name));
         
-        log::info!("Downloading model from {}", url);
+        log::info!("Downloading model from {} to {:?}", url, dest_path);
         
         // Use reqwest for download
         let response = reqwest::get(&url).await?;
         let total_size = response.content_length().unwrap_or(spec.size_bytes);
         
         use futures_util::StreamExt;
-        use tokio::io::AsyncWriteExt;
+        use std::io::Write;
         
+        // Use std::fs for synchronous write in async loop (or tokio::fs)
+        // Using tokio::fs is better
         let mut file = tokio::fs::File::create(&dest_path).await?;
-        let mut downloaded: u64 = 0;
         let mut stream = response.bytes_stream();
+        let mut downloaded: u64 = 0;
+        let mut last_reported = 0.0;
         
         while let Some(chunk) = stream.next().await {
             let chunk = chunk?;
+            use tokio::io::AsyncWriteExt;
             file.write_all(&chunk).await?;
             downloaded += chunk.len() as u64;
-            progress(downloaded as f32 / total_size as f32);
+            
+            if total_size > 0 {
+                let p = downloaded as f32 / total_size as f32;
+                if p - last_reported >= 0.01 {
+                    progress(p);
+                    last_reported = p;
+                }
+            }
         }
         
         log::info!("Model {} downloaded to {:?}", name, dest_path);
+        
+        // Update the spec with the new path
+        if let Some(s) = self.available_models.get_mut(name) {
+            s.path = dest_path.to_string_lossy().to_string();
+        }
+        
         Ok(dest_path)
     }
     

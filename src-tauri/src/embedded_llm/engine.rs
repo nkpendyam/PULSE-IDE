@@ -403,6 +403,23 @@ impl EmbeddedLLMEngine {
         }
     }
     
+    /// Ensure model is downloaded
+    pub async fn ensure_model_downloaded<F>(&self, model_name: &str, progress_callback: F) -> anyhow::Result<()> 
+    where F: Fn(f32) + Send + 'static {
+        let mut manager = self.model_manager.write().await;
+        
+        // Check if already has a path
+        if let Ok(spec) = manager.get_spec(model_name) {
+            if !spec.path.is_empty() && std::path::Path::new(&spec.path).exists() {
+                return Ok(());
+            }
+        }
+        
+        // Download
+        manager.download_model(model_name, progress_callback).await?;
+        Ok(())
+    }
+
     /// Load a model into memory
     pub async fn load_model(&self, model_name: &str) -> anyhow::Result<()> {
         let mut loaded = self.loaded_models.write().await;

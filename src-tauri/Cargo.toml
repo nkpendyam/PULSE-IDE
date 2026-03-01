@@ -202,7 +202,7 @@ strip = true
 # ============ Features ============
 
 [features]
-default = ["custom-protocol"]
+default = ["custom-protocol", "llama-cpp"]
 custom-protocol = ["tauri/custom-protocol"]
 
 # Embedded LLM (llama.cpp) - REAL implementation

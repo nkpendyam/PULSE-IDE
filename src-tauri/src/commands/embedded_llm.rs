@@ -132,17 +132,35 @@ pub async fn init_embedded_llm(
     }
 }
 
+use tauri::Emitter;
+
 /// Load a model
 #[command]
 pub async fn load_model(
+    window: tauri::Window,
     state: tauri::State<'_, Arc<RwLock<EmbeddedLLMState>>>,
     model_name: String,
 ) -> Result<String, String> {
     let state = state.read().await;
     
     if let Some(ref engine) = state.engine {
-        let mut engine = engine.write().await;
-        engine.load_model(&model_name).await
+        // Step 1: Ensure model is downloaded (needs read lock on engine, but internal write lock on manager)
+        {
+            let engine_guard = engine.read().await;
+            let window_clone = window.clone();
+            let name_clone = model_name.clone();
+            
+            engine_guard.ensure_model_downloaded(&model_name, move |p| {
+                let _ = window_clone.emit("model-download-progress", serde_json::json!({
+                    "model": name_clone,
+                    "progress": p
+                }));
+            }).await.map_err(|e| format!("Failed to download model: {}", e))?;
+        }
+
+        // Step 2: Load model (needs write lock on engine)
+        let mut engine_write = engine.write().await;
+        engine_write.load_model(&model_name).await
             .map(|_| format!("Model {} loaded successfully", model_name))
             .map_err(|e| format!("Failed to load model: {}", e))
     } else {

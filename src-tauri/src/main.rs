@@ -88,7 +88,7 @@ mod e2ee;
 mod p2p;
 
 // ============ AirLLM Integration (Layer-wise Inference) ============
-mod airllm;
+// mod airllm;
 
 // ============ PicoClaw Integration (Ultra-lightweight AI) ============
 mod picoclaw;
@@ -286,9 +286,9 @@ fn main() {
             
             // ============ Initialize AirLLM State ============
             
-            let airllm_state = commands::airllm::AirLLMState(std::sync::Mutex::new(None));
-            app.manage(airllm_state);
-            log::info!("✓ AirLLM state initialized");
+            // let airllm_state = commands::airllm::AirLLMState(std::sync::Mutex::new(None));
+            // app.manage(airllm_state);
+            // log::info!("✓ AirLLM state initialized");
             
             // ============ Initialize PicoClaw State ============
             
@@ -527,12 +527,12 @@ fn main() {
             commands::lsp_real::lsp_code_actions,
             
             // ============ AirLLM Operations ============
-            commands::airllm::airllm_check_availability,
-            commands::airllm::airllm_get_config,
-            commands::airllm::airllm_load_model,
-            commands::airllm::airllm_unload_model,
-            commands::airllm::airllm_generate,
-            commands::airllm::airllm_get_status,
+            // commands::airllm::airllm_check_availability,
+            // commands::airllm::airllm_get_config,
+            // commands::airllm::airllm_load_model,
+            // commands::airllm::airllm_unload_model,
+            // commands::airllm::airllm_generate,
+            // commands::airllm::airllm_get_status,
             
             // ============ PicoClaw Operations ============
             commands::picoclaw::picoclaw_complete,

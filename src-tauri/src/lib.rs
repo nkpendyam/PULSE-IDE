@@ -103,7 +103,7 @@ pub mod agent_store;
 pub mod p2p;
 
 // ============ AirLLM Integration (Layer-wise Inference) ============
-pub mod airllm;
+// pub mod airllm;
 
 // ============ PicoClaw Integration (Ultra-lightweight AI) ============
 pub mod picoclaw;
