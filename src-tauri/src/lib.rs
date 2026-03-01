@@ -107,3 +107,6 @@ pub mod airllm;
 
 // ============ PicoClaw Integration (Ultra-lightweight AI) ============
 pub mod picoclaw;
+
+// ============ Orchestrator (Mission Control) ============
+pub mod orchestrator;

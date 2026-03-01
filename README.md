@@ -1,141 +1,51 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# Kyro IDE
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+**The lightest AI-native IDE.** Competes with **VS Code, Antigravity, and Cursor** using **only local LLM models and agents**—with **Atoms-of-Thought reasoning** (less GPU load, get things done), **AirLLM + browser + Ollama** integrated, and **n8n automation development** (GLM5, Kimi K2.5, and other large local models).
 
-## ✨ Technology Stack
+## Highlights
 
-This scaffold provides a robust foundation built with:
+- **Local-only AI:** No cloud by default. [Ollama](https://ollama.ai), embedded LLM, [AirLLM](https://github.com/lyogavin/airllm) (70B on 4–8GB VRAM), [PicoClaw](https://github.com/sipeed/picoclaw)—optional premium API.
+- **Atoms of Thought:** Agents reason in atomic subquestions to cut GPU use and deliver results efficiently.
+- **Lightest IDE:** Target &lt;100MB RAM idle; heavy work in optional model processes.
+- **Integrated browser:** In-app browser for preview, testing, and n8n-style flows.
+- **n8n automations:** Build and edit [n8n](https://n8n.io) workflows with local LLMs; large models (GLM5, Kimi K2.5, Qwen2.5) via AirLLM.
+- **Cross-OS:** Windows, macOS, Linux via [Tauri](https://tauri.app/) (Rust backend + web frontend).
+- **Agents:** Up to 10 parallel AI agents; orchestrator for plan → edit → test → review → deploy; chat + PicoClaw control.
+- **Extensions:** [Open VSX](https://open-vsx.org); VS Code–compatible discovery and install.
+- **Collaboration:** Real-time CRDT (Yjs/yrs), E2EE option, 50+ members.
 
-### 🎯 Core Framework
-- **⚡ Next.js 16** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+## Tech Stack
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+| Layer | Technology |
+|-------|------------|
+| Desktop | Tauri v2 |
+| Frontend | Next.js 16, React 19, Monaco Editor, Tailwind, shadcn/ui |
+| Backend | Rust (LSP, CRDT, MCP, agents, embedded LLM, AirLLM bridge, PicoClaw) |
+| AI | Ollama, Candle/llama.cpp, AirLLM (Python), PicoClaw; GLM5/Kimi K2.5 via AirLLM |
+| Reasoning | Atoms-of-Thought (AoT) in agents |
+| Browser / n8n | Integrated browser; n8n workflow editing with local LLMs |
+| Extensions | Open VSX registry API |
+| Collab | Yjs (yrs), WebSocket, E2EE (Signal-style) |
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
-
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
-
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
-
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
-
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
-
-## 🎯 Why This Scaffold?
-
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# Install dependencies
+# Frontend
 bun install
-
-# Start development server
 bun run dev
 
-# Build for production
-bun run build
-
-# Start production server
-bun start
+# Backend (from repo root, with Rust toolchain)
+cd src-tauri
+cargo build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+See [ROADMAP.md](ROADMAP.md) for version goals and [docs/KYRO_IDE_2026_ENGINEERING_PLAN.md](docs/KYRO_IDE_2026_ENGINEERING_PLAN.md) for the full 2026 engineering plan (VS Code/Antigravity comparison, stages, and open-source stack).
 
-## 🤖 Powered by Z.ai
+## Repository
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+- **GitHub:** [nkpendyam/Kyro_IDE](https://github.com/nkpendyam/Kyro_IDE)
+- **Docs:** [docs/](docs/) — architecture, guides, and engineering plan.
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
+## License
 
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
-
-## 📁 Project Structure
-
-```
-src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
-```
-
-## 🎨 Available Features & Components
-
-This scaffold includes a comprehensive set of modern web development tools:
-
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
-
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
-
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
-
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
-
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
-
-## 🤝 Get Started with Z.ai
-
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
-
----
-
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+MIT (see repository for details).

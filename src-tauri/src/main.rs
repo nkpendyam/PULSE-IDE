@@ -93,6 +93,9 @@ mod airllm;
 // ============ PicoClaw Integration (Ultra-lightweight AI) ============
 mod picoclaw;
 
+// ============ Orchestrator (Mission Control) ============
+mod orchestrator;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};
@@ -294,6 +297,11 @@ fn main() {
             let picoclaw_state = commands::picoclaw::PicoClawState(std::sync::Mutex::new(picoclaw_engine));
             app.manage(picoclaw_state);
             log::info!("✓ PicoClaw state initialized");
+            
+            // ============ Initialize Orchestrator (Mission Control) ============
+            let orchestrator = orchestrator::KyroOrchestrator::new(orchestrator::OrchestratorConfig::default());
+            app.manage(commands::orchestrator::OrchestratorState(Arc::new(tokio::sync::RwLock::new(orchestrator))));
+            log::info!("✓ Orchestrator initialized");
             
             // ============ Startup Complete ============
             
@@ -537,6 +545,13 @@ fn main() {
             commands::picoclaw::picoclaw_analyze,
             commands::picoclaw::picoclaw_memory_usage,
             commands::picoclaw::picoclaw_is_available,
+            
+            // ============ Orchestrator (Mission Control) Operations ============
+            commands::orchestrator::orchestrator_start_mission,
+            commands::orchestrator::orchestrator_get_mission,
+            commands::orchestrator::orchestrator_list_missions,
+            commands::orchestrator::orchestrator_update_mission_phase,
+            commands::orchestrator::orchestrator_get_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

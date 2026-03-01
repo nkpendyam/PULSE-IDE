@@ -70,3 +70,6 @@ pub use crate::airllm::commands as airllm_commands;
 // ============ PicoClaw Operations ============
 pub mod picoclaw;
 pub use crate::picoclaw::commands as picoclaw_commands;
+
+// ============ Orchestrator (Mission Control) ============
+pub mod orchestrator;

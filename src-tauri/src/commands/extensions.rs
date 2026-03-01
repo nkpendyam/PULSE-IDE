@@ -9,9 +9,9 @@ use tauri::State;
 /// Global extension manager state
 pub struct ExtensionState(pub Mutex<ExtensionManager>);
 
-/// Search for extensions
+/// Search for extensions (registry / Open VSX)
 #[tauri::command]
-pub async fn search_extensions(
+pub async fn search_extensions_registry(
     state: State<'_, ExtensionState>,
     query: String,
 ) -> Result<Vec<ExtensionMetadata>, String> {
@@ -19,9 +19,9 @@ pub async fn search_extensions(
     manager.search(&query).await.map_err(|e| e.to_string())
 }
 
-/// Install extension
+/// Install extension (registry)
 #[tauri::command]
-pub async fn install_extension(
+pub async fn install_extension_registry(
     state: State<'_, ExtensionState>,
     extension_id: String,
 ) -> Result<String, String> {
@@ -29,9 +29,9 @@ pub async fn install_extension(
     manager.install(&extension_id).await.map_err(|e| e.to_string())
 }
 
-/// Uninstall extension
+/// Uninstall extension (registry)
 #[tauri::command]
-pub fn uninstall_extension(
+pub fn uninstall_extension_registry(
     state: State<'_, ExtensionState>,
     extension_id: String,
 ) -> Result<bool, String> {

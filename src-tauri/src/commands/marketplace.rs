@@ -1,6 +1,7 @@
 //! Tauri Commands for GitHub Marketplace
 
-use crate::extensions::{GitHubMarketplace, GitHubExtension, ExtensionVersion};
+use crate::extensions::{GitHubMarketplace, GitHubExtension};
+use crate::extensions::github_marketplace::ExtensionVersion;
 use std::sync::Mutex;
 use tauri::State;
 
@@ -17,9 +18,9 @@ pub async fn search_marketplace(
     marketplace.search(&query).await.map_err(|e| e.to_string())
 }
 
-/// Get extension details
+/// Get extension details from GitHub
 #[tauri::command]
-pub async fn get_extension_details(
+pub async fn get_github_extension_details(
     state: State<'_, MarketplaceState>,
     owner: String,
     repo: String,

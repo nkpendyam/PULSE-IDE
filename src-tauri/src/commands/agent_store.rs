@@ -29,9 +29,9 @@ pub async fn install_agent(
     store.install_from_github(&repo_url).await.map_err(|e| e.to_string())
 }
 
-/// List installed agents
+/// List installed agents (custom / store)
 #[tauri::command]
-pub fn list_agents(
+pub fn list_installed_agents(
     state: State<'_, AgentStoreState>,
 ) -> Result<Vec<InstalledAgent>, String> {
     let store = state.0.lock().map_err(|e| e.to_string())?;
