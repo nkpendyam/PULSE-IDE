@@ -13,6 +13,8 @@ use std::time::Instant;
 use std::path::PathBuf;
 use tokio::sync::RwLock;
 use std::sync::Arc;
+use std::collections::{HashMap, VecDeque};
+use sha2::{Sha256, Digest};
 
 /// AI Backend configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,6 +101,9 @@ pub struct AiService {
     config: AiBackendConfig,
     http_client: reqwest::Client,
     available_backends: Arc<RwLock<Vec<String>>>,
+    cache: Arc<RwLock<HashMap<String, CompletionResponse>>>,
+    order: Arc<RwLock<VecDeque<String>>>,
+    capacity: usize,
 }
 
 impl AiService {
@@ -113,6 +118,9 @@ impl AiService {
             config,
             http_client,
             available_backends: Arc::new(RwLock::new(Vec::new())),
+            cache: Arc::new(RwLock::new(HashMap::new())),
+            order: Arc::new(RwLock::new(VecDeque::new())),
+            capacity: 64,
         }
     }
     
@@ -197,7 +205,11 @@ impl AiService {
     pub async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse> {
         let start = Instant::now();
         
-        // Determine which backend to use
+        let key = self.compute_key(&request).await?;
+        if let Some(resp) = self.cache_get(&key).await {
+            return Ok(resp);
+        }
+        
         let backend = self.select_backend().await?;
         
         let response = match backend.as_str() {
@@ -212,11 +224,57 @@ impl AiService {
             }
         };
         
+        self.cache_put(key, response.clone()).await?;
+        
         let total_time = start.elapsed();
         Ok(CompletionResponse {
             total_time_ms: total_time.as_millis() as u64,
             ..response
         })
+    }
+    
+    async fn cache_get(&self, key: &str) -> Option<CompletionResponse> {
+        let cache = self.cache.read().await;
+        cache.get(key).cloned()
+    }
+    
+    async fn cache_put(&self, key: String, value: CompletionResponse) -> Result<()> {
+        {
+            let mut cache = self.cache.write().await;
+            cache.insert(key.clone(), value);
+        }
+        {
+            let mut order = self.order.write().await;
+            order.retain(|k| k != &key);
+            order.push_front(key.clone());
+            while order.len() > self.capacity {
+                if let Some(old) = order.pop_back() {
+                    let mut cache = self.cache.write().await;
+                    cache.remove(&old);
+                }
+            }
+        }
+        Ok(())
+    }
+    
+    async fn compute_key(&self, request: &CompletionRequest) -> Result<String> {
+        let mut hasher = Sha256::new();
+        if let Some(system) = &request.system_prompt {
+            hasher.update(system.as_bytes());
+        }
+        if let Some(ctx) = &request.context {
+            hasher.update(ctx.as_bytes());
+        }
+        for msg in &request.history {
+            hasher.update(msg.role.as_bytes());
+            hasher.update(msg.content.as_bytes());
+        }
+        hasher.update(request.prompt.as_bytes());
+        hasher.update(format!("{}", request.temperature.unwrap_or(self.config.temperature)).as_bytes());
+        hasher.update(format!("{}", request.max_tokens.unwrap_or(self.config.max_tokens)).as_bytes());
+        hasher.update(self.config.model.as_bytes());
+        let digest = hasher.finalize();
+        Ok(format!("{:x}", digest))
     }
     
     /// Select the best available backend
@@ -423,25 +481,47 @@ impl AiService {
     /// Build full prompt from request
     fn build_prompt(&self, request: &CompletionRequest) -> String {
         let mut prompt = String::new();
+        let mut ctx = String::new();
+        let mut hist = String::new();
+        if let Some(context) = &request.context {
+            ctx.push_str(context);
+        }
+        if !request.history.is_empty() {
+            let mut h = String::new();
+            for msg in &request.history {
+                h.push_str(&msg.role);
+                h.push_str(": ");
+                h.push_str(&msg.content);
+                h.push('\n');
+            }
+            hist = crate::memory::compression::compress_chat_history(&h);
+        }
+        if !ctx.is_empty() {
+            ctx = crate::memory::compression::compress_ast_to_signatures(&ctx, "typescript");
+        }
         
         if let Some(system) = &request.system_prompt {
             prompt.push_str(&format!("System: {}\n\n", system));
         }
         
-        if let Some(context) = &request.context {
-            prompt.push_str(&format!("Context:\n{}\n\n", context));
+        if !ctx.is_empty() {
+            prompt.push_str("Context:\n");
+            prompt.push_str(&ctx);
+            prompt.push_str("\n\n");
         }
         
-        for msg in &request.history {
-            prompt.push_str(&format!("{}: {}\n", 
-                msg.role.chars().next().unwrap_or('U').to_uppercase(),
-                msg.content
-            ));
+        if !hist.is_empty() {
+            prompt.push_str(&hist);
         }
         
         prompt.push_str(&format!("User: {}", request.prompt));
         
-        prompt
+        if prompt.len() > 12000 {
+            let tail = &prompt[prompt.len() - 12000..];
+            tail.to_string()
+        } else {
+            prompt
+        }
     }
     
     /// Generate pattern-based response

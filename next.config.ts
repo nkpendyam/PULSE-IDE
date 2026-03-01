@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  experimental: {
+    turbopack: {
+      root: __dirname,
+    },
+  },
 };
 
 export default nextConfig;

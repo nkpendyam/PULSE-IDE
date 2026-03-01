@@ -126,7 +126,7 @@ candle-transformers = { version = "0.4", optional = true }
 tokenizers = { version = "0.15", optional = true }
 
 # Alternative: llama-cpp bindings
-llama-cpp = { version = "0.3", optional = true, default-features = false, features = ["std"] }
+llama_cpp = { version = "0.3", optional = true }
 
 # ============ DAP (Debug Adapter Protocol) ============
 dap = "0.4.1-alpha1"  # Debug Adapter Protocol types and client
@@ -202,11 +202,11 @@ strip = true
 # ============ Features ============
 
 [features]
-default = ["custom-protocol", "llama-cpp"]
+default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
 # Embedded LLM (llama.cpp) - REAL implementation
-llama-cpp = ["dep:llama-cpp"]
+llama-cpp = ["dep:llama_cpp"]
 
 # Candle ML framework (HuggingFace inference)
 candle-inference = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:tokenizers"]
