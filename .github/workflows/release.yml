@@ -1,4 +1,4 @@
-name: KRO IDE Release Build
+name: Kyro IDE Release Build
 
 on:
   push:
@@ -60,15 +60,15 @@ jobs:
         run: |
           brew install create-dmg
           create-dmg \
-            --volname "KRO IDE" \
+            --volname "Kyro IDE" \
             --volicon "src-tauri/icons/icon.icns" \
             --window-pos 200 120 \
             --window-size 800 450 \
             --icon-size 100 \
-            --icon "KRO IDE.app" 200 190 \
-            --hide-extension "KRO IDE.app" \
-            --app-drop-link 600 185 \
-            "KRO-IDE-${{ github.ref_name }}-universal.dmg" \
+          --icon "Kyro IDE.app" 200 190 \
+          --hide-extension "Kyro IDE.app" \
+          --app-drop-link 600 185 \
+          "Kyro-IDE-${{ github.ref_name }}-universal.dmg" \
             "src-tauri/target/release/bundle/macos/"
 
       - name: Upload DMG
@@ -109,7 +109,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'KRO IDE ${{ github.ref_name }}'
+          releaseName: 'Kyro IDE ${{ github.ref_name }}'
           releaseBody: 'See CHANGELOG.md for details.'
           releaseDraft: true
           prerelease: false
@@ -166,7 +166,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'KRO IDE ${{ github.ref_name }}'
+          releaseName: 'Kyro IDE ${{ github.ref_name }}'
           releaseBody: 'See CHANGELOG.md for details.'
           releaseDraft: true
           prerelease: false

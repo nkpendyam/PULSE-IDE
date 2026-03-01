@@ -1,0 +1,36 @@
+{
+  "nameShort": "Kyro IDE",
+  "nameLong": "Kyro IDE - AI-Native Code Editor",
+  "applicationName": "kyro-ide",
+  "dataFolderName": "Kyro IDE",
+  "win32MutexName": "kyroide",
+  "licenseName": "MIT",
+  "licenseUrl": "https://github.com/nkpendyam/Kyro_IDE/blob/main/LICENSE",
+  "win32DirName": "Kyro IDE",
+  "win32NameVersion": "Kyro IDE",
+  "win32RegValueName": "Kyro IDE",
+  "win32AppUserModelId": "dev.kyro.ide",
+  "win32ShellNameShort": "Kyro IDE",
+  "darwinBundleIdentifier": "dev.kyro.ide",
+  "reportIssueUrl": "https://github.com/nkpendyam/Kyro_IDE/issues",
+  "urlProtocol": "kyro",
+  "extensionAllowedProposedApi": [
+    "kyro.agents",
+    "kyro.models",
+    "kyro.collab",
+    "kyro.browser"
+  ],
+  "extensionsGallery": {
+    "serviceUrl": "https://open-vsx.org/vscode/gallery",
+    "itemUrl": "https://open-vsx.org/vscode/item",
+    "cacheUrl": "https://open-vsx.org/vscode/cache"
+  },
+  "extensionEnabledApiProposals": {
+    "kyro.agents": ["kyro.agentPanel", "kyro.missionConsole"],
+    "kyro.models": ["kyro.modelPanel", "kyro.airllm"],
+    "kyro.collab": ["kyro.collabPanel", "kyro.liveShare"],
+    "kyro.browser": ["kyro.browserPanel"]
+  },
+  "enableTelemetry": false,
+  "enableCrashReporter": false
+}

@@ -66,8 +66,16 @@ pub enum QuantizationType {
 
 impl Default for AirLLMConfig {
     fn default() -> Self {
+        // Prefer python3 on Unix-like systems and python on Windows,
+        // but allow users to override via config.
+        let default_python = if cfg!(target_os = "windows") {
+            PathBuf::from("python")
+        } else {
+            PathBuf::from("python3")
+        };
+
         Self {
-            python_path: PathBuf::from("python3"),
+            python_path: default_python,
             model_name: "meta-llama/Llama-2-7b-hf".to_string(),
             max_context_length: 4096,
             max_tokens: 512,
@@ -110,6 +118,30 @@ impl AirLLMConfig {
         Self {
             device: "metal".to_string(),
             gpu_memory_budget_mb: 8192, // Unified memory
+            ..Default::default()
+        }
+    }
+
+    /// Create config targeting a GLM-family model suitable for 8GB VRAM using AirLLM.
+    /// This uses an open ChatGLM/GLM-4 style checkpoint from Hugging Face.
+    pub fn for_glm_8gb() -> Self {
+        Self {
+            model_name: "THUDM/glm-4-9b-chat".to_string(),
+            gpu_memory_budget_mb: 8192,
+            max_context_length: 4096,
+            quantization: Some(QuantizationType::Bit4),
+            ..Default::default()
+        }
+    }
+
+    /// Create config approximating a Kimi 2.5-class coder model using Qwen2.5.
+    /// Uses a strong open-source coder model that AirLLM can stream efficiently.
+    pub fn for_qwen25_coder_8gb() -> Self {
+        Self {
+            model_name: "Qwen/Qwen2.5-Coder-32B-Instruct".to_string(),
+            gpu_memory_budget_mb: 8192,
+            max_context_length: 4096,
+            quantization: Some(QuantizationType::Bit4),
             ..Default::default()
         }
     }
@@ -165,20 +197,35 @@ impl AirLLMEngine {
 
     /// Check if AirLLM is available (Python + airllm package)
     pub async fn check_availability() -> Result<bool> {
-        let output = Command::new("python3")
-            .args(["-c", "import airllm; print(airllm.__version__)"])
-            .output();
+        // Try a small set of common Python executables, in order of likelihood.
+        let candidates: &[&str] = if cfg!(target_os = "windows") {
+            &["python", "python3"]
+        } else {
+            &["python3", "python"]
+        };
 
-        match output {
-            Ok(o) if o.status.success() => {
-                log::info!("AirLLM is available: {}", String::from_utf8_lossy(&o.stdout).trim());
-                Ok(true)
-            }
-            _ => {
-                log::warn!("AirLLM not available. Install with: pip install airllm");
-                Ok(false)
+        for exe in candidates {
+            let output = Command::new(exe)
+                .args(["-c", "import airllm; print(airllm.__version__)"])
+                .output();
+
+            match output {
+                Ok(o) if o.status.success() => {
+                    log::info!(
+                        "AirLLM is available via {}: {}",
+                        exe,
+                        String::from_utf8_lossy(&o.stdout).trim()
+                    );
+                    return Ok(true);
+                }
+                _ => {
+                    continue;
+                }
             }
         }
+
+        log::warn!("AirLLM not available. Install with: pip install airllm");
+        Ok(false)
     }
 
     /// Load a model

@@ -3,9 +3,9 @@
 ## 1. Executive Summary
 
 This plan addresses the critical limitations identified in the project assessment:
-1.  **"Zero Cost" Myth**: We replace heavy Python-based AirLLM with **native, statically-linked `llama.cpp`** (via `embedded_llm` module) to run quantized GGUF models efficiently on consumer hardware (8GB+ RAM) without external dependencies or cloud costs.
+1.  **"Zero Cost" Myth**: We prioritize **native, statically-linked `llama.cpp`** (via the `embedded_llm` module) for default local inference, and use **AirLLM as an optional heavy-mode backend** for massive GLM/Qwen2.5-class models on 8GB+ VRAM. This keeps the core experience zero-cost and dependency-light while still enabling \"big model\" modes when Python + AirLLM are installed.
 2.  **"10-Agent Swarm" Complexity**: We simplify the architecture to a **Single Orchestrator with Tool Use** pattern. Instead of 10 always-on agents (massive context overhead), we use one efficient Orchestrator that dynamically loads specialized "skills" (tools) only when needed.
-3.  **"Experimental Risk"**: We prioritize **PicoClaw** (lightweight N-gram/Tree-sitter) for latency-sensitive tasks (autocomplete) and **Embedded LLM** for reasoning, removing the fragile Python/AirLLM bridge.
+3.  **"Experimental Risk"**: We prioritize **PicoClaw** (lightweight N-gram/Tree-sitter) for latency-sensitive tasks (autocomplete) and **Embedded LLM** for reasoning, keeping the Python/AirLLM bridge off the critical path but available for users who want GLM/Kimi 2.5–class capabilities.
 4.  **Performance**: We optimize the **Tauri + Monaco** integration by offloading language services to the Rust backend (`lsp` module) and using shared memory where possible.
 
 ## 2. Architecture Overhaul

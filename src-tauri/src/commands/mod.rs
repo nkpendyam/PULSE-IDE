@@ -64,8 +64,8 @@ pub mod agent_store;
 pub mod marketplace;
 
 // ============ AirLLM Operations ============
-// pub mod airllm;
-// pub use crate::airllm::commands as airllm_commands;
+pub mod airllm;
+pub use crate::airllm::commands as airllm_commands;
 
 // ============ PicoClaw Operations ============
 pub mod picoclaw;

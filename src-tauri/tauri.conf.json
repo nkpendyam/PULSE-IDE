@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "KRO-IDE",
+  "productName": "Kyro IDE",
   "version": "0.1.0",
-  "identifier": "dev.kro.ide",
+  "identifier": "dev.kyro.ide",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:3000",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "KRO IDE",
+        "title": "Kyro IDE",
         "width": 1400,
         "height": 900,
         "minWidth": 800,
@@ -38,7 +38,7 @@
     ],
     "category": "Development",
     "shortDescription": "AI-Powered Code Editor",
-    "longDescription": "KRO IDE - A lightweight, AI-powered code editor with local LLM support",
+    "longDescription": "Kyro IDE - AI-native code editor with local LLM support (AirLLM, Ollama, PicoClaw)",
     "linux": {
       "deb": {
         "depends": ["libwebkit2gtk-4.1-0"]

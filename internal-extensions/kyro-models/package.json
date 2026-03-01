@@ -1,0 +1,42 @@
+{
+  "name": "kyro-models",
+  "displayName": "Kyro Models",
+  "description": "Local AI model management (AirLLM, Ollama, GLM, Qwen2.5)",
+  "version": "0.1.0",
+  "publisher": "kyro",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished", "onView:kyro.modelPanel"],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "kyro-models",
+          "title": "Kyro Models",
+          "icon": "$(database)"
+        }
+      ]
+    },
+    "views": {
+      "kyro-models": [
+        {
+          "id": "kyro.modelPanel",
+          "name": "Models"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "kyro.loadAirLLMModel",
+        "title": "Load AirLLM Model",
+        "category": "Kyro"
+      },
+      {
+        "command": "kyro.listModels",
+        "title": "List Models",
+        "category": "Kyro"
+      }
+    ]
+  }
+}

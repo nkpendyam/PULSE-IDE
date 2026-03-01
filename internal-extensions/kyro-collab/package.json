@@ -1,0 +1,42 @@
+{
+  "name": "kyro-collab",
+  "displayName": "Kyro Collaboration",
+  "description": "Live sharing and collaboration for 50+ participants",
+  "version": "0.1.0",
+  "publisher": "kyro",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished", "onView:kyro.collabPanel"],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "kyro-collab",
+          "title": "Kyro Collab",
+          "icon": "$(account-group)"
+        }
+      ]
+    },
+    "views": {
+      "kyro-collab": [
+        {
+          "id": "kyro.collabPanel",
+          "name": "Live Share"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "kyro.startLiveShare",
+        "title": "Start Live Share",
+        "category": "Kyro"
+      },
+      {
+        "command": "kyro.joinLiveShare",
+        "title": "Join Live Share",
+        "category": "Kyro"
+      }
+    ]
+  }
+}

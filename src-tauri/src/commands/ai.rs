@@ -73,6 +73,24 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         endpoint: "http://localhost:8000/v1".to_string(),
     });
     
+    // Check AirLLM Python service (optional standalone)
+    let airllm_service_available = client.get("http://127.0.0.1:8765/health")
+        .send().await
+        .map(|r| r.status().is_success())
+        .unwrap_or(false);
+    backends.push(BackendStatus {
+        name: "airllm-service".to_string(),
+        available: airllm_service_available,
+        endpoint: "http://127.0.0.1:8765".to_string(),
+    });
+    
+    // PicoClaw (always available - embedded)
+    backends.push(BackendStatus {
+        name: "picoclaw".to_string(),
+        available: true,
+        endpoint: "embedded".to_string(),
+    });
+    
     // Local llama.cpp (always available when compiled)
     #[cfg(feature = "llama-cpp")]
     backends.push(BackendStatus {

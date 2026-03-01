@@ -367,9 +367,12 @@ function AIChatPanel() {
   const getBackendIcon = () => {
     switch (activeBackend) {
       case 'ollama': return <Wifi size={12} className="text-green-400" />;
+      case 'airllm-service': return <Zap size={12} className="text-yellow-400" />;
+      case 'picoclaw': return <Zap size={12} className="text-cyan-400" />;
       case 'lmstudio': return <Wifi size={12} className="text-blue-400" />;
       case 'vllm': return <Wifi size={12} className="text-purple-400" />;
       case 'local': return <Zap size={12} className="text-yellow-400" />;
+      case 'fallback': return <WifiOff size={12} className="text-orange-400" />;
       default: return <WifiOff size={12} className="text-orange-400" />;
     }
   };
@@ -381,7 +384,17 @@ function AIChatPanel() {
           <Sparkles size={14} className="text-purple-400" />
           <span className="text-xs font-medium">AI Assistant</span>
           {getBackendIcon()}
-          <span className="text-[10px] text-[#8b949e] capitalize">{activeBackend}</span>
+          <select
+            value={activeBackend}
+            onChange={(e) => setActiveBackend(e.target.value)}
+            className="text-[10px] bg-[#0d1117] border border-[#30363d] rounded px-1.5 py-0.5 text-[#c9d1d9] focus:outline-none focus:border-[#58a6ff]"
+          >
+            {backends.map((b) => (
+              <option key={b.name} value={b.name} disabled={!b.available}>
+                {b.name}{b.available ? '' : ' (offline)'}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={clearChatMessages}

@@ -1,0 +1,46 @@
+{
+  "name": "kyro-agents",
+  "displayName": "Kyro Agents",
+  "description": "AI agent orchestration and mission control for Kyro IDE",
+  "version": "0.1.0",
+  "publisher": "kyro",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished", "onView:kyro.agentPanel", "onView:kyro.missionConsole"],
+  "main": "./extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "kyro-agents",
+          "title": "Kyro Agents",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "kyro-agents": [
+        {
+          "id": "kyro.agentPanel",
+          "name": "Agents"
+        },
+        {
+          "id": "kyro.missionConsole",
+          "name": "Mission Console"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "kyro.startMission",
+        "title": "Start Mission",
+        "category": "Kyro"
+      },
+      {
+        "command": "kyro.listAgents",
+        "title": "List Agents",
+        "category": "Kyro"
+      }
+    ]
+  }
+}

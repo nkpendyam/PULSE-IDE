@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import { 
   Bot, 
   Rocket, 
@@ -45,6 +46,19 @@ interface Agent {
   successRate: number;
 }
 
+// Orchestrator mission (from Tauri)
+interface OrchestratorMission {
+  id: string;
+  goal: string;
+  constraints: string[];
+  phase: 'plan' | 'edit' | 'test' | 'review' | 'deploy';
+  status: 'running' | 'paused' | 'completed' | 'failed';
+  assigned_agents: string[];
+  artifacts: { kind: string; path?: string; content?: string }[];
+  created_at: string;
+  updated_at: string;
+}
+
 interface Mission {
   id: string;
   title: string;
@@ -55,6 +69,7 @@ interface Mission {
   progress: number;
   createdAt: Date;
   artifacts: string[];
+  phase?: string;
 }
 
 interface Artifact {
@@ -89,6 +104,22 @@ const mockMissions: Mission[] = [
   { id: '2', title: 'Performance Optimization', description: 'Optimize database queries and caching', status: 'pending', priority: 'medium', assignedAgents: ['4'], progress: 0, createdAt: new Date(Date.now() - 43200000), artifacts: [] },
   { id: '3', title: 'API Documentation', description: 'Generate comprehensive API docs', status: 'completed', priority: 'low', assignedAgents: ['1', '3'], progress: 100, createdAt: new Date(Date.now() - 172800000), artifacts: ['api-docs.md'] },
 ];
+
+function toMission(m: OrchestratorMission): Mission {
+  const phaseProgress = { plan: 10, edit: 40, test: 60, review: 80, deploy: 100 }[m.phase] ?? 0;
+  return {
+    id: m.id,
+    title: m.goal.slice(0, 60) + (m.goal.length > 60 ? '...' : ''),
+    description: m.goal,
+    status: m.status === 'running' ? 'in_progress' : m.status === 'completed' ? 'completed' : m.status === 'failed' ? 'failed' : 'pending',
+    priority: 'medium',
+    assignedAgents: m.assigned_agents,
+    progress: m.status === 'completed' ? 100 : phaseProgress,
+    createdAt: new Date(m.created_at),
+    artifacts: m.artifacts.map(a => a.path || a.kind).filter(Boolean),
+    phase: m.phase,
+  };
+}
 
 const mockArtifacts: Artifact[] = [
   { id: '1', name: 'auth.ts', type: 'code', path: '/src/auth/auth.ts', createdAt: new Date(Date.now() - 3600000), verified: true, size: '4.2 KB' },
@@ -146,8 +177,47 @@ const categoryColors = {
   optimization: 'bg-purple-500/20 text-purple-400',
 };
 
+async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
+  if (typeof window !== 'undefined' && (window as { __TAURI__?: { core: { invoke: (c: string, a?: object) => Promise<T> } } }).__TAURI__) {
+    try {
+      return await (window as { __TAURI__: { core: { invoke: (c: string, a?: object) => Promise<T> } } }).__TAURI__.core.invoke(cmd, args);
+    } catch (e) {
+      console.error(cmd, e);
+      return null;
+    }
+  }
+  return null;
+}
+
 export function AgentManagerPanel() {
   const [activeTab, setActiveTab] = useState('agents');
+  const [missions, setMissions] = useState<Mission[]>(mockMissions);
+  const [newGoal, setNewGoal] = useState('');
+  const [starting, setStarting] = useState(false);
+
+  const loadMissions = useCallback(async () => {
+    const result = await invokeTauri<OrchestratorMission[]>('orchestrator_list_missions');
+    if (result && Array.isArray(result)) {
+      setMissions(result.map(toMission));
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMissions();
+  }, [loadMissions]);
+
+  const handleStartMission = async () => {
+    if (!newGoal.trim()) return;
+    setStarting(true);
+    const result = await invokeTauri<OrchestratorMission>('orchestrator_start_mission', { goal: newGoal.trim(), constraints: null });
+    if (result) {
+      setMissions(prev => [toMission(result), ...prev]);
+      setNewGoal('');
+    }
+    setStarting(false);
+  };
+
+  const displayMissions = missions;
 
   return (
     <div className="h-full flex flex-col bg-[#0d1117] text-[#c9d1d9]">
@@ -183,7 +253,7 @@ export function AgentManagerPanel() {
               <Target className="w-4 h-4 text-green-400" />
               <span className="text-xs text-[#8b949e]">Missions</span>
             </div>
-            <div className="text-2xl font-bold mt-1">{mockMissions.length}</div>
+            <div className="text-2xl font-bold mt-1">{displayMissions.length}</div>
           </CardContent>
         </Card>
         <Card className="bg-[#161b22] border-[#30363d]">
@@ -287,8 +357,20 @@ export function AgentManagerPanel() {
 
           {/* Missions Tab */}
           <TabsContent value="missions" className="p-4 m-0">
+            <div className="flex gap-2 mb-4">
+              <Input
+                placeholder="Describe your goal (e.g. build auth module)"
+                value={newGoal}
+                onChange={(e) => setNewGoal(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleStartMission()}
+                className="bg-[#161b22] border-[#30363d] text-[#c9d1d9]"
+              />
+              <Button onClick={handleStartMission} disabled={starting || !newGoal.trim()} size="sm">
+                <Rocket className="w-4 h-4 mr-1" /> Start
+              </Button>
+            </div>
             <div className="space-y-3">
-              {mockMissions.map((mission) => (
+              {displayMissions.map((mission) => (
                 <Card key={mission.id} className="bg-[#161b22] border-[#30363d] hover:border-[#58a6ff]/50 transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -297,7 +379,7 @@ export function AgentManagerPanel() {
                         <h3 className="font-medium">{mission.title}</h3>
                       </div>
                       <Badge variant="outline" className="border-[#30363d]">
-                        {mission.status.replace('_', ' ')}
+                        {mission.phase ? `${mission.phase} • ` : ''}{mission.status.replace('_', ' ')}
                       </Badge>
                     </div>
                     <p className="text-xs text-[#8b949e] mb-3">{mission.description}</p>
