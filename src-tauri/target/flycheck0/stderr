@@ -1,6 +1,0 @@
-    Updating crates.io index
-error: no matching package found
-searched package name: `llama-cpp`
-perhaps you meant:      llama_cpp
-location searched: crates.io index
-required by package `kyro-ide v0.1.0 (C:\Users\nkpen\Documents\trae_projects\Kyro_Ide\src-tauri)`
