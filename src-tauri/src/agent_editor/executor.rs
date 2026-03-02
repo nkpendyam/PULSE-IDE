@@ -177,7 +177,13 @@ impl EditExecutor {
             original_exists: exists,
             original_metadata: metadata.map(|m| FileMeta {
                 modified: m.modified().ok(),
-                permissions: m.permissions().mode(),
+                #[cfg(unix)]
+                permissions: {
+                    use std::os::unix::fs::PermissionsExt;
+                    m.permissions().mode()
+                },
+                #[cfg(not(unix))]
+                permissions: 0o644, // Default permissions for Windows
             }),
             timestamp: std::time::SystemTime::now(),
         })

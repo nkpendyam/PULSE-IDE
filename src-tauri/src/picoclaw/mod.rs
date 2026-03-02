@@ -560,8 +560,8 @@ impl PicoClawEngine {
 
     /// Calculate nesting depth
     fn calculate_nesting(&self, code: &str) -> usize {
-        let mut max_nesting = 0;
-        let mut current_nesting = 0;
+        let mut max_nesting: usize = 0;
+        let mut current_nesting: usize = 0;
         
         for c in code.chars() {
             match c {

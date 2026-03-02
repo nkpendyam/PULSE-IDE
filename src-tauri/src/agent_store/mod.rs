@@ -245,6 +245,16 @@ impl AgentStore {
         self.installed.remove(id).is_some()
     }
     
+    /// Enable or disable an agent
+    pub fn set_enabled(&mut self, id: &str, enabled: bool) -> bool {
+        if let Some(agent) = self.installed.get_mut(id) {
+            agent.enabled = enabled;
+            true
+        } else {
+            false
+        }
+    }
+    
     /// Get featured agents (top by stars)
     pub fn featured(&self) -> Vec<&AgentDefinition> {
         let mut agents: Vec<_> = self.cache.iter().collect();

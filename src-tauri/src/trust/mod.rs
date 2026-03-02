@@ -206,13 +206,15 @@ impl PermissionManager {
     
     /// Register a new agent
     pub fn register_agent(&mut self, identity: AgentIdentity) {
+        let agent_id = identity.id.clone();
+        let agent_name = identity.name.clone();
         self.agents.insert(identity.id.clone(), identity);
         
         self.audit_log.push(AuditEntry {
             timestamp: Utc::now(),
             event: AuditEvent::AgentRegistered {
-                agent_id: identity.id.clone(),
-                name: identity.name.clone(),
+                agent_id,
+                name: agent_name,
             },
         });
     }

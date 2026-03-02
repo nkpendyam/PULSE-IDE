@@ -4,13 +4,15 @@
 
 use super::*;
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
 /// Prompt template
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromptTemplate {
     pub name: String,
     pub description: String,
     pub arguments: Vec<PromptArgument>,
+    #[serde(skip)]
     template: String,
 }
 
@@ -113,8 +115,8 @@ impl PromptRegistry {
         prompt.render(&args)
     }
     
-    /// Alias for get_rendered for backwards compatibility
-    pub fn get(&self, name: &str, args: HashMap<String, String>) -> anyhow::Result<GetPromptResult> {
+    /// Get a rendered prompt with arguments
+    pub fn get_rendered_prompt(&self, name: &str, args: HashMap<String, String>) -> anyhow::Result<GetPromptResult> {
         self.get_rendered(name, args)
     }
 }

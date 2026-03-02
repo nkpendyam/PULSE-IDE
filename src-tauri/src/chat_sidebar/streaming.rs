@@ -18,7 +18,7 @@ impl StreamingResponder {
     pub fn new(config: ChatConfig) -> Self {
         Self {
             config,
-            active_streams: Vec::new(),
+            active_streams: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
@@ -104,7 +104,7 @@ impl StreamingResponder {
 
     /// Check if stream is active
     pub async fn is_stream_active(&self, message_id: &str) -> bool {
-        self.active_streams.read().await.contains(message_id)
+        self.active_streams.read().await.iter().any(|id| id.as_str() == message_id)
     }
 
     /// Get all active streams

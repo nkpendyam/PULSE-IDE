@@ -116,9 +116,9 @@ impl AuditLog {
     }
 
     /// Get entries (most recent first)
-    pub fn get_entries(&self, limit: usize) -> Vec<&AuditEntry> {
+    pub fn get_entries(&self, limit: usize) -> Vec<AuditEntry> {
         let entries = self.entries.read();
-        entries.iter().rev().take(limit).collect()
+        entries.iter().rev().take(limit).cloned().collect()
     }
 
     /// Get entries for a specific user

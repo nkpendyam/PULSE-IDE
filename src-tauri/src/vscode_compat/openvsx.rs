@@ -144,6 +144,8 @@ impl OpenVsxClient {
     pub async fn search(&self, query: &OpenVsxQuery) -> Result<Vec<OpenVsxExtension>> {
         log::info!("Searching Open VSX: {:?}", query);
 
+        let size_str = query.size.to_string();
+        let offset_str = query.offset.to_string();
         let mut params = vec![];
 
         if let Some(ref text) = query.search_text {
@@ -158,8 +160,8 @@ impl OpenVsxClient {
             params.push(("namespace", namespace.as_str()));
         }
 
-        params.push(("size", query.size.to_string().as_str()));
-        params.push(("offset", query.offset.to_string().as_str()));
+        params.push(("size", size_str.as_str()));
+        params.push(("offset", offset_str.as_str()));
 
         if let Some(ref sort_by) = query.sort_by {
             params.push(("sortBy", sort_by.as_str()));
@@ -186,7 +188,8 @@ impl OpenVsxClient {
         let search_response: SearchResponse = response.json().await
             .context("Failed to parse Open VSX response")?;
 
-        let extensions = search_response.extensions.into_iter().map(|ext| {
+        let extensions: Vec<_> = search_response.extensions.into_iter().map(|ext| {
+            let namespace_clone = ext.namespace.clone();
             OpenVsxExtension {
                 namespace: ext.namespace,
                 name: ext.name,
@@ -194,7 +197,7 @@ impl OpenVsxClient {
                 display_name: ext.display_name,
                 description: ext.description,
                 publisher: OpenVsxPublisher {
-                    name: ext.namespace.clone(),
+                    name: namespace_clone,
                     verified: false,
                 },
                 files: OpenVsxFiles {
@@ -244,6 +247,7 @@ impl OpenVsxClient {
         }
 
         let ext_data: ExtensionData = response.json().await?;
+        let publisher_name = ext_data.namespace.clone();
 
         Ok(Some(OpenVsxExtension {
             namespace: ext_data.namespace,
@@ -252,7 +256,7 @@ impl OpenVsxClient {
             display_name: ext_data.display_name,
             description: ext_data.description,
             publisher: OpenVsxPublisher {
-                name: ext_data.namespace.clone(),
+                name: publisher_name,
                 verified: false,
             },
             files: OpenVsxFiles {
@@ -303,6 +307,7 @@ impl OpenVsxClient {
         }
 
         let ext_data: ExtensionData = response.json().await?;
+        let publisher_name2 = ext_data.namespace.clone();
 
         Ok(Some(OpenVsxExtension {
             namespace: ext_data.namespace,
@@ -311,7 +316,7 @@ impl OpenVsxClient {
             display_name: ext_data.display_name,
             description: ext_data.description,
             publisher: OpenVsxPublisher {
-                name: ext_data.namespace.clone(),
+                name: publisher_name2,
                 verified: false,
             },
             files: OpenVsxFiles {

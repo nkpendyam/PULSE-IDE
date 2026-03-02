@@ -254,17 +254,17 @@ impl DocumentSynchronizer {
         for op in &edit.operations {
             match op {
                 EditOperation::Insert { position, text } => {
-                    let pos = position.min(synced.content.len());
+                    let pos = std::cmp::min(*position, synced.content.len());
                     synced.content.insert_str(pos, text);
                 }
                 EditOperation::Delete { position, length } => {
-                    let pos = position.min(synced.content.len());
-                    let len = length.min(synced.content.len() - pos);
+                    let pos = std::cmp::min(*position, synced.content.len());
+                    let len = std::cmp::min(*length, synced.content.len() - pos);
                     synced.content.drain(pos..pos + len);
                 }
                 EditOperation::Replace { position, length, text } => {
-                    let pos = position.min(synced.content.len());
-                    let len = length.min(synced.content.len() - pos);
+                    let pos = std::cmp::min(*position, synced.content.len());
+                    let len = std::cmp::min(*length, synced.content.len() - pos);
                     synced.content.drain(pos..pos + len);
                     synced.content.insert_str(pos, text);
                 }
@@ -272,17 +272,17 @@ impl DocumentSynchronizer {
                     for inner_op in operations {
                         match inner_op {
                             EditOperation::Insert { position, text } => {
-                                let pos = position.min(synced.content.len());
+                                let pos = std::cmp::min(*position, synced.content.len());
                                 synced.content.insert_str(pos, text);
                             }
                             EditOperation::Delete { position, length } => {
-                                let pos = position.min(synced.content.len());
-                                let len = length.min(synced.content.len() - pos);
+                                let pos = std::cmp::min(*position, synced.content.len());
+                                let len = std::cmp::min(*length, synced.content.len() - pos);
                                 synced.content.drain(pos..pos + len);
                             }
                             EditOperation::Replace { position, length, text } => {
-                                let pos = position.min(synced.content.len());
-                                let len = length.min(synced.content.len() - pos);
+                                let pos = std::cmp::min(*position, synced.content.len());
+                                let len = std::cmp::min(*length, synced.content.len() - pos);
                                 synced.content.drain(pos..pos + len);
                                 synced.content.insert_str(pos, text);
                             }

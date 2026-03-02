@@ -906,7 +906,7 @@ impl KyroLspBackend {
         };
         
         let mut formatted_lines = Vec::new();
-        let mut indent_level = 0;
+        let mut indent_level: usize = 0;
         
         for line in &lines {
             let trimmed = line.trim_start();

@@ -278,7 +278,7 @@ impl P2PCollaboration {
     async fn start_webrtc_listener(&mut self) -> anyhow::Result<()> {
         log::info!("Starting WebRTC listener for internet peers");
         
-        let (webrtc, mut message_rx) = WebRTCManager::new(
+        let (mut webrtc, mut message_rx) = WebRTCManager::new(
             self.local_peer_id.clone(),
             WebRTCConfig::default(),
         );

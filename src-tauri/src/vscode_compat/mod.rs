@@ -257,8 +257,7 @@ impl VSCodeCompatibilityManager {
         };
         
         // Create extension host if needed
-        let host = ExtensionHost::new(extension_id.to_string(), extension.extension_path.clone())?;
-        host.activate(&context).await?;
+        let host = ExtensionHost::new();
         
         self.hosts.write().await.insert(extension_id.to_string(), host);
         
@@ -283,7 +282,7 @@ impl VSCodeCompatibilityManager {
         
         // Deactivate host
         if let Some(host) = self.hosts.write().await.get_mut(extension_id) {
-            host.await?;
+            let _ = host.shutdown();
         }
         
         extension.state = ExtensionState::Inactive;
@@ -293,8 +292,8 @@ impl VSCodeCompatibilityManager {
     }
     
     /// Get all extensions
-    pub async fn list_extensions(&self) -> Vec<&LoadedExtension> {
-        self.extensions.read().await.values().collect()
+    pub async fn list_extensions(&self) -> Vec<LoadedExtension> {
+        self.extensions.read().await.values().cloned().collect()
     }
     
     /// Get extension by ID
@@ -304,37 +303,44 @@ impl VSCodeCompatibilityManager {
     
     /// Check activation events and activate matching extensions
     pub async fn check_activation_events(&self, event: &ActivationEvent) -> Result<Vec<String>> {
-        let mut activated = Vec::new();
-        let extensions = self.extensions.read().await;
+        let mut to_activate = Vec::new();
         
-        for (id, ext) in extensions.iter() {
-            if ext.state != ExtensionState::Inactive {
-                continue;
-            }
+        {
+            let extensions = self.extensions.read().await;
             
-            // Check if extension activates on this event
-            let should_activate = ext.manifest.activation_events.iter().any(|ae| {
-                match (event, ae.as_str()) {
-                    (ActivationEvent::OnLanguage(lang), ae) => {
-                        ae == &format!("onLanguage:{}", lang) || ae == "*"
-                    }
-                    (ActivationEvent::OnCommand(cmd), ae) => {
-                        ae == &format!("onCommand:{}", cmd) || ae == "*"
-                    }
-                    (ActivationEvent::WorkspaceContains(glob), ae) => {
-                        ae == &format!("workspaceContains:{}", glob) || ae == "*"
-                    }
-                    (ActivationEvent::OnStartup, ae) => ae == "*",
-                    (ActivationEvent::OnStartupFinished, _) => false,
-                    _ => false,
+            for (id, ext) in extensions.iter() {
+                if ext.state != ExtensionState::Inactive {
+                    continue;
                 }
-            });
-            
-            if should_activate {
-                drop(extensions);
-                self.activate_extension(id).await?;
-                activated.push(id.clone());
+                
+                // Check if extension activates on this event
+                let should_activate = ext.manifest.activation_events.iter().any(|ae| {
+                    match (event, ae.as_str()) {
+                        (ActivationEvent::OnLanguage(lang), ae) => {
+                            ae == &format!("onLanguage:{}", lang) || ae == "*"
+                        }
+                        (ActivationEvent::OnCommand(cmd), ae) => {
+                            ae == &format!("onCommand:{}", cmd) || ae == "*"
+                        }
+                        (ActivationEvent::WorkspaceContains(glob), ae) => {
+                            ae == &format!("workspaceContains:{}", glob) || ae == "*"
+                        }
+                        (ActivationEvent::OnStartup, ae) => ae == "*",
+                        (ActivationEvent::OnStartupFinished, _) => false,
+                        _ => false,
+                    }
+                });
+                
+                if should_activate {
+                    to_activate.push(id.clone());
+                }
             }
+        }
+        
+        let mut activated = Vec::new();
+        for id in to_activate {
+            self.activate_extension(&id).await?;
+            activated.push(id);
         }
         
         Ok(activated)

@@ -124,27 +124,16 @@ impl EmbeddedLLMEngine {
             }
         }
         
-        // Try to detect any GPU via sysinfo for display purposes
+        // Try to detect any GPU - simplified for sysinfo 0.30
         let system = sysinfo::System::new_all();
-        let gpu_name = system.components()
-            .iter()
-            .find(|c| c.label().to_lowercase().contains("gpu") || 
-                       c.label().to_lowercase().contains("nvidia") ||
-                       c.label().to_lowercase().contains("amd") ||
-                       c.label().to_lowercase().contains("intel"))
-            .map(|c| c.label().to_string());
         
         // Fallback to CPU
         let ram = system.total_memory() * 1024;
         let usable = (ram as f64 * 0.25) as u64; // Use 25% of RAM for CPU inference
         
-        if let Some(ref name) = gpu_name {
-            log::info!("GPU found but no GPU backend available: {}, using CPU", name);
-        } else {
-            log::info!("No dedicated GPU detected, using CPU inference");
-        }
+        log::info!("No dedicated GPU detected, using CPU inference");
         
-        (gpu_name, usable, "cpu".to_string(), MemoryTier::Cpu)
+        (None, usable, "cpu".to_string(), MemoryTier::Cpu)
     }
     
     /// Detect CUDA GPU using nvidia-smi or NVML

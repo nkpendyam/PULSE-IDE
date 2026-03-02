@@ -287,11 +287,11 @@ impl PluginManager {
         command: &str, 
         args: &serde_json::Value
     ) -> Result<serde_json::Value> {
+        // Check capability first
+        self.check_capability(plugin_id, command)?;
+        
         let plugin = self.plugins.get_mut(plugin_id)
             .ok_or_else(|| anyhow::anyhow!("Plugin not found: {}", plugin_id))?;
-        
-        // Check capability
-        self.check_capability(plugin_id, command)?;
         
         plugin.execute(command, args)
     }

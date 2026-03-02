@@ -168,7 +168,7 @@ impl ExtensionHost {
             .spawn()
             .context("Failed to start extension host process")?;
 
-        let stdin = child.stdin.take().context("Failed to get stdin")?;
+        let _stdin = child.stdin.take().context("Failed to get stdin")?;
         let stdout = child.stdout.take().context("Failed to get stdout")?;
         
         // Start message pump
@@ -184,7 +184,8 @@ impl ExtensionHost {
         *self.is_ready.write() = true;
 
         // Load extensions from directories
-        for dir in &config.extension_dirs {
+        let dirs = config.extension_dirs.clone();
+        for dir in &dirs {
             if dir.exists() {
                 self.scan_extensions(dir)?;
             }
@@ -531,11 +532,9 @@ sendNotification('host/ready', {});
         let extension_id = format!("{}.{}", manifest.publisher, manifest.name);
         
         // Check dependencies
-        if let Some(dependencies) = &manifest.extension_dependencies {
-            for dep in dependencies {
-                if !self.extensions.contains_key(dep) {
-                    log::warn!("Extension {} depends on {} which is not installed", extension_id, dep);
-                }
+        for dep in &manifest.extension_dependencies {
+            if !self.extensions.contains_key(dep) {
+                log::warn!("Extension {} depends on {} which is not installed", extension_id, dep);
             }
         }
         
@@ -623,7 +622,7 @@ sendNotification('host/ready', {});
         }
         
         // Default: activate if no activation events specified
-        manifest.activation_events.is_none()
+        manifest.activation_events.is_empty()
     }
 
     /// Deactivate an extension

@@ -2,6 +2,7 @@
 //!
 //! Multi-channel release system for different user needs
 
+use chrono::Timelike;
 use serde::{Deserialize, Serialize};
 
 /// Update channel
@@ -131,7 +132,7 @@ impl UpdatePolicy {
     /// Check if update is allowed at current time
     pub fn is_update_allowed_now(&self) -> bool {
         if let Some((start, end)) = self.allowed_hours {
-            let now = chrono::Utc::now().hour() as u8;
+            let now = chrono::Utc::now().time().hour() as u8;
             now >= start && now <= end
         } else {
             true

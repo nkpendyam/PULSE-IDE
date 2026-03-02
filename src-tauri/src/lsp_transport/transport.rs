@@ -3,7 +3,7 @@
 //! Implements LSP message transport over stdio and TCP sockets.
 //! Based on: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
 
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Arc;
 use std::collections::HashMap;

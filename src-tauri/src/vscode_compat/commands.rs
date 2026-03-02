@@ -10,7 +10,7 @@ use parking_lot::RwLock;
 /// Command registry for VS Code compatible commands
 pub struct CommandRegistry {
     commands: Arc<RwLock<HashMap<String, RegisteredCommand>>>,
-    keybindings: HashMap<String, Vec<String>>,
+    keybindings: Arc<RwLock<HashMap<String, Vec<String>>>>,
 }
 
 /// A registered command
@@ -58,7 +58,7 @@ impl CommandRegistry {
     pub fn new() -> Self {
         let registry = Self {
             commands: Arc::new(RwLock::new(HashMap::new())),
-            keybindings: HashMap::new(),
+            keybindings: Arc::new(RwLock::new(HashMap::new())),
         };
         
         // Register built-in commands
@@ -364,7 +364,8 @@ impl CommandRegistry {
         
         if let Some(ref keybinding) = command.keybinding {
             let key = &keybinding.key;
-            self.keybindings.entry(key.clone())
+            let mut keybindings = self.keybindings.write();
+            keybindings.entry(key.clone())
                 .or_insert_with(Vec::new)
                 .push(command.id.clone());
         }

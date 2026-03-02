@@ -1,7 +1,7 @@
 //! Auto-Update System for KRO_IDE
 //!
 //! Provides zero-downtime, rollback-capable auto-updates with:
-//! - Delta patching for bandwidth efficiency
+//! - Delta patching for bandwidth efficiencies
 //! - Shadow staging for safe updates
 //! - Automatic rollback on crash
 //! - Multi-channel distribution (nightly/beta/stable/enterprise)
@@ -16,6 +16,7 @@ pub use delta::DeltaUpdater;
 pub use rollback::{RollbackManager, HealthMonitor};
 pub use models::{ModelUpdater, ModelVersion};
 
+use chrono::Timelike;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -409,7 +410,7 @@ impl UpdateManager {
                 
                 // Check if within allowed hours
                 if let Some((start, end)) = self.config.allowed_hours {
-                    let now = chrono::Utc::now().hour() as u8;
+                    let now = chrono::Utc::now().time().hour() as u8;
                     if now < start || now > end {
                         continue;
                     }
