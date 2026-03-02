@@ -290,7 +290,12 @@ impl PermissionManager {
     }
     
     /// Grant a permission request
-    pub fn grant_request(&mut self, request_id: &str, scope: PermissionScope, reason: Option<String>) -> Result<()> {
+    pub fn grant_request(
+        &mut self,
+        request_id: &str,
+        scope: PermissionScope,
+        reason: Option<String>,
+    ) -> anyhow::Result<()> {
         let request = self.pending_requests.remove(request_id)
             .ok_or_else(|| anyhow::anyhow!("Request not found: {}", request_id))?;
         
@@ -322,7 +327,7 @@ impl PermissionManager {
     }
     
     /// Deny a permission request
-    pub fn deny_request(&mut self, request_id: &str, reason: &str) -> Result<()> {
+    pub fn deny_request(&mut self, request_id: &str, reason: &str) -> anyhow::Result<()> {
         let request = self.pending_requests.remove(request_id)
             .ok_or_else(|| anyhow::anyhow!("Request not found: {}", request_id))?;
         

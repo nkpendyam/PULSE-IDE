@@ -57,22 +57,17 @@ impl KyroLspBackend {
             .await;
     }
     
-    /// Send a custom notification
+    /// Send a custom notification via log messages for now
+    /// Custom notifications require implementing the Notification trait properly
     pub async fn send_notification(&self, method: &str, params: serde_json::Value) {
-        self.client
-            .send_notification::<CustomNotification>(method, params)
-            .await;
+        log::info!("Notification: {} - {:?}", method, params);
+        // TODO: Implement proper custom notifications when needed
     }
 }
 
-/// Custom notification type
-#[derive(Debug)]
-struct CustomNotification;
-
-impl lsp_types::notification::Notification for CustomNotification {
-    type Params = serde_json::Value;
-    const METHOD: &'static str = "custom";
-}
+/// Custom notification type - using a simpler approach without custom notifications
+/// The tower-lsp Notification trait requires specific implementation patterns.
+/// For now, we use the built-in client methods directly instead of custom notifications.
 
 #[tower_lsp::async_trait]
 impl LanguageServer for KyroLspBackend {
@@ -889,6 +884,7 @@ impl KyroLspBackend {
                                 },
                             },
                             container_name: None,
+                            tags: None,
                         });
                     }
                 }

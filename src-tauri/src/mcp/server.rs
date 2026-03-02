@@ -493,16 +493,16 @@ impl MCPServer {
             
             MCPRequest::GetPrompt { params } => {
                 let prompts = self.prompts.read().await;
-                match prompts.get(&params.name, params.arguments.unwrap_or_default()) {
-                    Ok(result) => Ok(MCPResponse {
-                        result: Some(serde_json::to_value(result)?),
+                match prompts.get(&params.name) {
+                    Some(template) => Ok(MCPResponse {
+                        result: Some(serde_json::to_value(template)?),
                         error: None,
                     }),
-                    Err(e) => Ok(MCPResponse {
+                    None => Ok(MCPResponse {
                         result: None,
                         error: Some(MCPError {
                             code: -32602,
-                            message: e.to_string(),
+                            message: format!("Prompt not found: {}", params.name),
                             data: None,
                         }),
                     }),

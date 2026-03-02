@@ -1,7 +1,69 @@
 
-pub struct Hnsw<T> { _marker: std::marker::PhantomData<T> }
-pub struct Params { pub ef_construction: usize, pub m: usize }
-impl Params { pub fn new() -> Self { Self { ef_construction: 200, m: 16 } } }
+pub struct Hnsw<T, Rng = rand_pcg::Pcg64> {
+    _marker: std::marker::PhantomData<(T, Rng)>,
+}
+
+pub struct Params {
+    pub ef_construction: usize,
+    pub m: usize,
+    pub max_elements: usize,
+    pub ef_search: usize,
+}
+
+impl Params {
+    pub fn new() -> Self {
+        Self {
+            ef_construction: 200,
+            m: 16,
+            max_elements: 1_000_000,
+            ef_search: 100,
+        }
+    }
+
+    pub fn max_elements(mut self, max_elements: usize) -> Self {
+        self.max_elements = max_elements;
+        self
+    }
+
+    pub fn m(mut self, m: usize) -> Self {
+        self.m = m;
+        self
+    }
+
+    pub fn ef_construction(mut self, ef_construction: usize) -> Self {
+        self.ef_construction = ef_construction;
+        self
+    }
+
+    pub fn ef_search(mut self, ef_search: usize) -> Self {
+        self.ef_search = ef_search;
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchResult {
+    pub idx: usize,
+    pub distance: f32,
+}
+
+impl<T, Rng> Hnsw<T, Rng> {
+    pub fn new(_params: Params, _dimension: usize, _rng: Rng) -> Self {
+        Self {
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    pub fn insert(&self, _point: &Array1<T>, _idx: usize) {
+        // Stub implementation: no-op. A real implementation would insert into the HNSW graph.
+    }
+
+    pub fn search(&self, _query: &Array1<T>, _k: usize, _ef_search: usize) -> Vec<SearchResult> {
+        // Stub implementation: returns no results. This keeps the RAG subsystem compile-safe
+        // without pulling in a heavy HNSW dependency; it can be swapped for a real index later.
+        Vec::new()
+    }
+}
 // Real Vector Store using HNSW (Hierarchical Navigable Small World)
 //
 // High-performance approximate nearest neighbor search for semantic code search.

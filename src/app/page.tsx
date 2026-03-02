@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { useKyroStore, FileNode, OpenFile } from '@/store/kyroStore';
 import { AgentManagerPanel } from '@/components/agent-manager/AgentManagerPanel';
+import { FileTree } from '@/components/sidebar/FileTree';
 import {
   Files,
   Search,
@@ -176,59 +177,6 @@ I can still help with pattern-based analysis!`;
 }
 
 type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings';
-
-// File Tree Component
-function FileTreeItem({ node, level, onFileClick }: { node: FileNode; level: number; onFileClick: (path: string) => void }) {
-  const [isExpanded, setIsExpanded] = useState(level < 2);
-  const { openFiles } = useKyroStore();
-  const isOpen = openFiles.some(f => f.path === node.path);
-
-  const getFileIcon = (name: string, isDir: boolean) => {
-    if (isDir) return null;
-    const ext = name.split('.').pop()?.toLowerCase();
-    const iconMap: Record<string, string> = {
-      'rs': '🦀', 'py': '🐍', 'js': '📜', 'ts': '📘', 'tsx': '⚛️',
-      'go': '🔵', 'java': '☕', 'json': '📋', 'md': '📝'
-    };
-    return iconMap[ext || ''] || null;
-  };
-
-  if (node.name.startsWith('.')) return null;
-
-  const icon = getFileIcon(node.name, node.is_directory);
-  const paddingLeft = level * 12 + 8;
-
-  return (
-    <div className="select-none">
-      <div
-        className={`flex items-center gap-1 py-1 px-1 cursor-pointer hover:bg-[#21262d] rounded ${isOpen ? 'bg-[#1f6feb33]' : ''}`}
-        style={{ paddingLeft }}
-        onClick={() => node.is_directory ? setIsExpanded(!isExpanded) : onFileClick(node.path)}
-      >
-        {node.is_directory && (
-          <span className="text-[#8b949e]">
-            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </span>
-        )}
-        {icon ? (
-          <span className="text-xs">{icon}</span>
-        ) : node.is_directory ? (
-          isExpanded ? <FolderOpen size={14} className="text-[#54aeff]" /> : <Folder size={14} className="text-[#54aeff]" />
-        ) : (
-          <File size={14} className="text-[#8b949e]" />
-        )}
-        <span className={`text-xs truncate ${node.is_directory ? 'font-medium' : ''}`}>{node.name}</span>
-      </div>
-      {node.is_directory && isExpanded && node.children && (
-        <div>
-          {node.children.map((child) => (
-            <FileTreeItem key={child.path} node={child} level={level + 1} onFileClick={onFileClick} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Tab Component
 function TabBar() {
@@ -512,6 +460,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'editor' | 'mission'>('editor');
   const [activePanel, setActivePanel] = useState<SidebarPanel>('explorer');
   const [showChat, setShowChat] = useState(true);
+  const [fileTreeKey, setFileTreeKey] = useState(0);
 
   const {
     openFiles,
@@ -536,25 +485,84 @@ export default function Home() {
     });
   }, [setFileTree, setGitStatus]);
 
-  const handleFileClick = useCallback((path: string) => {
-    const content = sampleFileContents[path] || '// File content would be loaded here';
-    const ext = path.split('.').pop()?.toLowerCase() || 'txt';
-    const languageMap: Record<string, string> = {
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'js': 'javascript',
-      'json': 'json',
-      'md': 'markdown',
+  // Setup global keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+S (Mac) / Ctrl+S (Windows/Linux) - Save file
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveFile();
+      }
     };
 
-    const file: OpenFile = {
-      path,
-      content,
-      language: languageMap[ext] || 'plaintext',
-      isDirty: false
-    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSaveFile]);
 
-    openFile(file);
+  const refreshFileTree = useCallback(() => {
+    // Force re-render of file tree by updating key
+    setFileTreeKey(prev => prev + 1);
+    // In a real app, this would reload the file tree from Tauri
+    // await invoke('get_file_tree', { path: projectPath });
+  }, []);
+
+  const handleFileClick = useCallback(async (path: string) => {
+    try {
+      // Try to load file from Tauri
+      if (typeof window !== 'undefined' && window.__TAURI__) {
+        const fileContent = await window.__TAURI__.core.invoke<{ path: string; content: string; language: string }>('read_file', { path });
+        
+        const file: OpenFile = {
+          path: fileContent.path,
+          content: fileContent.content,
+          language: fileContent.language,
+          isDirty: false
+        };
+        
+        openFile(file);
+      } else {
+        // Fallback to mock data
+        const content = sampleFileContents[path] || '// File content would be loaded here';
+        const ext = path.split('.').pop()?.toLowerCase() || 'txt';
+        const languageMap: Record<string, string> = {
+          'ts': 'typescript',
+          'tsx': 'typescript',
+          'js': 'javascript',
+          'json': 'json',
+          'md': 'markdown',
+        };
+
+        const file: OpenFile = {
+          path,
+          content,
+          language: languageMap[ext] || 'plaintext',
+          isDirty: false
+        };
+
+        openFile(file);
+      }
+    } catch (error) {
+      console.error('Failed to load file:', error);
+      // Fallback to mock data on error
+      const content = sampleFileContents[path] || '// File content would be loaded here';
+      const ext = path.split('.').pop()?.toLowerCase() || 'txt';
+      const languageMap: Record<string, string> = {
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'js': 'javascript',
+        'json': 'json',
+        'md': 'markdown',
+      };
+
+      const file: OpenFile = {
+        path,
+        content,
+        language: languageMap[ext] || 'plaintext',
+        isDirty: false
+      };
+
+      openFile(file);
+    }
   }, [openFile]);
 
   const handleEditorChange = useCallback((value: string | undefined) => {
@@ -562,6 +570,22 @@ export default function Home() {
       setEditorContent(value);
     }
   }, [setEditorContent]);
+
+  const handleSaveFile = useCallback(async () => {
+    if (!currentFile) return;
+
+    try {
+      if (typeof window !== 'undefined' && window.__TAURI__) {
+        await window.__TAURI__.core.invoke('write_file', {
+          path: currentFile.path,
+          content: currentFile.content
+        });
+        console.log('File saved successfully:', currentFile.path);
+      }
+    } catch (error) {
+      console.error('Failed to save file:', error);
+    }
+  }, [currentFile]);
 
   const handleEditorMount = useCallback((editor: unknown) => {
     const monacoEditor = editor as {
@@ -676,7 +700,13 @@ export default function Home() {
                     <span>KYRO-PROJECT</span>
                   </div>
                   {mockFileTree.children?.map((child) => (
-                    <FileTreeItem key={child.path} node={child} level={0} onFileClick={handleFileClick} />
+                    <FileTree 
+                      key={`${child.path}-${fileTreeKey}`} 
+                      node={child} 
+                      level={0} 
+                      onFileClick={handleFileClick}
+                      onRefresh={refreshFileTree}
+                    />
                   ))}
                 </div>
               )}

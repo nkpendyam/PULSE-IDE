@@ -303,16 +303,20 @@ impl AiCompletionEngine {
         let start = Instant::now();
         let mut sources_used = Vec::new();
         
-        // Parallel completion sources
-        let symbol_task = self.get_symbol_completions(&context);
-        let pattern_task = self.get_pattern_completions(&context);
-        let keyword_task = self.get_keyword_completions(&context);
-        let snippet_task = self.get_snippet_completions(&context);
-        let ai_task = self.get_ai_completions(&context);
-
-        // Run all sources in parallel
-        let (symbol_result, pattern_result, keyword_result, snippet_result, ai_result) = 
-            join_all(vec![symbol_task, pattern_task, keyword_task, snippet_task, ai_task]).await;
+        // Run all completion sources in parallel using the `join!` macro.
+        let (
+            symbol_result,
+            pattern_result,
+            keyword_result,
+            snippet_result,
+            ai_result,
+        ) = futures::join!(
+            self.get_symbol_completions(&context),
+            self.get_pattern_completions(&context),
+            self.get_keyword_completions(&context),
+            self.get_snippet_completions(&context),
+            self.get_ai_completions(&context),
+        );
 
         // Collect all results
         let mut all_items: Vec<ScoredCompletion> = Vec::new();

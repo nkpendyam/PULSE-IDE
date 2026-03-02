@@ -15,6 +15,13 @@ path = "src/lib.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# ============ Kyro Crates (Modular Architecture) ============
+kyro-core = { path = "crates/kyro-core" }
+kyro-lsp = { path = "crates/kyro-lsp" }
+kyro-ai = { path = "crates/kyro-ai" }
+kyro-collab = { path = "crates/kyro-collab" }
+kyro-git = { path = "crates/kyro-git" }
+
 # ============ Tauri (Desktop Shell) ============
 tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-shell = "2"
@@ -238,11 +245,14 @@ enterprise = ["wasm-plugins", "rag"]
 # Development/Debug Features
 debug-logging = ["log/max_level_debug", "log/max_level_trace"]
 
-# ============ Workspace Members (Future) ============
-# [workspace]
-# members = [
-#     "crates/kro-editor",
-#     "crates/kro-ai",
-#     "crates/kro-collab",
-#     "crates/kro-plugins",
-# ]
+# ============ Workspace Members ============
+# Workspace configuration for modular Rust backend
+[workspace]
+members = [
+    ".",
+    "crates/kyro-core",      # Core types and utilities
+    "crates/kyro-lsp",       # LSP manager and language intelligence
+    "crates/kyro-ai",        # AI orchestrator and agent system
+    "crates/kyro-collab",    # CRDT collaboration engine
+    "crates/kyro-git",       # Git integration
+]

@@ -204,3 +204,84 @@ pub async fn fs_list_supported_languages() -> Result<Vec<String>, String> {
         "XML".to_string(),
     ])
 }
+
+// ============ File Metadata Commands ============
+
+/// Get file metadata including size, modified time, and permissions
+#[command]
+pub async fn get_file_metadata(path: String) -> Result<FileMetadata, String> {
+    let path = PathBuf::from(&path);
+    let metadata = fs::metadata(&path)
+        .map_err(|e| format!("Failed to get file metadata: {}", e))?;
+    
+    Ok(FileMetadata {
+        path: path.to_string_lossy().to_string(),
+        size: metadata.len(),
+        is_directory: metadata.is_dir(),
+        is_file: metadata.is_file(),
+        is_readonly: metadata.permissions().readonly(),
+        modified: metadata.modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs()),
+        created: metadata.created()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs()),
+    })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileMetadata {
+    pub path: String,
+    pub size: u64,
+    pub is_directory: bool,
+    pub is_file: bool,
+    pub is_readonly: bool,
+    pub modified: Option<u64>,
+    pub created: Option<u64>,
+}
+
+/// Check if a path exists
+#[command]
+pub async fn path_exists(path: String) -> Result<bool, String> {
+    Ok(PathBuf::from(&path).exists())
+}
+
+/// Check if a path is a directory
+#[command]
+pub async fn is_directory(path: String) -> Result<bool, String> {
+    Ok(PathBuf::from(&path).is_dir())
+}
+
+/// Check if a path is a file
+#[command]
+pub async fn is_file(path: String) -> Result<bool, String> {
+    Ok(PathBuf::from(&path).is_file())
+}
+
+// ============ File Watcher Commands ============
+
+use tauri::State;
+use std::sync::{Arc, Mutex};
+use crate::files::FileWatcher;
+
+/// Start watching a directory for changes
+#[command]
+pub async fn watch_directory(
+    path: String,
+    watcher: State<'_, Arc<Mutex<FileWatcher>>>,
+) -> Result<(), String> {
+    let mut watcher = watcher.lock().map_err(|e| format!("Failed to lock watcher: {}", e))?;
+    watcher.watch(&path)
+}
+
+/// Stop watching a directory
+#[command]
+pub async fn unwatch_directory(
+    path: String,
+    watcher: State<'_, Arc<Mutex<FileWatcher>>>,
+) -> Result<(), String> {
+    let mut watcher = watcher.lock().map_err(|e| format!("Failed to lock watcher: {}", e))?;
+    watcher.unwatch(&path)
+}

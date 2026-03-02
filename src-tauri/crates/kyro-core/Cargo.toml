@@ -1,0 +1,31 @@
+[package]
+name = "kyro-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Core types, utilities, and service registry for Kyro IDE"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Concurrency
+dashmap = "5.5"
+parking_lot = "0.12"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+log = "0.4"
+num_cpus = "1.16"
+
+# Async traits
+async-trait = "0.1"

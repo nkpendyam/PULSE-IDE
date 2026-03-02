@@ -259,8 +259,7 @@ impl ExtensionRuntime {
             params,
         };
 
-        if let Some(stdin) = process.stdin.as_ref() {
-            let mut stdin = stdin.try_clone()?;
+        if let Some(stdin) = process.stdin.as_mut() {
             writeln!(stdin, "{}", serde_json::to_string(&request)?)?;
         }
 

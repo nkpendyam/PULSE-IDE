@@ -174,16 +174,15 @@ impl UpdateManager {
         std::fs::create_dir_all(&target_dir)?;
         
         // Try delta update first
-        let result = if info.delta_url.is_some() {
-            self.delta_updater.download_and_apply_delta(
-                &info.delta_url.as_ref().unwrap(),
-                &target_dir,
-                |progress| {
-                    if let Ok(mut status) = self.status.try_write() {
+        let result = if let Some(delta_url) = &info.delta_url {
+            let status_arc = Arc::clone(&self.status);
+            self.delta_updater
+                .download_and_apply_delta(delta_url, &target_dir, move |progress| {
+                    if let Ok(mut status) = status_arc.try_write() {
                         status.download_progress = progress;
                     }
-                }
-            ).await
+                })
+                .await
         } else {
             Err(anyhow::anyhow!("No delta available"))
         };
@@ -263,14 +262,16 @@ impl UpdateManager {
     }
     
     /// Install a staged update
-    pub async fn install_update(&self) -> Result<()> {
+    pub async fn install_update(&mut self) -> Result<()> {
         let status = self.status.read().await;
         
         if !status.ready_to_install {
             anyhow::bail!("No update ready to install");
         }
         
-        let version = status.available_version.as_ref()
+        let version = status
+            .available_version
+            .clone()
             .ok_or_else(|| anyhow::anyhow!("No update available"))?;
         
         drop(status);
@@ -279,7 +280,7 @@ impl UpdateManager {
         self.rollback_manager.create_restore_point()?;
         
         // Activate new version
-        let new_version_dir = self.versions_dir.join(version);
+        let new_version_dir = self.versions_dir.join(&version);
         self.activate_version(&new_version_dir)?;
         
         log::info!("Update {} installed successfully", version);

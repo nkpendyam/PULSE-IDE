@@ -172,11 +172,10 @@ impl AiQualityGate {
         }
     }
 
-    /// Check Rust syntax using rustfmt
+    /// Check Rust syntax using tree-sitter
     async fn check_rust_syntax(&self, code: &str) -> Result<bool> {
-        // Use tree-sitter for fast parsing
         let mut parser = tree_sitter::Parser::new();
-        parser.set_language(tree_sitter_rust::LANGUAGE.into())?;
+        parser.set_language(&tree_sitter_rust::LANGUAGE.into())?;
         
         let tree = parser.parse(code, None);
         Ok(tree.is_some())
@@ -185,7 +184,7 @@ impl AiQualityGate {
     /// Check TypeScript/JavaScript syntax
     async fn check_ts_syntax(&self, code: &str) -> Result<bool> {
         let mut parser = tree_sitter::Parser::new();
-        parser.set_language(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?;
+        parser.set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?;
         
         let tree = parser.parse(code, None);
         Ok(tree.is_some())
@@ -194,7 +193,7 @@ impl AiQualityGate {
     /// Check Python syntax
     async fn check_python_syntax(&self, code: &str) -> Result<bool> {
         let mut parser = tree_sitter::Parser::new();
-        parser.set_language(tree_sitter_python::LANGUAGE.into())?;
+        parser.set_language(&tree_sitter_python::LANGUAGE.into())?;
         
         let tree = parser.parse(code, None);
         Ok(tree.is_some())

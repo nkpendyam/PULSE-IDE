@@ -148,7 +148,11 @@ fn main() {
             app.manage(ai_client_arc.clone());
             
             // File watcher
-            let file_watcher = files::FileWatcher::new(window.clone());
+            let file_watcher = files::FileWatcher::new(window.clone())
+                .unwrap_or_else(|e| {
+                    eprintln!("Failed to create file watcher: {}", e);
+                    panic!("File watcher initialization failed");
+                });
             app.manage(Arc::new(Mutex::new(file_watcher)));
             
             // Git manager
@@ -328,6 +332,12 @@ fn main() {
             commands::fs::is_first_run_complete,
             commands::fs::save_first_run_complete,
             commands::fs::fs_list_supported_languages,
+            commands::fs::get_file_metadata,
+            commands::fs::path_exists,
+            commands::fs::is_directory,
+            commands::fs::is_file,
+            commands::fs::watch_directory,
+            commands::fs::unwatch_directory,
             
             // ============ Terminal Operations ============
             commands::terminal::create_terminal,

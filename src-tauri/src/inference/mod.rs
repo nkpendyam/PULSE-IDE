@@ -215,11 +215,19 @@ impl InferenceEngine {
     }
     
     /// Generate via Ollama API
-    async fn generate_via_ollama(&self, params: &GenerationParams, max_tokens: usize, temperature: f32) -> Result<GenerationResult> {
+    async fn generate_via_ollama(
+        &self,
+        params: &GenerationParams,
+        max_tokens: usize,
+        temperature: f32,
+    ) -> Result<GenerationResult> {
         let client = reqwest::Client::new();
-        let model_name = self.model.as_ref()
-            .map(|m| m.read().await.info.name.clone())
-            .unwrap_or_else(|| "phi3".to_string());
+        let model_name = if let Some(model) = &self.model {
+            let model = model.read().await;
+            model.info.name.clone()
+        } else {
+            "phi3".to_string()
+        };
         
         let body = serde_json::json!({
             "model": model_name,
@@ -266,11 +274,19 @@ impl InferenceEngine {
     }
     
     /// Generate via OpenAI-compatible API
-    async fn generate_via_openai_compatible(&self, params: &GenerationParams, max_tokens: usize, temperature: f32) -> Result<GenerationResult> {
+    async fn generate_via_openai_compatible(
+        &self,
+        params: &GenerationParams,
+        max_tokens: usize,
+        temperature: f32,
+    ) -> Result<GenerationResult> {
         let client = reqwest::Client::new();
-        let model_name = self.model.as_ref()
-            .map(|m| m.read().await.info.name.clone())
-            .unwrap_or_else(|| "local-model".to_string());
+        let model_name = if let Some(model) = &self.model {
+            let model = model.read().await;
+            model.info.name.clone()
+        } else {
+            "local-model".to_string()
+        };
         
         let body = serde_json::json!({
             "model": model_name,

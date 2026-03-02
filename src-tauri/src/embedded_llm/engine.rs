@@ -384,8 +384,8 @@ impl EmbeddedLLMEngine {
     
     /// Select optimal inference backend
     async fn select_backend(
-        config: &EmbeddedLLMConfig, 
-        hardware: &HardwareCapabilities
+        config: &EmbeddedLLMConfig,
+        hardware: &HardwareCapabilities,
     ) -> anyhow::Result<Box<dyn InferenceBackend>> {
         let backend_name = config.preferred_backend.as_ref()
             .unwrap_or(&hardware.recommended_backend);
@@ -398,8 +398,8 @@ impl EmbeddedLLMEngine {
             "metal" => Ok(Box::new(backends::MetalBackend::new()?)),
             
             "vulkan" => Ok(Box::new(backends::VulkanBackend::new()?)),
-            
-            _ => Ok(Box::new(backends::CpuBackend::new(config.n_threads)?)),
+
+            _ => Ok(Box::new(backends::CpuBackend::new(config.n_threads))),
         }
     }
     
@@ -465,7 +465,10 @@ impl EmbeddedLLMEngine {
     }
     
     /// Generate completion
-    pub async fn complete(&self, request: &InferenceRequest) -> anyhow::Result<InferenceResponse> {
+    pub async fn complete(
+        &mut self,
+        request: &InferenceRequest,
+    ) -> anyhow::Result<InferenceResponse> {
         // Check cache first
         let cache_key = self.compute_cache_key(request);
         if let Some(cached) = self.context_cache.get(&cache_key) {

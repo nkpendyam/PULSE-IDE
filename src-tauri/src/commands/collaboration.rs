@@ -102,11 +102,16 @@ pub async fn join_room(request: JoinRoomRequest) -> Result<RoomInfo, String> {
     room.users.push(CollaboratorInfo {
         id: uuid::Uuid::new_v4().to_string(), name: request.username,
         color: format!("#{:06x}", rand::random::<u32>() & 0xFFFFFF),
-        cursor_line: None, cursor_col: None, status: "active".to_string(),
+        cursor_line: None,
+        cursor_col: None,
+        status: "active".to_string(),
     });
+
+    // Clone the room info before mutating other fields on `state`
+    let room_clone = room.clone();
     state.current_room = Some(request.room_id.clone());
     state.connected = true;
-    Ok(room.clone())
+    Ok(room_clone)
 }
 
 #[command]

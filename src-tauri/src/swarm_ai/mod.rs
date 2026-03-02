@@ -190,7 +190,21 @@ impl SwarmAIEngine {
     /// Get available models
     pub async fn list_models(&self) -> anyhow::Result<Vec<ModelInfo>> {
         let registry = self.model_registry.read().await;
-        registry.list_models().await
+        let models = registry.list_models().await?;
+
+        let infos = models
+            .into_iter()
+            .map(|m| ModelInfo {
+                name: m.name,
+                size_bytes: m.size_bytes,
+                quantization: m.quantization,
+                context_length: m.context_length,
+                supports_gpu: m.supports_gpu,
+                recommended_memory_gb: m.recommended_memory_gb,
+            })
+            .collect();
+
+        Ok(infos)
     }
 
     /// Load a model
