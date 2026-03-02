@@ -371,7 +371,7 @@ impl MCPAgent {
         let prompt = self.build_planning_prompt(command, context)?;
 
         // Get LLM response
-        let llm = self.llm.read().await;
+        let mut llm = self.llm.write().await;
         let request = InferenceRequest {
             prompt,
             max_tokens: 2048,

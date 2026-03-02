@@ -117,7 +117,7 @@ impl RAGChatEngine {
         };
 
         // Get LLM response
-        let llm = self.llm.read().await;
+        let mut llm = self.llm.write().await;
         let response = llm.complete(&request).await?;
         drop(llm);
 

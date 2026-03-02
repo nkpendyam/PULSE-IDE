@@ -231,7 +231,7 @@ pub async fn ai_code_completion(
     let state = crate::commands::embedded_llm::EmbeddedLLMState::default();
     
     if let Some(ref engine) = state.engine {
-        let engine = engine.read().await;
+        let mut engine = engine.write().await;
         
         let request = crate::embedded_llm::InferenceRequest {
             prompt: code.clone(),

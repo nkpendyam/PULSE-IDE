@@ -239,7 +239,7 @@ pub async fn embedded_complete(
     let opts = options.unwrap_or_default();
     
     if let Some(ref engine) = state.engine {
-        let engine = engine.read().await;
+        let mut engine = engine.write().await;
         
         let request = InferenceRequest {
             prompt,
@@ -272,7 +272,7 @@ pub async fn embedded_chat(
     let opts = options.unwrap_or_default();
     
     if let Some(ref engine) = state.engine {
-        let engine = engine.read().await;
+        let mut engine = engine.write().await;
         
         // Convert messages to prompt
         let mut prompt = String::new();
@@ -326,7 +326,7 @@ pub async fn embedded_code_complete(
     let state = state.read().await;
     
     if let Some(ref engine) = state.engine {
-        let engine = engine.read().await;
+        let mut engine = engine.write().await;
         
         let request = InferenceRequest {
             prompt,
