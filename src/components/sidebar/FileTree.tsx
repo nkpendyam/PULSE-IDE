@@ -205,7 +205,7 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
   return (
     <div 
       ref={menuRef}
-      className="fixed bg-[#161b22] border border-[#30363d] rounded shadow-lg py-1 z-50 min-w-[160px]"
+      className="fixed bg-[#161b22] border border-[#30363d] rounded shadow-lg py-1 z-50 min-w-40"
       style={{ left: x, top: y }}
     >
       {menuItems.map((item, index) => 

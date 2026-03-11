@@ -94,7 +94,7 @@ export function Breadcrumbs({ className = '' }: BreadcrumbsProps) {
             {item.type === 'folder' && <Folder size={12} />}
             {item.type === 'file' && <File size={12} />}
             {item.type === 'symbol' && <GitBranch size={12} className="text-[#58a6ff]" />}
-            <span className="max-w-[150px] truncate">{item.name}</span>
+            <span className="max-w-37.5 truncate">{item.name}</span>
           </button>
         </React.Fragment>
       ))}

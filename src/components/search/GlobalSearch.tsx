@@ -271,7 +271,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                         onClick={() => openAtMatch(result.file, match.line)}
                         className="w-full flex items-start px-2 py-1 hover:bg-[#21262d] rounded text-left"
                       >
-                        <span className="text-xs text-[#8b949e] w-8 flex-shrink-0">{match.line}</span>
+                        <span className="text-xs text-[#8b949e] w-8 shrink-0">{match.line}</span>
                         <span className="text-sm text-[#c9d1d9] font-mono truncate">
                           {match.context.split(query)[0]}
                           <span className="bg-[#264f78] text-[#c9d1d9]">{query}</span>

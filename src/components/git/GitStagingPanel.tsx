@@ -245,7 +245,7 @@ export function GitStagingPanel({ projectPath, onFileSelect }: GitStagingPanelPr
       </span>
       
       {/* Directory hint */}
-      <span className="text-xs text-[#8b949e] truncate max-w-[100px]">
+      <span className="text-xs text-[#8b949e] truncate max-w-25">
         {file.path.includes('/') && file.path.substring(0, file.path.lastIndexOf('/'))}
       </span>
       

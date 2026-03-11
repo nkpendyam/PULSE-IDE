@@ -170,7 +170,7 @@ export function SymbolSearch({ isOpen, onClose }: SymbolSearchProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15%] bg-black/50" onClick={onClose}>
-      <div className="w-[500px] max-h-[400px] bg-[#161b22] rounded-lg border border-[#30363d] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="w-125 max-h-100 bg-[#161b22] rounded-lg border border-[#30363d] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center px-4 py-3 border-b border-[#30363d]">
           <Search size={18} className="text-[#8b949e] mr-3" />
           <input
@@ -187,7 +187,7 @@ export function SymbolSearch({ isOpen, onClose }: SymbolSearchProps) {
           <kbd className="px-2 py-1 text-xs bg-[#21262d] rounded text-[#8b949e]">Ctrl+T</kbd>
         </div>
 
-        <div className="max-h-[320px] overflow-y-auto">
+        <div className="max-h-80 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#58a6ff]"></div>
@@ -209,7 +209,7 @@ export function SymbolSearch({ isOpen, onClose }: SymbolSearchProps) {
                   {kindConfig[symbol.kind]?.icon || '?'}
                 </span>
                 <span className="ml-3 text-sm text-[#c9d1d9]">{symbol.name}</span>
-                <span className="ml-auto text-xs text-[#8b949e] truncate max-w-[200px]">
+                <span className="ml-auto text-xs text-[#8b949e] truncate max-w-50">
                   {symbol.file.split('/').pop()}:{symbol.line}
                 </span>
               </div>

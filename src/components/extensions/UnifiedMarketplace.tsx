@@ -420,7 +420,7 @@ function ExtensionCard({
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
-        <div className="w-12 h-12 rounded bg-[#21262d] flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="w-12 h-12 rounded bg-[#21262d] flex items-center justify-center overflow-hidden shrink-0">
           {extension.iconUrl ? (
             <img src={extension.iconUrl} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -519,7 +519,7 @@ function ExtensionListItem({
       onClick={onSelect}
     >
       {/* Icon */}
-      <div className="w-10 h-10 rounded bg-[#21262d] flex items-center justify-center overflow-hidden flex-shrink-0">
+      <div className="w-10 h-10 rounded bg-[#21262d] flex items-center justify-center overflow-hidden shrink-0">
         {extension.iconUrl ? (
           <img src={extension.iconUrl} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -633,7 +633,7 @@ function ExtensionDetailModal({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-[#161b22] border border-[#30363d] rounded-lg w-[800px] max-h-[80vh] overflow-hidden"
+        className="bg-[#161b22] border border-[#30363d] rounded-lg w-200 max-h-[80vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -747,7 +747,7 @@ function ExtensionDetailModal({
         )}
 
         {/* Readme */}
-        <div className="p-4 overflow-auto max-h-[400px]">
+        <div className="p-4 overflow-auto max-h-100">
           {isLoadingReadme ? (
             <div className="flex items-center justify-center py-8">
               <RefreshCw className="animate-spin text-[#8b949e]" size={24} />

@@ -376,7 +376,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10%] bg-black/50" onClick={onClose}>
-      <div className="w-[600px] max-h-[400px] bg-[#161b22] rounded-lg border border-[#30363d] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="w-150 max-h-100 bg-[#161b22] rounded-lg border border-[#30363d] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex items-center px-4 py-3 border-b border-[#30363d]">
           <Search size={18} className="text-[#8b949e] mr-3" />
           <input
@@ -390,7 +390,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           <kbd className="px-2 py-1 text-xs bg-[#21262d] rounded text-[#8b949e]">Esc</kbd>
         </div>
 
-        <div className="max-h-[320px] overflow-y-auto">
+        <div className="max-h-80 overflow-y-auto">
           {filteredCommands.length === 0 ? (
             <div className="px-4 py-8 text-center text-[#8b949e]">No commands found</div>
           ) : (

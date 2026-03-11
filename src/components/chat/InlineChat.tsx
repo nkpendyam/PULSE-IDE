@@ -117,7 +117,7 @@ export function InlineChat({ isOpen, onClose, position, selection, onAccept, onR
 
   return (
     <div
-      className="fixed z-50 w-[400px] bg-[#161b22] border border-[#30363d] rounded-lg shadow-2xl overflow-hidden"
+      className="fixed z-50 w-100 bg-[#161b22] border border-[#30363d] rounded-lg shadow-2xl overflow-hidden"
       style={{ left: position.x, top: position.y }}
     >
       {/* Header */}
@@ -135,7 +135,7 @@ export function InlineChat({ isOpen, onClose, position, selection, onAccept, onR
       {selection && selection.text && (
         <div className="px-3 py-2 border-b border-[#30363d] bg-[#0d1117]">
           <div className="text-xs text-[#8b949e] mb-1">Selected:</div>
-          <pre className="text-xs text-[#c9d1d9] font-mono max-h-[60px] overflow-hidden">
+          <pre className="text-xs text-[#c9d1d9] font-mono max-h-15 overflow-hidden">
             {selection.text.slice(0, 200)}
             {selection.text.length > 200 && '...'}
           </pre>
@@ -198,7 +198,7 @@ export function InlineChat({ isOpen, onClose, position, selection, onAccept, onR
           </div>
           
           {showDiff && (
-            <div className="max-h-[200px] overflow-auto font-mono text-xs">
+            <div className="max-h-50 overflow-auto font-mono text-xs">
               <pre className="p-3 text-[#c9d1d9] whitespace-pre-wrap">{suggestedCode}</pre>
             </div>
           )}

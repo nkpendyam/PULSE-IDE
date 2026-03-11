@@ -298,7 +298,7 @@ function EditorPane({ groupId, isActive, onFocus }: EditorPaneProps) {
           >
             <GripVertical className="w-3 h-3 opacity-0 group-hover:opacity-100 cursor-grab" />
             {tab.isPinned && <Pin className="w-3 h-3 text-[#58a6ff]" />}
-            <span className="text-sm truncate max-w-[120px]">{getFileName(tab.path)}</span>
+            <span className="text-sm truncate max-w-30">{getFileName(tab.path)}</span>
             {tab.isDirty && <span className="w-2 h-2 rounded-full bg-[#f0883e]" />}
             <button
               className="ml-1 p-0.5 rounded hover:bg-[#30363d] opacity-0 group-hover:opacity-100"
@@ -426,14 +426,14 @@ export function EditorGroup() {
       <div
         className={`
           ${splitDirection === 'vertical' ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'}
-          bg-[#30363d] hover:bg-[#58a6ff] transition-colors flex-shrink-0
+          bg-[#30363d] hover:bg-[#58a6ff] transition-colors shrink-0
           ${isResizing ? 'bg-[#58a6ff]' : ''}
         `}
         onMouseDown={handleMouseDown}
       >
         {/* Resize handle indicator */}
         <div className={`absolute ${splitDirection === 'vertical' ? 'top-1/2 -translate-y-1/2' : 'left-1/2 -translate-x-1/2'}`}>
-          <ChevronDown className={`w-4 h-4 text-[#8b949e] ${splitDirection === 'vertical' ? 'rotate-[-90deg]' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-[#8b949e] ${splitDirection === 'vertical' ? '-rotate-90' : ''}`} />
         </div>
       </div>
       
