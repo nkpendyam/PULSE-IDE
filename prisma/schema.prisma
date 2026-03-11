@@ -19,14 +19,30 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sessions  Session[]
+  settings  UserSettings?
 }
 
-model Post {
+model Session {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+model UserSettings {
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme         String  @default("dark")
+  fontSize      Int     @default(14)
+  fontFamily    String  @default("JetBrains Mono")
+  tabSize       Int     @default(2)
+  wordWrap      Boolean @default(true)
+  minimap       Boolean @default(true)
+  keybindings   String  @default("default")
+  aiModel       String  @default("auto")
+  autoSave      Boolean @default(true)
 }

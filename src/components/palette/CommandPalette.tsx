@@ -65,7 +65,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   const {
     projectPath, setProjectPath, setFileTree, showTerminal,
-    setShowTerminal, showChat, setShowChat, sidebarWidth, setSidebarWidth
+    setShowTerminal, showChat, setShowChat, sidebarWidth, setSidebarWidth,
+    openFiles, activeFileIndex, updateFileContent
   } = useKyroStore();
 
   // Define all available commands
@@ -95,7 +96,14 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+S',
       icon: <Save size={16} />,
       category: 'file',
-      action: () => console.log('Save file')
+      action: async () => {
+        const file = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+        if (file) {
+          try {
+            await invoke('write_file', { path: file.path, content: file.content });
+          } catch { /* running outside Tauri */ }
+        }
+      }
     },
     {
       id: 'file.saveAll',
@@ -104,7 +112,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+Shift+S',
       icon: <Save size={16} />,
       category: 'file',
-      action: () => console.log('Save all')
+      action: async () => {
+        for (const file of openFiles) {
+          if (file.isDirty) {
+            try {
+              await invoke('write_file', { path: file.path, content: file.content });
+            } catch { /* running outside Tauri */ }
+          }
+        }
+      }
     },
     // Editor commands
     {
@@ -114,7 +130,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+Z',
       icon: <Undo size={16} />,
       category: 'editor',
-      action: () => document.execCommand('undo')
+      action: () => { document.execCommand('undo'); }
     },
     {
       id: 'editor.redo',
@@ -123,7 +139,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+Y',
       icon: <Redo size={16} />,
       category: 'editor',
-      action: () => document.execCommand('redo')
+      action: () => { document.execCommand('redo'); }
     },
     {
       id: 'editor.format',
@@ -132,7 +148,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Shift+Alt+F',
       icon: <Braces size={16} />,
       category: 'editor',
-      action: () => console.log('Format')
+      action: async () => {
+        try {
+          const file = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+          if (file) {
+            const formatted = await invoke<string>('lsp_format_document', { language: file.language, code: file.content });
+            updateFileContent(file.path, formatted);
+          }
+        } catch { /* format not available */ }
+      }
     },
     // Navigation commands
     {
@@ -142,7 +166,16 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+G',
       icon: <Code size={16} />,
       category: 'navigation',
-      action: () => console.log('Go to line')
+      action: () => {
+        const line = prompt('Go to line number:');
+        if (line) {
+          const lineNum = parseInt(line, 10);
+          if (!isNaN(lineNum) && lineNum > 0) {
+            // Monaco editor will pick this up from the store
+            useKyroStore.getState().setCursorPosition(lineNum, 1);
+          }
+        }
+      }
     },
     {
       id: 'nav.goToFile',
@@ -151,7 +184,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+P',
       icon: <File size={16} />,
       category: 'navigation',
-      action: () => console.log('Go to file')
+      action: () => {
+        // Re-open palette in file-search mode (stay open, clear query)
+        setQuery('>');
+      }
     },
     {
       id: 'nav.goToSymbol',
@@ -160,7 +196,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+T',
       icon: <Braces size={16} />,
       category: 'navigation',
-      action: () => console.log('Go to symbol')
+      action: () => {
+        setQuery('@');
+      }
     },
     // Git commands
     {
@@ -221,7 +259,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       shortcut: 'Ctrl+,',
       icon: <Settings size={16} />,
       category: 'settings',
-      action: () => console.log('Open settings')
+      action: () => {
+        // Navigate to settings by dispatching a custom event the page can pick up
+        window.dispatchEvent(new CustomEvent('kyro:navigate', { detail: { panel: 'settings' } }));
+      }
     },
     // Update
     {
@@ -232,7 +273,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       category: 'view',
       action: async () => {
         const update = await invoke('check_for_updates');
-        console.log('Update check:', update);
+        window.dispatchEvent(new CustomEvent('kyro:notification', { detail: { message: update ? 'Update available!' : 'You are up to date.' } }));
       }
     },
     {
@@ -249,7 +290,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         }
       }
     }
-  ], [projectPath, setProjectPath, setFileTree, showTerminal, setShowTerminal, showChat, setShowChat, sidebarWidth, setSidebarWidth]);
+  ], [projectPath, setProjectPath, setFileTree, showTerminal, setShowTerminal, showChat, setShowChat, sidebarWidth, setSidebarWidth, openFiles, activeFileIndex, updateFileContent]);
 
   // Filter commands based on query
   const filteredCommands = useMemo(() => {

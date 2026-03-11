@@ -135,9 +135,21 @@ export default function Home() {
     setGitStatus
   } = useKyroStore();
 
-  // Initialize mock data
+  // Initialize: try Tauri file tree, fall back to mock data
   React.useEffect(() => {
-    setFileTree(mockFileTree);
+    async function loadInitialTree() {
+      if (typeof window !== 'undefined' && window.__TAURI__) {
+        try {
+          const tree = await window.__TAURI__.core.invoke<FileNode>('get_file_tree', { path: '.', maxDepth: 5 });
+          setFileTree(tree);
+          return;
+        } catch {
+          // Tauri not available, use mock
+        }
+      }
+      setFileTree(mockFileTree);
+    }
+    loadInitialTree();
     setGitStatus({
       branch: 'main',
       ahead: 2,
@@ -159,7 +171,6 @@ export default function Home() {
           path: currentFile.path,
           content: currentFile.content
         });
-        console.log('File saved successfully:', currentFile.path);
       }
     } catch (error) {
       console.error('Failed to save file:', error);
@@ -185,12 +196,29 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSaveFile]);
 
-  const refreshFileTree = useCallback(() => {
-    // Force re-render of file tree by updating key
-    setFileTreeKey(prev => prev + 1);
-    // In a real app, this would reload the file tree from Tauri
-    // await invoke('get_file_tree', { path: projectPath });
+  // Listen for navigation events from CommandPalette
+  React.useEffect(() => {
+    const handleNavigate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.panel) {
+        setActivePanel(detail.panel as SidebarPanel);
+      }
+    };
+    window.addEventListener('kyro:navigate', handleNavigate);
+    return () => window.removeEventListener('kyro:navigate', handleNavigate);
   }, []);
+
+  const refreshFileTree = useCallback(async () => {
+    setFileTreeKey(prev => prev + 1);
+    if (typeof window !== 'undefined' && window.__TAURI__) {
+      try {
+        const tree = await window.__TAURI__.core.invoke<FileNode>('get_file_tree', { path: '.', maxDepth: 5 });
+        setFileTree(tree);
+      } catch {
+        // Tauri unavailable, keep existing tree
+      }
+    }
+  }, [setFileTree]);
 
   const handleFileClick = useCallback(async (path: string) => {
     try {
