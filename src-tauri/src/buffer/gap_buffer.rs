@@ -149,7 +149,7 @@ impl TextBuffer for GapBuffer {
             return EditResult::Error("Invalid range".to_string());
         }
         
-        let deleted = self.slice(start, end);
+        let deleted = self.slice(start, end);  // Get deleted content with immutable borrow
         self.move_gap_to(end);
         self.gap_start -= (end - start);
         

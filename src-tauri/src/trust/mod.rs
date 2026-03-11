@@ -225,15 +225,15 @@ impl PermissionManager {
         agent_id: &str,
         permission: Permission,
         context: &str,
-    ) -> PermissionResult {
+    ) -> Result<PermissionResult> {
         let agent = self.agents.get(agent_id)
             .ok_or_else(|| anyhow::anyhow!("Agent not registered: {}", agent_id))?;
         
         // Check if already granted
         if agent.granted_permissions.contains(&permission) {
-            return PermissionResult::Granted {
+            return Ok(PermissionResult::Granted {
                 reason: "Permission already granted".to_string(),
-            };
+            });
         }
         
         // Calculate risk level
@@ -249,27 +249,27 @@ impl PermissionManager {
                 },
             });
             
-            return PermissionResult::Granted {
+            return Ok(PermissionResult::Granted {
                 reason: "Safe operation auto-approved".to_string(),
-            };
+            });
         }
         
         // Check trust level
         match agent.trust_level {
             TrustLevel::System => {
-                return PermissionResult::Granted {
+                return Ok(PermissionResult::Granted {
                     reason: "System agent has full access".to_string(),
-                };
+                });
             }
             TrustLevel::Trusted if risk_level <= RiskLevel::Medium => {
-                return PermissionResult::Granted {
+                return Ok(PermissionResult::Granted {
                     reason: "Trusted agent with appropriate risk level".to_string(),
-                };
+                });
             }
             TrustLevel::Limited if risk_level == RiskLevel::Safe => {
-                return PermissionResult::Granted {
+                return Ok(PermissionResult::Granted {
                     reason: "Limited agent, safe operation".to_string(),
-                };
+                });
             }
             _ => {}
         }
@@ -288,7 +288,7 @@ impl PermissionManager {
         let request_id = request.id.clone();
         self.pending_requests.insert(request_id.clone(), request.clone());
         
-        PermissionResult::PendingApproval { request }
+        Ok(PermissionResult::PendingApproval { request })
     }
     
     /// Grant a permission request
