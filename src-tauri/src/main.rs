@@ -93,6 +93,9 @@ mod airllm;
 // ============ PicoClaw Integration (Ultra-lightweight AI) ============
 mod picoclaw;
 
+// ============ Atoms of Thought (AoT Reasoning) ============
+mod aot;
+
 // ============ Orchestrator (Mission Control) ============
 mod orchestrator;
 
@@ -333,6 +336,31 @@ fn main() {
             let orchestrator = orchestrator::KyroOrchestrator::new(orchestrator::OrchestratorConfig::default());
             app.manage(commands::orchestrator::OrchestratorState(Arc::new(tokio::sync::RwLock::new(orchestrator))));
             log::info!("✓ Orchestrator initialized");
+            
+            // ============ Initialize AoT Reasoning Engine ============
+            let aot_reasoner = aot::AotReasoner::new(aot::AotConfig::default());
+            let aot_state = commands::aot::AotState(std::sync::Mutex::new(aot_reasoner));
+            app.manage(aot_state);
+            log::info!("✓ Atoms-of-Thought engine initialized");
+            
+            // ============ Initialize Extension Store ============
+            let ext_store_path = dirs::data_dir()
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+                .join("kro_ide")
+                .join("extensions");
+            let ext_manager = extensions::ExtensionManager::new(ext_store_path);
+            app.manage(commands::extensions::ExtensionState(tokio::sync::Mutex::new(ext_manager)));
+            log::info!("✓ Extension store initialized");
+            
+            // ============ Initialize Agent Store ============
+            let agent_store = agent_store::AgentStore::new();
+            app.manage(commands::agent_store::AgentStoreState(tokio::sync::Mutex::new(agent_store)));
+            log::info!("✓ Agent store initialized");
+            
+            // ============ Initialize GitHub Marketplace ============
+            let marketplace = extensions::GitHubMarketplace::new();
+            app.manage(commands::marketplace::MarketplaceState(tokio::sync::Mutex::new(marketplace)));
+            log::info!("✓ GitHub marketplace initialized");
             
             // ============ Startup Complete ============
             
@@ -589,6 +617,40 @@ fn main() {
             commands::orchestrator::orchestrator_list_missions,
             commands::orchestrator::orchestrator_update_mission_phase,
             commands::orchestrator::orchestrator_get_config,
+            
+            // ============ AoT Reasoning Operations ============
+            commands::aot::aot_decompose,
+            commands::aot::aot_optimize_context,
+            commands::aot::aot_get_stats,
+            commands::aot::aot_is_available,
+            
+            // ============ Extension Store Operations ============
+            commands::extensions::search_extensions_registry,
+            commands::extensions::install_extension_registry,
+            commands::extensions::uninstall_extension_registry,
+            commands::extensions::list_extensions,
+            commands::extensions::toggle_extension,
+            
+            // ============ Agent Store Operations ============
+            commands::agent_store::search_agents,
+            commands::agent_store::install_agent,
+            commands::agent_store::list_installed_agents,
+            commands::agent_store::uninstall_agent,
+            commands::agent_store::toggle_agent,
+            commands::agent_store::execute_agent,
+            commands::agent_store::featured_agents,
+            
+            // ============ GitHub Marketplace Operations ============
+            commands::marketplace::search_marketplace,
+            commands::marketplace::get_github_extension_details,
+            commands::marketplace::get_extension_versions,
+            commands::marketplace::install_from_github,
+            commands::marketplace::get_featured_extensions,
+            commands::marketplace::get_trending_extensions,
+            
+            // ============ Chat Agent Operations ============
+            commands::ai::detect_ai_backends,
+            commands::ai::smart_ai_completion,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

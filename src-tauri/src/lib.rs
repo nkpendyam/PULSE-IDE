@@ -108,5 +108,8 @@ pub mod airllm;
 // ============ PicoClaw Integration (Ultra-lightweight AI) ============
 pub mod picoclaw;
 
+// ============ Atoms of Thought (AoT Reasoning) ============
+pub mod aot;
+
 // ============ Orchestrator (Mission Control) ============
 pub mod orchestrator;

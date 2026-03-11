@@ -71,5 +71,9 @@ pub use crate::airllm::commands as airllm_commands;
 pub mod picoclaw;
 pub use crate::picoclaw::commands as picoclaw_commands;
 
+// ============ AoT Reasoning Operations ============
+pub mod aot;
+pub use crate::aot::commands as aot_commands;
+
 // ============ Orchestrator (Mission Control) ============
 pub mod orchestrator;

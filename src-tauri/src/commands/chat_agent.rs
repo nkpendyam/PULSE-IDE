@@ -1,4 +1,5 @@
-// Chat Agent Tauri Commands — Self-contained implementation
+// Chat Agent Types — shared types for chat agent features.
+// Command implementations live in commands/ai.rs (detect_ai_backends, smart_ai_completion).
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

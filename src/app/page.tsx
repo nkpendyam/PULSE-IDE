@@ -5,6 +5,15 @@ import Editor from '@monaco-editor/react';
 import { useKyroStore, FileNode, OpenFile } from '@/store/kyroStore';
 import { AgentManagerPanel } from '@/components/agent-manager/AgentManagerPanel';
 import { FileTree } from '@/components/sidebar/FileTree';
+import { TabBar } from '@/components/tabs/TabBar';
+import { StatusBar } from '@/components/statusbar/StatusBar';
+import { AIChatSidebar } from '@/components/chat/AIChatSidebar';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { GitStagingPanel } from '@/components/git/GitStagingPanel';
+import { DebugPanel } from '@/components/debug/DebugPanel';
+import { SettingsPanel } from '@/components/settings/SettingsPanel';
+import { TerminalPanel } from '@/components/terminal/TerminalPanel';
+import { CommandPalette } from '@/components/palette/CommandPalette';
 import {
   Files,
   Search,
@@ -12,26 +21,12 @@ import {
   Bug,
   Rocket,
   Settings,
-  ChevronRight,
   ChevronDown,
-  File,
   Folder,
-  FolderOpen,
-  X,
-  Circle,
-  Send,
-  Trash2,
-  Sparkles,
-  Terminal,
-  Layout,
-  Code2,
   Bot,
-  Zap,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Wifi,
-  WifiOff
+  Code2,
+  Layout,
+  Blocks,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -59,21 +54,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-interface BackendStatus {
-  name: string;
-  available: boolean;
-  endpoint: string;
-}
-
-interface SmartCompletionResult {
-  text: string;
-  model: string;
-  backend: string;
-  tokens_generated: number;
-  time_ms: number;
-  tokens_per_second: number;
-  from_cache: boolean;
-}
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions';
 
 // Mock file tree data (for demo mode when Tauri is not available)
 const mockFileTree: FileNode = {
@@ -136,330 +117,12 @@ export function Button({ children, onClick }: ButtonProps) {
 }`,
 };
 
-// Fallback AI response when Tauri is not available
-function getFallbackResponse(prompt: string): string {
-  const promptLower = prompt.toLowerCase();
-  
-  if (promptLower.includes('fix') || promptLower.includes('bug') || promptLower.includes('error')) {
-    return `🔧 **Bug Analysis**
-
-Looking at the code, here are potential issues:
-
-1. Check for \`unwrap()\` calls - consider proper error handling
-2. Verify null/undefined checks are in place
-3. Ensure all edge cases are handled
-
-Would you like me to analyze specific code?
-
-*Tip: Run Ollama locally for more detailed AI assistance*`;
-  }
-  
-  if (promptLower.includes('explain') || promptLower.includes('what')) {
-    return `📚 **Code Explanation**
-
-This code appears to implement a specific functionality.
-
-To provide a detailed explanation, please share the specific code snippet you'd like me to analyze.
-
-*Tip: Run Ollama locally (\`ollama serve\`) for more detailed AI assistance*`;
-  }
-  
-  return `🤖 **AI Assistant**
-
-I understand you're asking about: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"
-
-**For full AI capabilities:**
-- Install and run Ollama: \`ollama serve\`
-- Pull a model: \`ollama pull codellama:7b\`
-- Or use LM Studio for local inference
-
-I can still help with pattern-based analysis!`;
-}
-
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings';
-
-// Tab Component
-function TabBar() {
-  const { openFiles, activeFileIndex, setActiveFile, closeFile } = useKyroStore();
-  if (openFiles.length === 0) return null;
-
-  const getExtensionIcon = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const iconMap: Record<string, { icon: string; color: string }> = {
-      'ts': { icon: 'TS', color: 'text-[#3178c6]' },
-      'tsx': { icon: 'TX', color: 'text-[#3178c6]' },
-      'js': { icon: 'JS', color: 'text-[#f7df1e]' },
-      'py': { icon: 'PY', color: 'text-[#3776ab]' },
-      'rs': { icon: 'RS', color: 'text-[#dea584]' },
-      'json': { icon: 'JN', color: 'text-[#cbcb41]' },
-    };
-    return iconMap[ext || ''] || { icon: ext?.toUpperCase()?.slice(0, 2) || '?', color: 'text-[#8b949e]' };
-  };
-
-  return (
-    <div className="h-9 bg-[#0d1117] border-b border-[#30363d] flex items-center overflow-x-auto">
-      {openFiles.map((file, index) => {
-        const isActive = index === activeFileIndex;
-        const extInfo = getExtensionIcon(file.path);
-        const filename = file.path.split('/').pop() || file.path;
-        return (
-          <div
-            key={file.path}
-            className={`h-full flex items-center gap-2 px-3 border-r border-[#30363d] cursor-pointer min-w-0 max-w-[180px] ${isActive ? 'bg-[#0d1117] border-b-2 border-b-[#58a6ff]' : 'bg-[#161b22] hover:bg-[#21262d]'}`}
-            onClick={() => setActiveFile(index)}
-          >
-            <span className={`text-[10px] font-bold ${extInfo.color}`}>{extInfo.icon}</span>
-            <span className="text-xs truncate flex-1">{filename}</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); closeFile(file.path); }}
-              className="text-[#8b949e] hover:text-[#c9d1d9]"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// Real AI Chat Panel using Tauri commands
-function AIChatPanel() {
-  const [input, setInput] = useState('');
-  const [backends, setBackends] = useState<BackendStatus[]>([]);
-  const [activeBackend, setActiveBackend] = useState<string>('fallback');
-  const { chatMessages, addChatMessage, clearChatMessages, isAiLoading, setAiLoading } = useKyroStore();
-
-  // Detect available AI backends on mount
-  useEffect(() => {
-    async function detectBackends() {
-      const result = await invokeTauri<BackendStatus[]>('detect_ai_backends');
-      if (result) {
-        setBackends(result);
-        // Find first available backend
-        const available = result.find(b => b.available);
-        if (available) {
-          setActiveBackend(available.name);
-        }
-      }
-    }
-    detectBackends();
-  }, []);
-
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isAiLoading) return;
-
-    const userMessage = input.trim();
-    setInput('');
-    addChatMessage({
-      id: Date.now().toString(),
-      role: 'user',
-      content: userMessage,
-      timestamp: new Date()
-    });
-    setAiLoading(true);
-
-    try {
-      // Try to use Tauri command
-      const result = await invokeTauri<SmartCompletionResult>('smart_ai_completion', {
-        prompt: userMessage,
-        systemPrompt: 'You are KYRO, an AI coding assistant integrated into an IDE. Help with code analysis, debugging, and development tasks.',
-        context: null,
-        history: [],
-        temperature: 0.7,
-        maxTokens: 2048
-      });
-
-      if (result) {
-        addChatMessage({
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: result.text,
-          timestamp: new Date()
-        });
-        setActiveBackend(result.backend);
-      } else {
-        // Fallback if Tauri returned null
-        const fallbackText = getFallbackResponse(userMessage);
-        addChatMessage({
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: fallbackText,
-          timestamp: new Date()
-        });
-        setActiveBackend('fallback');
-      }
-    } catch (error) {
-      console.error('AI completion error:', error);
-      // Use fallback response
-      const fallbackText = getFallbackResponse(userMessage);
-      addChatMessage({
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: fallbackText,
-        timestamp: new Date()
-      });
-      setActiveBackend('fallback');
-    } finally {
-      setAiLoading(false);
-    }
-  }, [input, isAiLoading, addChatMessage, setAiLoading]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const getBackendIcon = () => {
-    switch (activeBackend) {
-      case 'ollama': return <Wifi size={12} className="text-green-400" />;
-      case 'airllm-service': return <Zap size={12} className="text-yellow-400" />;
-      case 'picoclaw': return <Zap size={12} className="text-cyan-400" />;
-      case 'lmstudio': return <Wifi size={12} className="text-blue-400" />;
-      case 'vllm': return <Wifi size={12} className="text-purple-400" />;
-      case 'local': return <Zap size={12} className="text-yellow-400" />;
-      case 'fallback': return <WifiOff size={12} className="text-orange-400" />;
-      default: return <WifiOff size={12} className="text-orange-400" />;
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-[#0d1117]">
-      <div className="h-9 bg-[#161b22] border-b border-[#30363d] flex items-center px-3 justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-purple-400" />
-          <span className="text-xs font-medium">AI Assistant</span>
-          {getBackendIcon()}
-          <select
-            value={activeBackend}
-            onChange={(e) => setActiveBackend(e.target.value)}
-            className="text-[10px] bg-[#0d1117] border border-[#30363d] rounded px-1.5 py-0.5 text-[#c9d1d9] focus:outline-none focus:border-[#58a6ff]"
-          >
-            {backends.map((b) => (
-              <option key={b.name} value={b.name} disabled={!b.available}>
-                {b.name}{b.available ? '' : ' (offline)'}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button
-          onClick={clearChatMessages}
-          className="p-1 hover:bg-[#21262d] rounded text-[#8b949e] hover:text-[#c9d1d9]"
-          title="Clear chat"
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {chatMessages.length === 0 && (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-2">🤖</div>
-            <p className="text-sm text-[#8b949e] mb-2">AI Assistant Ready</p>
-            <p className="text-xs text-[#8b949e]">
-              {activeBackend === 'fallback' 
-                ? 'Run Ollama or LM Studio for full AI features'
-                : `Using ${activeBackend} backend`}
-            </p>
-          </div>
-        )}
-
-        {chatMessages.map((message) => (
-          <div key={message.id} className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : ''}`}>
-            {message.role === 'assistant' && (
-              <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                <Bot className="w-3 h-3 text-purple-400" />
-              </div>
-            )}
-            <div className={`max-w-[85%] rounded-lg p-3 text-sm ${message.role === 'user' ? 'bg-[#1f6feb] text-white' : 'bg-[#21262d] text-[#c9d1d9]'}`}>
-              <div className="whitespace-pre-wrap break-words">{message.content}</div>
-            </div>
-          </div>
-        ))}
-
-        {isAiLoading && (
-          <div className="flex gap-2">
-            <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-              <Bot className="w-3 h-3 text-purple-400" />
-            </div>
-            <div className="bg-[#21262d] rounded-lg p-3">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-[#8b949e] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-[#8b949e] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-[#8b949e] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="p-3 border-t border-[#30363d]">
-        <div className="flex gap-2">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about your code..."
-            disabled={isAiLoading}
-            className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#58a6ff] disabled:opacity-50"
-            rows={2}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isAiLoading}
-            className="px-3 bg-[#238636] hover:bg-[#2ea043] disabled:bg-[#21262d] disabled:text-[#8b949e] rounded-lg text-white transition-colors"
-          >
-            <Send size={16} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Status Bar
-function StatusBar() {
-  const { cursorPosition, openFiles, activeFileIndex, gitStatus } = useKyroStore();
-  const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
-
-  return (
-    <div className="h-6 bg-[#161b22] border-t border-[#30363d] flex items-center justify-between px-3 text-xs text-[#8b949e]">
-      <div className="flex items-center gap-4">
-        <span className="flex items-center gap-1">
-          <GitBranch size={12} /> {gitStatus?.branch || 'main'}
-        </span>
-        {gitStatus && (
-          <>
-            {gitStatus.ahead > 0 && <span className="text-green-400">↑{gitStatus.ahead}</span>}
-            {gitStatus.behind > 0 && <span className="text-orange-400">↓{gitStatus.behind}</span>}
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-4">
-        {currentFile && (
-          <span className="flex items-center gap-1">
-            <Code2 size={12} /> {currentFile.language}
-          </span>
-        )}
-        <span>Ln {cursorPosition.line}, Col {cursorPosition.column}</span>
-        <span className="flex items-center gap-1">
-          <Zap size={12} className="text-yellow-400" /> AI Ready
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock size={12} /> {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 // Main IDE Page
 export default function Home() {
   const [viewMode, setViewMode] = useState<'editor' | 'mission'>('editor');
   const [activePanel, setActivePanel] = useState<SidebarPanel>('explorer');
   const [showChat, setShowChat] = useState(true);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [fileTreeKey, setFileTreeKey] = useState(0);
 
   const {
@@ -510,6 +173,11 @@ export default function Home() {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
         handleSaveFile();
+      }
+      // Cmd+Shift+P / Ctrl+Shift+P - Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
       }
     };
 
@@ -600,10 +268,13 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden">
+      {/* Command Palette (Ctrl+Shift+P) */}
+      <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
+
       {/* Header with View Toggle */}
       <div className="h-10 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between px-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+          <span className="text-sm font-semibold bg-linear-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
             Kyro IDE
           </span>
           <span className="text-xs text-[#8b949e]">/ kyro-project</span>
@@ -645,11 +316,12 @@ export default function Home() {
           {/* Activity Bar */}
           <div className="w-12 bg-[#0d1117] border-r border-[#30363d] flex flex-col items-center py-2">
             {[
-              { id: 'explorer' as const, icon: Files, label: 'Explorer' },
-              { id: 'search' as const, icon: Search, label: 'Search' },
-              { id: 'git' as const, icon: GitBranch, label: 'Source Control' },
-              { id: 'debug' as const, icon: Bug, label: 'Debug' },
-              { id: 'mission' as const, icon: Rocket, label: 'Mission Control' },
+              { id: 'explorer' as SidebarPanel, icon: Files, label: 'Explorer' },
+              { id: 'search' as SidebarPanel, icon: Search, label: 'Search' },
+              { id: 'git' as SidebarPanel, icon: GitBranch, label: 'Source Control' },
+              { id: 'debug' as SidebarPanel, icon: Bug, label: 'Debug' },
+              { id: 'extensions' as SidebarPanel, icon: Blocks, label: 'Extensions' },
+              { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = activePanel === item.id;
@@ -688,6 +360,7 @@ export default function Home() {
                 {activePanel === 'search' && 'Search'}
                 {activePanel === 'git' && 'Source Control'}
                 {activePanel === 'debug' && 'Debug'}
+                {activePanel === 'extensions' && 'Extensions'}
                 {activePanel === 'settings' && 'Settings'}
               </span>
             </div>
@@ -711,57 +384,22 @@ export default function Home() {
                 </div>
               )}
               {activePanel === 'search' && (
-                <div className="p-3">
-                  <input
-                    type="text"
-                    placeholder="Search files..."
-                    className="w-full bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs focus:outline-none focus:border-[#58a6ff]"
-                  />
-                  <p className="text-xs text-[#8b949e] mt-3 text-center">
-                    Type to search across all files
-                  </p>
-                </div>
+                <GlobalSearch isOpen={true} onClose={() => setActivePanel('explorer')} />
               )}
               {activePanel === 'git' && (
-                <div className="p-2">
-                  <div className="text-xs text-[#8b949e] mb-1 px-1">Changes</div>
-                  <div className="bg-[#161b22] rounded p-1 text-xs">
-                    <div className="flex items-center gap-1 p-1 hover:bg-[#21262d] rounded cursor-pointer">
-                      <span className="text-green-400">M</span>
-                      <span>src/App.tsx</span>
-                    </div>
-                  </div>
-                </div>
+                <GitStagingPanel projectPath="/kyro-project" onFileSelect={handleFileClick} />
               )}
               {activePanel === 'debug' && (
-                <div className="p-3 text-center">
-                  <Bug size={24} className="mx-auto text-[#8b949e] mb-2" />
-                  <p className="text-xs text-[#8b949e]">No active debug session</p>
-                  <button className="mt-2 px-3 py-1 bg-[#238636] hover:bg-[#2ea043] rounded text-xs text-white">
-                    Start Debugging
-                  </button>
+                <DebugPanel />
+              )}
+              {activePanel === 'extensions' && (
+                <div className="p-2 text-xs text-[#8b949e]">
+                  <p className="mb-2">Search and manage extensions</p>
+                  <p>Use the Extensions panel for full marketplace</p>
                 </div>
               )}
               {activePanel === 'settings' && (
-                <div className="p-3">
-                  <div className="text-xs space-y-3">
-                    <div>
-                      <label className="block text-[#8b949e] mb-1">Theme</label>
-                      <select className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-xs">
-                        <option>Dark (Default)</option>
-                        <option>Light</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[#8b949e] mb-1">Font Size</label>
-                      <input
-                        type="number"
-                        defaultValue={14}
-                        className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <SettingsPanel />
               )}
             </div>
           </div>
@@ -799,26 +437,17 @@ export default function Home() {
                 )}
               </div>
 
-              {/* AI Chat Panel */}
+              {/* AI Chat Sidebar */}
               {showChat && (
                 <div className="w-80 border-l border-[#30363d] flex flex-col">
-                  <AIChatPanel />
+                  <AIChatSidebar />
                 </div>
               )}
             </div>
 
             {/* Terminal Panel */}
-            <div className="h-40 bg-[#0d1117] border-t border-[#30363d]">
-              <div className="h-8 bg-[#161b22] border-b border-[#30363d] flex items-center px-3">
-                <Terminal size={14} className="mr-2 text-[#8b949e]" />
-                <span className="text-xs text-[#8b949e]">Terminal</span>
-              </div>
-              <div className="p-2 font-mono text-xs text-[#c9d1d9]">
-                <div className="text-[#8b949e]">$ npm run dev</div>
-                <div className="text-green-400">✓ Ready in 1.2s</div>
-                <div className="text-[#8b949e]">→ Local: http://localhost:3000</div>
-                <div className="mt-1 text-[#8b949e]">$ <span className="animate-pulse">_</span></div>
-              </div>
+            <div className="h-40 border-t border-[#30363d]">
+              <TerminalPanel />
             </div>
           </div>
         </div>

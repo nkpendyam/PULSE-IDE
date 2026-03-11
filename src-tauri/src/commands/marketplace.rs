@@ -2,7 +2,7 @@
 
 use crate::extensions::{GitHubMarketplace, GitHubExtension};
 use crate::extensions::github_marketplace::ExtensionVersion;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 use tauri::State;
 
 /// Global marketplace state
@@ -14,7 +14,7 @@ pub async fn search_marketplace(
     state: State<'_, MarketplaceState>,
     query: String,
 ) -> Result<Vec<GitHubExtension>, String> {
-    let marketplace = state.0.lock().map_err(|e| e.to_string())?;
+    let marketplace = state.0.lock().await;
     marketplace.search(&query).await.map_err(|e| e.to_string())
 }
 
@@ -25,7 +25,7 @@ pub async fn get_github_extension_details(
     owner: String,
     repo: String,
 ) -> Result<GitHubExtension, String> {
-    let marketplace = state.0.lock().map_err(|e| e.to_string())?;
+    let marketplace = state.0.lock().await;
     marketplace.get_extension(&owner, &repo).await.map_err(|e| e.to_string())
 }
 
@@ -36,7 +36,7 @@ pub async fn get_extension_versions(
     owner: String,
     repo: String,
 ) -> Result<Vec<ExtensionVersion>, String> {
-    let marketplace = state.0.lock().map_err(|e| e.to_string())?;
+    let marketplace = state.0.lock().await;
     marketplace.get_versions(&owner, &repo).await.map_err(|e| e.to_string())
 }
 
@@ -57,7 +57,7 @@ pub async fn install_from_github(
 pub async fn get_featured_extensions(
     state: State<'_, MarketplaceState>,
 ) -> Result<Vec<GitHubExtension>, String> {
-    let marketplace = state.0.lock().map_err(|e| e.to_string())?;
+    let marketplace = state.0.lock().await;
     marketplace.featured().await.map_err(|e| e.to_string())
 }
 
@@ -66,6 +66,6 @@ pub async fn get_featured_extensions(
 pub async fn get_trending_extensions(
     state: State<'_, MarketplaceState>,
 ) -> Result<Vec<GitHubExtension>, String> {
-    let marketplace = state.0.lock().map_err(|e| e.to_string())?;
+    let marketplace = state.0.lock().await;
     marketplace.trending().await.map_err(|e| e.to_string())
 }
