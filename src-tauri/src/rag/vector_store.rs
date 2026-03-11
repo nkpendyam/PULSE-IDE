@@ -1,6 +1,13 @@
 
+use std::sync::Mutex;
+
+/// Brute-force vector index with cosine similarity.
+/// Stores all vectors in a flat list and searches via linear scan.
+/// Suitable for up to ~100k vectors; swap for a real HNSW implementation for larger scales.
 pub struct Hnsw<T, Rng = rand_pcg::Pcg64> {
-    _marker: std::marker::PhantomData<(T, Rng)>,
+    /// Stored vectors: (index, vector)
+    vectors: Mutex<Vec<(usize, Vec<T>)>>,
+    _rng: std::marker::PhantomData<Rng>,
 }
 
 pub struct Params {
@@ -47,22 +54,71 @@ pub struct SearchResult {
     pub distance: f32,
 }
 
-impl<T, Rng> Hnsw<T, Rng> {
-    pub fn new(_params: Params, _dimension: usize, _rng: Rng) -> Self {
+impl Hnsw<f32, rand_pcg::Pcg64> {
+    pub fn new(_params: Params, _dimension: usize, _rng: rand_pcg::Pcg64) -> Self {
         Self {
-            _marker: std::marker::PhantomData,
+            vectors: Mutex::new(Vec::new()),
+            _rng: std::marker::PhantomData,
         }
     }
 
-    pub fn insert(&self, _point: &Array1<T>, _idx: usize) {
-        // Stub implementation: no-op. A real implementation would insert into the HNSW graph.
+    /// Insert a vector with the given index.
+    pub fn insert(&self, point: &Array1<f32>, idx: usize) {
+        let vec = point.to_vec();
+        let mut store = self.vectors.lock().unwrap();
+        // Replace if index already exists
+        if let Some(pos) = store.iter().position(|(i, _)| *i == idx) {
+            store[pos] = (idx, vec);
+        } else {
+            store.push((idx, vec));
+        }
     }
 
-    pub fn search(&self, _query: &Array1<T>, _k: usize, _ef_search: usize) -> Vec<SearchResult> {
-        // Stub implementation: returns no results. This keeps the RAG subsystem compile-safe
-        // without pulling in a heavy HNSW dependency; it can be swapped for a real index later.
-        Vec::new()
+    /// Brute-force cosine similarity search. Returns the top-k nearest results
+    /// sorted by ascending distance (distance = 1.0 - cosine_similarity).
+    pub fn search(&self, query: &Array1<f32>, k: usize, _ef_search: usize) -> Vec<SearchResult> {
+        let store = self.vectors.lock().unwrap();
+        if store.is_empty() {
+            return Vec::new();
+        }
+
+        let q = query.as_slice().unwrap();
+        let q_norm = dot_norm(q);
+        if q_norm == 0.0 {
+            return Vec::new();
+        }
+
+        let mut scored: Vec<SearchResult> = store
+            .iter()
+            .map(|(idx, vec)| {
+                let v_norm = dot_norm(vec);
+                let similarity = if v_norm == 0.0 {
+                    0.0
+                } else {
+                    dot_product(q, vec) / (q_norm * v_norm)
+                };
+                SearchResult {
+                    idx: *idx,
+                    distance: 1.0 - similarity, // cosine distance
+                }
+            })
+            .collect();
+
+        // Sort by ascending distance (most similar first)
+        scored.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap_or(std::cmp::Ordering::Equal));
+        scored.truncate(k);
+        scored
     }
+}
+
+/// Dot product of two slices.
+fn dot_product(a: &[f32], b: &[f32]) -> f32 {
+    a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
+}
+
+/// L2 norm of a slice.
+fn dot_norm(a: &[f32]) -> f32 {
+    a.iter().map(|x| x * x).sum::<f32>().sqrt()
 }
 // Real Vector Store using HNSW (Hierarchical Navigable Small World)
 //

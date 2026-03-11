@@ -391,15 +391,44 @@ impl RAGChatEngine {
         conversation
     }
 
-    /// Generate embedding for query (placeholder - uses real embeddings in production)
-    async fn generate_query_embedding(&self, _query: &str) -> Result<Vec<f32>> {
-        // In production, this would use the embedding model
-        // For now, return a deterministic embedding based on hash
+    /// Generate embedding for query via Ollama or hash-based fallback
+    async fn generate_query_embedding(&self, query: &str) -> Result<Vec<f32>> {
+        // Try Ollama embeddings API first
+        let client = reqwest::Client::new();
+        let body = serde_json::json!({
+            "model": "nomic-embed-text",
+            "prompt": query
+        });
+
+        match client
+            .post("http://localhost:11434/api/embeddings")
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => {
+                let json: serde_json::Value = response.json().await?;
+                if let Some(embedding) = json.get("embedding").and_then(|v| v.as_array()) {
+                    let vec: Vec<f32> = embedding
+                        .iter()
+                        .filter_map(|v| v.as_f64().map(|f| f as f32))
+                        .collect();
+                    if !vec.is_empty() {
+                        return Ok(vec);
+                    }
+                }
+            }
+            Ok(resp) => log::debug!("Ollama embeddings returned status: {}", resp.status()),
+            Err(e) => log::debug!("Ollama embeddings not available: {}", e),
+        }
+
+        // Fallback: deterministic hash-based embedding (when no embedding model is running)
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
         let mut hasher = DefaultHasher::new();
-        _query.hash(&mut hasher);
+        query.hash(&mut hasher);
         let hash = hasher.finish();
 
         // Generate pseudo-embedding (768 dimensions for nomic-embed-text)

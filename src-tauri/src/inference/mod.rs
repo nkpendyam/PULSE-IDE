@@ -478,33 +478,100 @@ Generate unit tests covering:
             elements.join(", "))
     }
     
-    /// Stream generation (returns chunks)
+    /// Stream generation via Ollama or fallback
     pub async fn generate_stream(
         &self,
         params: GenerationParams,
         mut callback: impl FnMut(&str) -> Result<()>,
     ) -> Result<GenerationResult> {
         let start = std::time::Instant::now();
-        
         let max_tokens = params.max_tokens.unwrap_or(self.config.max_tokens);
+        let temperature = params.temperature.unwrap_or(self.config.temperature);
         let mut total_text = String::new();
-        
-        // Simulate streaming
-        for i in 0..max_tokens {
-            let chunk = format!(" token{}", i);
+        let mut token_count: usize = 0;
+
+        // Try Ollama streaming API
+        let client = reqwest::Client::new();
+        let model_name = if let Some(model) = &self.model {
+            let model = model.read().await;
+            model.info.name.clone()
+        } else {
+            "phi3".to_string()
+        };
+
+        let body = serde_json::json!({
+            "model": model_name,
+            "prompt": params.prompt,
+            "stream": true,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens,
+                "stop": params.stop_tokens,
+            }
+        });
+
+        match client
+            .post("http://localhost:11434/api/generate")
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(180))
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => {
+                // Read streaming NDJSON response line by line
+                let text_body = response.text().await?;
+                for line in text_body.lines() {
+                    if line.trim().is_empty() {
+                        continue;
+                    }
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                        if let Some(token) = json.get("response").and_then(|v| v.as_str()) {
+                            callback(token)?;
+                            total_text.push_str(token);
+                            token_count += 1;
+                        }
+                        if json.get("done").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            break;
+                        }
+                    }
+                }
+
+                let elapsed = start.elapsed();
+                return Ok(GenerationResult {
+                    text: total_text,
+                    tokens_generated: token_count,
+                    time_ms: elapsed.as_millis() as u64,
+                    tokens_per_second: if elapsed.as_millis() > 0 {
+                        token_count as f32 / (elapsed.as_millis() as f32 / 1000.0)
+                    } else {
+                        0.0
+                    },
+                });
+            }
+            _ => {
+                log::debug!("Ollama not available for streaming, using local fallback");
+            }
+        }
+
+        // Fallback: use local_generate and stream word by word
+        let text = self.local_generate(&params, max_tokens, temperature);
+        for word in text.split_whitespace() {
+            let chunk = format!("{} ", word);
             callback(&chunk)?;
             total_text.push_str(&chunk);
-            
-            // Small delay to simulate generation
-            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+            token_count += 1;
         }
         
         let elapsed = start.elapsed();
-        let tokens_per_second = max_tokens as f32 / elapsed.as_secs_f32();
+        let tokens_per_second = if elapsed.as_secs_f32() > 0.0 {
+            token_count as f32 / elapsed.as_secs_f32()
+        } else {
+            0.0
+        };
         
         Ok(GenerationResult {
             text: total_text,
-            tokens_generated: max_tokens,
+            tokens_generated: token_count,
             time_ms: elapsed.as_millis() as u64,
             tokens_per_second,
         })

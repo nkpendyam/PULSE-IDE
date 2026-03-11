@@ -34,7 +34,7 @@ import {
   MemoryStick
 } from 'lucide-react';
 
-// Mock data types
+// Mock data
 interface Agent {
   id: string;
   name: string;
@@ -91,20 +91,6 @@ interface KnowledgeEntry {
   usageCount: number;
 }
 
-// Mock data
-const mockAgents: Agent[] = [
-  { id: '1', name: 'Code Architect', type: 'coder', status: 'working', currentTask: 'Implementing authentication module', progress: 67, completedTasks: 24, successRate: 0.94 },
-  { id: '2', name: 'Test Engineer', type: 'tester', status: 'idle', completedTasks: 18, successRate: 0.89 },
-  { id: '3', name: 'Code Reviewer', type: 'reviewer', status: 'working', currentTask: 'Reviewing PR #127', progress: 45, completedTasks: 156, successRate: 0.97 },
-  { id: '4', name: 'Data Analyst', type: 'analyst', status: 'completed', completedTasks: 12, successRate: 0.91 },
-];
-
-const mockMissions: Mission[] = [
-  { id: '1', title: 'Implement User Authentication', description: 'Build secure login system with OAuth2 support', status: 'in_progress', priority: 'high', assignedAgents: ['1', '2'], progress: 67, createdAt: new Date(Date.now() - 86400000), artifacts: ['auth.ts', 'oauth.ts'] },
-  { id: '2', title: 'Performance Optimization', description: 'Optimize database queries and caching', status: 'pending', priority: 'medium', assignedAgents: ['4'], progress: 0, createdAt: new Date(Date.now() - 43200000), artifacts: [] },
-  { id: '3', title: 'API Documentation', description: 'Generate comprehensive API docs', status: 'completed', priority: 'low', assignedAgents: ['1', '3'], progress: 100, createdAt: new Date(Date.now() - 172800000), artifacts: ['api-docs.md'] },
-];
-
 function toMission(m: OrchestratorMission): Mission {
   const phaseProgress = { plan: 10, edit: 40, test: 60, review: 80, deploy: 100 }[m.phase] ?? 0;
   return {
@@ -120,20 +106,6 @@ function toMission(m: OrchestratorMission): Mission {
     phase: m.phase,
   };
 }
-
-const mockArtifacts: Artifact[] = [
-  { id: '1', name: 'auth.ts', type: 'code', path: '/src/auth/auth.ts', createdAt: new Date(Date.now() - 3600000), verified: true, size: '4.2 KB' },
-  { id: '2', name: 'oauth.ts', type: 'code', path: '/src/auth/oauth.ts', createdAt: new Date(Date.now() - 7200000), verified: true, size: '2.8 KB' },
-  { id: '3', name: 'auth.test.ts', type: 'test', path: '/tests/auth.test.ts', createdAt: new Date(Date.now() - 1800000), verified: false, size: '1.5 KB' },
-  { id: '4', name: 'api-docs.md', type: 'documentation', path: '/docs/api.md', createdAt: new Date(Date.now() - 86400000), verified: true, size: '12.3 KB' },
-];
-
-const mockKnowledgeBase: KnowledgeEntry[] = [
-  { id: '1', title: 'React Hook Patterns', category: 'pattern', relevance: 0.95, lastUsed: new Date(Date.now() - 3600000), usageCount: 47 },
-  { id: '2', title: 'Authentication Best Practices', category: 'solution', relevance: 0.89, lastUsed: new Date(Date.now() - 7200000), usageCount: 23 },
-  { id: '3', title: 'Memory Leak Detection', category: 'error', relevance: 0.76, lastUsed: new Date(Date.now() - 86400000), usageCount: 8 },
-  { id: '4', title: 'Query Optimization', category: 'optimization', relevance: 0.92, lastUsed: new Date(Date.now() - 1800000), usageCount: 31 },
-];
 
 const agentTypeIcons = {
   coder: Code2,
@@ -191,7 +163,10 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 
 export function AgentManagerPanel() {
   const [activeTab, setActiveTab] = useState('agents');
-  const [missions, setMissions] = useState<Mission[]>(mockMissions);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
   const [newGoal, setNewGoal] = useState('');
   const [starting, setStarting] = useState(false);
 
@@ -199,12 +174,50 @@ export function AgentManagerPanel() {
     const result = await invokeTauri<OrchestratorMission[]>('orchestrator_list_missions');
     if (result && Array.isArray(result)) {
       setMissions(result.map(toMission));
+      // Collect artifacts from missions
+      const allArtifacts: Artifact[] = result.flatMap((m, mi) =>
+        m.artifacts.map((a, ai) => ({
+          id: `${mi}-${ai}`,
+          name: a.path?.split('/').pop() || a.kind,
+          type: (a.kind === 'test' ? 'test' : a.kind === 'doc' ? 'documentation' : 'code') as Artifact['type'],
+          path: a.path || `/${a.kind}`,
+          createdAt: new Date(m.created_at),
+          verified: m.status === 'completed',
+          size: a.content ? `${(a.content.length / 1024).toFixed(1)} KB` : '—',
+        }))
+      );
+      setArtifacts(allArtifacts);
+    }
+  }, []);
+
+  const loadAgents = useCallback(async () => {
+    // Try to load real agents from the swarm/agent system
+    const result = await invokeTauri<Agent[]>('swarm_list_agents');
+    if (result && Array.isArray(result) && result.length > 0) {
+      setAgents(result);
+    } else {
+      // Default agent definitions (these represent capabilities, not fake data)
+      setAgents([
+        { id: 'coder', name: 'Code Generator', type: 'coder', status: 'idle', completedTasks: 0, successRate: 1.0 },
+        { id: 'tester', name: 'Test Generator', type: 'tester', status: 'idle', completedTasks: 0, successRate: 1.0 },
+        { id: 'reviewer', name: 'Code Reviewer', type: 'reviewer', status: 'idle', completedTasks: 0, successRate: 1.0 },
+        { id: 'analyst', name: 'Analyzer', type: 'analyst', status: 'idle', completedTasks: 0, successRate: 1.0 },
+      ]);
+    }
+  }, []);
+
+  const loadKnowledge = useCallback(async () => {
+    const result = await invokeTauri<KnowledgeEntry[]>('rag_list_knowledge');
+    if (result && Array.isArray(result)) {
+      setKnowledge(result);
     }
   }, []);
 
   useEffect(() => {
     loadMissions();
-  }, [loadMissions]);
+    loadAgents();
+    loadKnowledge();
+  }, [loadMissions, loadAgents, loadKnowledge]);
 
   const handleStartMission = async () => {
     if (!newGoal.trim()) return;
@@ -244,7 +257,7 @@ export function AgentManagerPanel() {
               <Bot className="w-4 h-4 text-blue-400" />
               <span className="text-xs text-[#8b949e]">Active Agents</span>
             </div>
-            <div className="text-2xl font-bold mt-1">{mockAgents.filter(a => a.status === 'working').length}</div>
+            <div className="text-2xl font-bold mt-1">{agents.filter(a => a.status === 'working').length}</div>
           </CardContent>
         </Card>
         <Card className="bg-[#161b22] border-[#30363d]">
@@ -262,7 +275,7 @@ export function AgentManagerPanel() {
               <FileCode className="w-4 h-4 text-orange-400" />
               <span className="text-xs text-[#8b949e]">Artifacts</span>
             </div>
-            <div className="text-2xl font-bold mt-1">{mockArtifacts.length}</div>
+            <div className="text-2xl font-bold mt-1">{artifacts.length}</div>
           </CardContent>
         </Card>
         <Card className="bg-[#161b22] border-[#30363d]">
@@ -271,7 +284,7 @@ export function AgentManagerPanel() {
               <Brain className="w-4 h-4 text-purple-400" />
               <span className="text-xs text-[#8b949e]">Knowledge</span>
             </div>
-            <div className="text-2xl font-bold mt-1">{mockKnowledgeBase.length}</div>
+            <div className="text-2xl font-bold mt-1">{knowledge.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -299,7 +312,7 @@ export function AgentManagerPanel() {
           {/* Agents Tab */}
           <TabsContent value="agents" className="p-4 m-0">
             <div className="space-y-3">
-              {mockAgents.map((agent) => {
+              {agents.map((agent) => {
                 const Icon = agentTypeIcons[agent.type];
                 return (
                   <Card key={agent.id} className="bg-[#161b22] border-[#30363d] hover:border-[#58a6ff]/50 transition-colors">
@@ -412,7 +425,9 @@ export function AgentManagerPanel() {
           {/* Artifacts Tab */}
           <TabsContent value="artifacts" className="p-4 m-0">
             <div className="space-y-2">
-              {mockArtifacts.map((artifact) => {
+              {artifacts.length === 0 ? (
+                <div className="text-center text-[#8b949e] py-8">No artifacts yet. Start a mission to generate artifacts.</div>
+              ) : artifacts.map((artifact) => {
                 const Icon = artifactTypeIcons[artifact.type];
                 return (
                   <Card key={artifact.id} className="bg-[#161b22] border-[#30363d] hover:border-[#58a6ff]/50 transition-colors cursor-pointer">
@@ -447,7 +462,9 @@ export function AgentManagerPanel() {
           {/* Knowledge Tab */}
           <TabsContent value="knowledge" className="p-4 m-0">
             <div className="space-y-2">
-              {mockKnowledgeBase.map((entry) => (
+              {knowledge.length === 0 ? (
+                <div className="text-center text-[#8b949e] py-8">No knowledge entries yet. The RAG system will populate this as you work.</div>
+              ) : knowledge.map((entry) => (
                 <Card key={entry.id} className="bg-[#161b22] border-[#30363d] hover:border-[#58a6ff]/50 transition-colors cursor-pointer">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">

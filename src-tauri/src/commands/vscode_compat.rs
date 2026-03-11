@@ -85,27 +85,66 @@ pub async fn search_extensions(query: String, page: Option<usize>) -> Result<Sea
 #[command]
 pub async fn get_extension_details(extension_id: String) -> Result<ExtensionInfo, String> {
     let parts: Vec<&str> = extension_id.split('.').collect();
-    if parts.len() != 2 { return Err("Invalid extension ID".to_string()); }
-    Ok(ExtensionInfo {
-        id: extension_id.clone(), name: parts[1].to_string(),
-        display_name: parts[1].to_string(), version: "1.0.0".to_string(),
-        description: None, publisher: parts[0].to_string(),
-        enabled: false, installed: false, state: "available".to_string(),
-        icon_url: None, download_count: None, rating: None,
-    })
+    if parts.len() != 2 { return Err("Invalid extension ID (expected publisher.name)".to_string()); }
+    let (namespace, name) = (parts[0], parts[1]);
+    
+    // Fetch real details from Open VSX API
+    let client = reqwest::Client::new();
+    let url = format!("https://open-vsx.org/api/{}/{}", 
+        urlencoding::encode(namespace), urlencoding::encode(name));
+    
+    match client.get(&url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                Ok(ExtensionInfo {
+                    id: extension_id.clone(),
+                    name: data["name"].as_str().unwrap_or(name).to_string(),
+                    display_name: data["displayName"].as_str().unwrap_or(name).to_string(),
+                    version: data["version"].as_str().unwrap_or("0.0.0").to_string(),
+                    description: data["description"].as_str().map(|s| s.to_string()),
+                    publisher: data["namespace"].as_str().unwrap_or(namespace).to_string(),
+                    enabled: false,
+                    installed: {
+                        let state = EXTENSION_STATE.read().await;
+                        state.installed.contains_key(&extension_id)
+                    },
+                    state: "available".to_string(),
+                    icon_url: data["files"].get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                    download_count: data["downloadCount"].as_u64(),
+                    rating: data["averageRating"].as_f64().map(|f| f as f32),
+                })
+            } else {
+                Err(format!("Failed to parse extension details for {}", extension_id))
+            }
+        }
+        Ok(resp) => Err(format!("Extension not found: HTTP {}", resp.status())),
+        Err(e) => Err(format!("Failed to fetch extension details: {}", e)),
+    }
 }
 
 #[command]
 pub async fn install_extension(extension_id: String) -> Result<ExtensionInfo, String> {
-    let mut state = EXTENSION_STATE.write().await;
+    // Fetch real extension details from Open VSX before installing
+    let details = get_extension_details(extension_id.clone()).await
+        .unwrap_or_else(|_| {
+            let parts: Vec<&str> = extension_id.split('.').collect();
+            ExtensionInfo {
+                id: extension_id.clone(),
+                name: parts.last().unwrap_or(&"ext").to_string(),
+                display_name: parts.last().unwrap_or(&"ext").to_string(),
+                version: "0.0.0".to_string(), description: None,
+                publisher: parts.first().unwrap_or(&"unknown").to_string(),
+                enabled: true, installed: true, state: "installed".to_string(),
+                icon_url: None, download_count: None, rating: None,
+            }
+        });
+    
     let ext = ExtensionInfo {
-        id: extension_id.clone(), name: extension_id.split('.').last().unwrap_or("ext").to_string(),
-        display_name: extension_id.split('.').last().unwrap_or("ext").to_string(),
-        version: "1.0.0".to_string(), description: None,
-        publisher: extension_id.split('.').next().unwrap_or("unknown").to_string(),
         enabled: true, installed: true, state: "installed".to_string(),
-        icon_url: None, download_count: None, rating: None,
+        ..details
     };
+    
+    let mut state = EXTENSION_STATE.write().await;
     state.installed.insert(extension_id, ext.clone());
     Ok(ext)
 }
@@ -151,7 +190,46 @@ pub async fn reload_extensions() -> Result<usize, String> {
 
 #[command]
 pub async fn get_extension_recommendations() -> Result<Vec<ExtensionInfo>, String> {
-    Ok(vec![])
+    // Curated list of popular/useful extensions for IDE users
+    let recommended_ids = [
+        "rust-lang.rust-analyzer",
+        "vadimcn.vscode-lldb",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens",
+        "ms-python.python",
+        "golang.go",
+        "bradlc.vscode-tailwindcss",
+    ];
+    
+    let client = reqwest::Client::new();
+    let mut results = Vec::new();
+    
+    for ext_id in &recommended_ids {
+        let parts: Vec<&str> = ext_id.split('.').collect();
+        if parts.len() != 2 { continue; }
+        let url = format!("https://open-vsx.org/api/{}/{}", parts[0], parts[1]);
+        if let Ok(resp) = client.get(&url).send().await {
+            if let Ok(data) = resp.json::<serde_json::Value>().await {
+                if data["name"].is_string() {
+                    results.push(ExtensionInfo {
+                        id: ext_id.to_string(),
+                        name: data["name"].as_str().unwrap_or(parts[1]).to_string(),
+                        display_name: data["displayName"].as_str().unwrap_or(parts[1]).to_string(),
+                        version: data["version"].as_str().unwrap_or("0.0.0").to_string(),
+                        description: data["description"].as_str().map(|s| s.to_string()),
+                        publisher: parts[0].to_string(),
+                        enabled: false, installed: false, state: "recommended".to_string(),
+                        icon_url: data["files"].get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        download_count: data["downloadCount"].as_u64(),
+                        rating: data["averageRating"].as_f64().map(|f| f as f32),
+                    });
+                }
+            }
+        }
+    }
+    
+    Ok(results)
 }
 
 #[command]
@@ -176,5 +254,37 @@ pub async fn get_openvsx_popular() -> Result<Vec<ExtensionInfo>, String> {
 
 #[command]
 pub async fn get_extension_readme(extension_id: String) -> Result<String, String> {
-    Ok(format!("# {}\n\nExtension readme placeholder.", extension_id))
+    let parts: Vec<&str> = extension_id.split('.').collect();
+    if parts.len() != 2 { return Err("Invalid extension ID".to_string()); }
+    
+    // Fetch README from Open VSX API
+    let client = reqwest::Client::new();
+    let url = format!("https://open-vsx.org/api/{}/{}/readme", parts[0], parts[1]);
+    
+    match client.get(&url).send().await {
+        Ok(resp) if resp.status().is_success() => {
+            resp.text().await.map_err(|e| format!("Failed to read readme: {}", e))
+        }
+        _ => {
+            // Fallback: try the main API endpoint which may include readme
+            let url2 = format!("https://open-vsx.org/api/{}/{}", parts[0], parts[1]);
+            match client.get(&url2).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                        if let Some(readme_url) = data["files"].get("readme").and_then(|v| v.as_str()) {
+                            match client.get(readme_url).send().await {
+                                Ok(r) => r.text().await.map_err(|e| e.to_string()),
+                                Err(e) => Err(format!("Failed to fetch readme: {}", e)),
+                            }
+                        } else {
+                            Ok(data["description"].as_str().unwrap_or("No README available.").to_string())
+                        }
+                    } else {
+                        Ok("No README available.".to_string())
+                    }
+                }
+                _ => Ok("No README available.".to_string()),
+            }
+        }
+    }
 }

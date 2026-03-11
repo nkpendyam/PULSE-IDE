@@ -38,20 +38,66 @@ impl InferenceBackend for CpuBackend {
     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
         let start = std::time::Instant::now();
 
-        // Placeholder - actual implementation would call llama.cpp
-        // This simulates inference timing
-        let tokens = (request.prompt.len() / 4) as u32; // Rough estimate
+        // Try Ollama API for real inference
+        let model_name = self.model_path.as_deref().unwrap_or("phi3");
+        let client = reqwest::Client::new();
+        let body = serde_json::json!({
+            "model": model_name,
+            "prompt": request.prompt,
+            "stream": false,
+            "options": {
+                "num_predict": request.max_tokens,
+                "num_thread": self.n_threads,
+            }
+        });
 
-        Ok(InferenceResponse {
-            text: "// Generated code would appear here".to_string(),
-            tokens_generated: tokens.min(request.max_tokens),
-            time_to_first_token_ms: 100,
-            total_time_ms: start.elapsed().as_millis() as u64,
-            tokens_per_second: 15.0, // CPU is slow
-            model: "cpu-model".to_string(),
-            from_cache: false,
-            memory_used: 0,
-        })
+        match client
+            .post("http://localhost:11434/api/generate")
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(120))
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => {
+                let json: serde_json::Value = response.json().await?;
+                let text = json.get("response")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let tokens = text.split_whitespace().count() as u32;
+                let elapsed = start.elapsed();
+                let tps = if elapsed.as_millis() > 0 {
+                    tokens as f32 / (elapsed.as_millis() as f32 / 1000.0)
+                } else {
+                    0.0
+                };
+
+                Ok(InferenceResponse {
+                    text,
+                    tokens_generated: tokens.min(request.max_tokens),
+                    time_to_first_token_ms: elapsed.as_millis() as u64 / 2, // estimate
+                    total_time_ms: elapsed.as_millis() as u64,
+                    tokens_per_second: tps,
+                    model: model_name.to_string(),
+                    from_cache: false,
+                    memory_used: 0,
+                })
+            }
+            _ => {
+                // Fallback when no LLM is available
+                let tokens = (request.prompt.len() / 4) as u32;
+                Ok(InferenceResponse {
+                    text: "[No LLM backend available — start Ollama or an OpenAI-compatible server]".to_string(),
+                    tokens_generated: tokens.min(request.max_tokens),
+                    time_to_first_token_ms: 0,
+                    total_time_ms: start.elapsed().as_millis() as u64,
+                    tokens_per_second: 0.0,
+                    model: "cpu-fallback".to_string(),
+                    from_cache: false,
+                    memory_used: 0,
+                })
+            }
+        }
     }
 
     async fn infer_stream_boxed(

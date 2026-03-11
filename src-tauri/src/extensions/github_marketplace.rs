@@ -43,96 +43,227 @@ impl GitHubMarketplace {
     
     /// Search extensions by GitHub topics
     pub async fn search(&self, query: &str) -> anyhow::Result<Vec<GitHubExtension>> {
-        // Search GitHub repositories with kyro-extension topic
-        // GET https://api.github.com/search/repositories?q=topic:kyro-extension+{query}
-        
-        Ok(vec![
-            GitHubExtension {
-                id: "prettier/prettier-vscode".to_string(),
-                name: "Prettier - Code formatter".to_string(),
-                publisher: "prettier".to_string(),
-                repository: "https://github.com/prettier/prettier-vscode".to_string(),
-                description: "Code formatter using prettier".to_string(),
-                version: "10.1.0".to_string(),
-                stars: 4500,
-                downloads: 50_000_000,
-                topics: vec!["formatter".to_string(), "prettier".to_string(), "kyro-extension".to_string()],
-                license: Some("MIT".to_string()),
-                verified: true, // Verified publisher
-                last_updated: Utc::now(),
-            },
-            GitHubExtension {
-                id: "microsoft/vscode-eslint".to_string(),
-                name: "ESLint".to_string(),
-                publisher: "microsoft".to_string(),
-                repository: "https://github.com/microsoft/vscode-eslint".to_string(),
-                description: "Integrates ESLint into VS Code".to_string(),
-                version: "2.4.2".to_string(),
-                stars: 3800,
-                downloads: 45_000_000,
-                topics: vec!["linter".to_string(), "eslint".to_string(), "javascript".to_string(), "kyro-extension".to_string()],
-                license: Some("MIT".to_string()),
-                verified: true,
-                last_updated: Utc::now(),
-            },
-        ])
+        let url = format!(
+            "https://api.github.com/search/repositories?q=topic:kyro-extension+{}&sort=stars&order=desc&per_page=20",
+            urlencoding::encode(query)
+        );
+        let response = self.client
+            .get(&url)
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "Kyro-IDE")
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("GitHub API returned status: {}", response.status());
+        }
+
+        let json: serde_json::Value = response.json().await?;
+        let items = json.get("items").and_then(|v| v.as_array());
+
+        let extensions = items
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|item| Self::parse_repo_item(item))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Ok(extensions)
     }
     
     /// Get extension details from GitHub
     pub async fn get_extension(&self, owner: &str, repo: &str) -> anyhow::Result<GitHubExtension> {
-        // GET https://api.github.com/repos/{owner}/{repo}
-        // Parse kyro-extension.yaml from repo root
-        
-        Ok(GitHubExtension {
-            id: format!("{}/{}", owner, repo),
-            name: repo.to_string(),
-            publisher: owner.to_string(),
-            repository: format!("https://github.com/{}/{}", owner, repo),
-            description: "Extension description".to_string(),
-            version: "1.0.0".to_string(),
-            stars: 0,
-            downloads: 0,
-            topics: vec![],
-            license: None,
-            verified: false,
-            last_updated: Utc::now(),
-        })
+        let url = format!("https://api.github.com/repos/{}/{}", owner, repo);
+        let response = self.client
+            .get(&url)
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "Kyro-IDE")
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("GitHub API returned status: {}", response.status());
+        }
+
+        let item: serde_json::Value = response.json().await?;
+        Self::parse_repo_item(&item)
+            .ok_or_else(|| anyhow::anyhow!("Failed to parse repository data"))
     }
     
     /// Get extension versions from GitHub Releases
     pub async fn get_versions(&self, owner: &str, repo: &str) -> anyhow::Result<Vec<ExtensionVersion>> {
-        // GET https://api.github.com/repos/{owner}/{repo}/releases
-        
-        Ok(vec![
-            ExtensionVersion {
-                version: "1.0.0".to_string(),
-                published_at: Utc::now(),
-                release_notes: Some("Initial release".to_string()),
-                assets: vec![],
-            },
-        ])
+        let url = format!("https://api.github.com/repos/{}/{}/releases?per_page=20", owner, repo);
+        let response = self.client
+            .get(&url)
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "Kyro-IDE")
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("GitHub API returned status: {}", response.status());
+        }
+
+        let releases: Vec<serde_json::Value> = response.json().await?;
+        let versions = releases
+            .iter()
+            .filter_map(|release| {
+                let tag = release.get("tag_name")?.as_str()?;
+                let version = tag.strip_prefix('v').unwrap_or(tag).to_string();
+                let published = release.get("published_at")
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.parse::<DateTime<Utc>>().ok())
+                    .unwrap_or_else(Utc::now);
+                let body = release.get("body").and_then(|v| v.as_str()).map(String::from);
+                let assets = release.get("assets")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|a| {
+                                Some(ReleaseAsset {
+                                    name: a.get("name")?.as_str()?.to_string(),
+                                    url: a.get("browser_download_url")?.as_str()?.to_string(),
+                                    size: a.get("size")?.as_u64()?,
+                                })
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                Some(ExtensionVersion {
+                    version,
+                    published_at: published,
+                    release_notes: body,
+                    assets,
+                })
+            })
+            .collect();
+
+        Ok(versions)
     }
     
     /// Download extension from GitHub Release
     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> anyhow::Result<Vec<u8>> {
-        // Download VSIX from GitHub Release asset
-        // GET https://github.com/{owner}/{repo}/releases/download/v{version}/{repo}-{version}.vsix
-        
-        Ok(vec![])
+        // First get the release to find the VSIX asset
+        let tag = if version.starts_with('v') { version.to_string() } else { format!("v{}", version) };
+        let url = format!("https://api.github.com/repos/{}/{}/releases/tags/{}", owner, repo, tag);
+        let response = self.client
+            .get(&url)
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "Kyro-IDE")
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("Release {} not found for {}/{}", tag, owner, repo);
+        }
+
+        let release: serde_json::Value = response.json().await?;
+        let assets = release.get("assets").and_then(|v| v.as_array())
+            .ok_or_else(|| anyhow::anyhow!("No assets in release"))?;
+
+        // Look for a .vsix or .zip asset
+        let asset_url = assets.iter()
+            .filter_map(|a| {
+                let name = a.get("name")?.as_str()?;
+                if name.ends_with(".vsix") || name.ends_with(".zip") {
+                    a.get("browser_download_url")?.as_str().map(String::from)
+                } else {
+                    None
+                }
+            })
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("No .vsix or .zip asset found in release"))?;
+
+        let bytes = self.client
+            .get(&asset_url)
+            .header("User-Agent", "Kyro-IDE")
+            .timeout(std::time::Duration::from_secs(60))
+            .send()
+            .await?
+            .bytes()
+            .await?;
+
+        Ok(bytes.to_vec())
     }
     
     /// Get featured extensions (top by stars)
     pub async fn featured(&self) -> anyhow::Result<Vec<GitHubExtension>> {
-        // GET https://api.github.com/search/repositories?q=topic:kyro-extension&sort=stars&order=desc
-        
-        Ok(vec![])
+        self.search("").await
     }
     
     /// Get trending extensions (most stars in last week)
     pub async fn trending(&self) -> anyhow::Result<Vec<GitHubExtension>> {
-        // Search repos created in last 7 days with kyro-extension topic
-        
-        Ok(vec![])
+        let week_ago = (Utc::now() - chrono::Duration::days(7)).format("%Y-%m-%d");
+        let url = format!(
+            "https://api.github.com/search/repositories?q=topic:kyro-extension+created:>={}&sort=stars&order=desc&per_page=20",
+            week_ago
+        );
+        let response = self.client
+            .get(&url)
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "Kyro-IDE")
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            anyhow::bail!("GitHub API returned status: {}", response.status());
+        }
+
+        let json: serde_json::Value = response.json().await?;
+        let items = json.get("items").and_then(|v| v.as_array());
+
+        let extensions = items
+            .map(|arr| arr.iter().filter_map(|item| Self::parse_repo_item(item)).collect())
+            .unwrap_or_default();
+
+        Ok(extensions)
+    }
+
+    /// Parse a GitHub API repository item into a GitHubExtension
+    fn parse_repo_item(item: &serde_json::Value) -> Option<GitHubExtension> {
+        let full_name = item.get("full_name")?.as_str()?;
+        let name = item.get("name").and_then(|v| v.as_str()).unwrap_or(full_name);
+        let owner = item.get("owner")
+            .and_then(|o| o.get("login"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown");
+        let description = item.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        let html_url = item.get("html_url").and_then(|v| v.as_str()).unwrap_or("");
+        let stars = item.get("stargazers_count").and_then(|v| v.as_u64()).unwrap_or(0);
+        let topics = item.get("topics")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|t| t.as_str().map(String::from)).collect())
+            .unwrap_or_default();
+        let license = item.get("license")
+            .and_then(|l| l.get("spdx_id"))
+            .and_then(|v| v.as_str())
+            .map(String::from);
+        let updated = item.get("updated_at")
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.parse::<DateTime<Utc>>().ok())
+            .unwrap_or_else(Utc::now);
+
+        Some(GitHubExtension {
+            id: full_name.to_string(),
+            name: name.to_string(),
+            publisher: owner.to_string(),
+            repository: html_url.to_string(),
+            description: description.to_string(),
+            version: "latest".to_string(),
+            stars,
+            downloads: 0, // GitHub API doesn't expose download counts for repos
+            topics,
+            license,
+            verified: stars > 1000, // Treat high-star repos as verified
+            last_updated: updated,
+        })
     }
 }
 

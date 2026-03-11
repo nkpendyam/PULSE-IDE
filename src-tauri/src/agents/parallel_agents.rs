@@ -443,7 +443,7 @@ impl ParallelAgentsOrchestrator {
         Ok(result)
     }
 
-    /// Run agent inference (placeholder - would integrate with actual LLM)
+    /// Run agent inference via Ollama or OpenAI-compatible API
     async fn run_agent_inference(&self, task: &AgentTask, config: &AgentConfig) -> Result<String> {
         // Get shared memory for context
         let memory = self.shared_memory.read().await;
@@ -451,19 +451,104 @@ impl ParallelAgentsOrchestrator {
             .or(memory.get(&format!("context_{}", task.agent_type.priority())))
             .cloned();
 
-        // Build prompt with context
+        // Build prompt with context and agent-specific system prompt
+        let system_prompt = match &task.agent_type {
+            AgentType::CodeGenerator => "You are an expert code generator. Output clean, well-structured code.",
+            AgentType::CodeReviewer => "You are a thorough code reviewer. Find issues, suggest improvements.",
+            AgentType::TestGenerator => "You are a test engineer. Generate comprehensive unit tests.",
+            AgentType::Documenter => "You are a technical writer. Write clear, concise documentation.",
+            AgentType::Refactorer => "You are a refactoring specialist. Improve code structure without changing behavior.",
+            AgentType::BugFixer => "You are a debugging expert. Identify root causes and provide fixes.",
+            AgentType::SecurityAnalyzer => "You are a security analyst. Identify vulnerabilities and suggest mitigations.",
+            AgentType::PerformanceOptimizer => "You are a performance engineer. Find bottlenecks and optimize.",
+            AgentType::Custom(_) => "You are an AI assistant. Help with the given task.",
+        };
+
         let full_prompt = match context {
             Some(ctx) => format!("Context:\n{}\n\nTask:\n{}", ctx, task.prompt),
             None => task.prompt.clone(),
         };
 
-        // This would call the actual LLM inference
-        // For now, return a placeholder
-        log::info!("Agent {} executing task with prompt: {}", 
-            config.agent_type.default_model(), 
-            full_prompt.chars().take(100).collect::<String>());
+        log::info!("Agent {:?} executing task with model {}", task.agent_type, config.model);
 
-        Ok(format!("Task completed by {:?} agent", task.agent_type))
+        // Try Ollama API first
+        let client = reqwest::Client::new();
+        let body = serde_json::json!({
+            "model": config.model,
+            "prompt": full_prompt,
+            "system": system_prompt,
+            "stream": false,
+            "options": {
+                "temperature": config.temperature,
+                "num_predict": config.max_tokens,
+            }
+        });
+
+        match client
+            .post("http://localhost:11434/api/generate")
+            .json(&body)
+            .timeout(Duration::from_secs(config.timeout_secs))
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => {
+                let json: serde_json::Value = response.json().await?;
+                let text = json.get("response")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if !text.is_empty() {
+                    return Ok(text);
+                }
+            }
+            Ok(resp) => log::debug!("Ollama returned status: {}", resp.status()),
+            Err(e) => log::debug!("Ollama not available for agent inference: {}", e),
+        }
+
+        // Try OpenAI-compatible endpoint
+        let openai_body = serde_json::json!({
+            "model": config.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": full_prompt}
+            ],
+            "temperature": config.temperature,
+            "max_tokens": config.max_tokens,
+        });
+
+        for endpoint in &[
+            "http://localhost:1234/v1/chat/completions",
+            "http://localhost:8000/v1/chat/completions",
+        ] {
+            match client
+                .post(*endpoint)
+                .json(&openai_body)
+                .timeout(Duration::from_secs(config.timeout_secs))
+                .send()
+                .await
+            {
+                Ok(response) if response.status().is_success() => {
+                    let json: serde_json::Value = response.json().await?;
+                    let text = json.get("choices")
+                        .and_then(|c| c.get(0))
+                        .and_then(|c| c.get("message"))
+                        .and_then(|m| m.get("content"))
+                        .and_then(|c| c.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if !text.is_empty() {
+                        return Ok(text);
+                    }
+                }
+                _ => continue,
+            }
+        }
+
+        // Fallback: No LLM available — return a descriptive message
+        Ok(format!(
+            "[No LLM backend available] {:?} agent could not process task. Start Ollama or an OpenAI-compatible server.",
+            task.agent_type
+        ))
     }
 
     /// Store shared memory

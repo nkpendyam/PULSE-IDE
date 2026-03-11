@@ -1,4 +1,4 @@
-// Collaboration Tauri Commands — Self-contained implementation
+// Collaboration Tauri Commands — Real operation tracking implementation
 use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -14,11 +14,25 @@ pub struct CollaborationState {
     rooms: HashMap<String, RoomInfo>,
     current_room: Option<String>,
     connected: bool,
+    operation_counts: HashMap<String, u64>,
+    chat_history: HashMap<String, Vec<ChatEntry>>,
+    room_created_at: HashMap<String, std::time::Instant>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatEntry {
+    pub user_id: String,
+    pub message: String,
+    pub timestamp: String,
 }
 
 impl CollaborationState {
     pub fn new() -> Self {
-        Self { rooms: HashMap::new(), current_room: None, connected: false }
+        Self {
+            rooms: HashMap::new(), current_room: None, connected: false,
+            operation_counts: HashMap::new(), chat_history: HashMap::new(),
+            room_created_at: HashMap::new(),
+        }
     }
 }
 
@@ -91,7 +105,10 @@ pub async fn create_room(request: CreateRoomRequest) -> Result<RoomInfo, String>
         max_users: request.max_users.unwrap_or(50),
         is_encrypted: request.enable_e2ee.unwrap_or(false),
     };
-    state.rooms.insert(id, room.clone());
+    state.rooms.insert(id.clone(), room.clone());
+    state.operation_counts.insert(id.clone(), 0);
+    state.chat_history.insert(id.clone(), Vec::new());
+    state.room_created_at.insert(id, std::time::Instant::now());
     Ok(room)
 }
 
@@ -156,16 +173,26 @@ pub async fn get_room_presence(room_id: String) -> Result<Vec<PresenceUpdate>, S
 
 #[command]
 pub async fn send_operation(room_id: String, operation: TextOperation) -> Result<(), String> {
-    let state = COLLAB_STATE.read().await;
+    let mut state = COLLAB_STATE.write().await;
     let _room = state.rooms.get(&room_id).ok_or("Room not found")?;
-    log::info!("Operation in {}: {:?}", room_id, operation);
+    // Track the operation
+    *state.operation_counts.entry(room_id.clone()).or_insert(0) += 1;
+    log::info!("Operation #{} in {}: {:?}", 
+        state.operation_counts[&room_id], room_id, operation.op_type);
     Ok(())
 }
 
 #[command]
 pub async fn send_chat_message(room_id: String, message: String) -> Result<(), String> {
-    let state = COLLAB_STATE.read().await;
+    let mut state = COLLAB_STATE.write().await;
     let _room = state.rooms.get(&room_id).ok_or("Room not found")?;
+    // Store chat message
+    let entry = ChatEntry {
+        user_id: "local".to_string(),
+        message: message.clone(),
+        timestamp: chrono::Utc::now().to_rfc3339(),
+    };
+    state.chat_history.entry(room_id.clone()).or_default().push(entry);
     log::info!("Chat in {}: {}", room_id, message);
     Ok(())
 }
@@ -174,7 +201,11 @@ pub async fn send_chat_message(room_id: String, message: String) -> Result<(), S
 pub async fn get_collab_stats(room_id: String) -> Result<RoomStats, String> {
     let state = COLLAB_STATE.read().await;
     let room = state.rooms.get(&room_id).ok_or("Room not found")?;
-    Ok(RoomStats { user_count: room.users.len(), operation_count: 0, uptime_secs: 0 })
+    let op_count = state.operation_counts.get(&room_id).copied().unwrap_or(0);
+    let uptime = state.room_created_at.get(&room_id)
+        .map(|t| t.elapsed().as_secs())
+        .unwrap_or(0);
+    Ok(RoomStats { user_count: room.users.len(), operation_count: op_count, uptime_secs: uptime })
 }
 
 #[command]

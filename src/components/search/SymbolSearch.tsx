@@ -33,15 +33,27 @@ export function SymbolSearch({ isOpen, onClose }: SymbolSearchProps) {
     const loadSymbols = async () => {
       setIsLoading(true);
       try {
-        // Get symbols from all open files and indexed files
-        const workspaceSymbols = await fetch('workspace_symbols', {
-          method: 'POST',
-          body: JSON.stringify({ path: projectPath })
-        }).then(() => []).catch(() => {
-          // Fallback: use file symbols from store
-          return [];
-        });
-
+        // Use Tauri invoke to get symbols from the backend
+        let workspaceSymbols: Symbol[] = [];
+        if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).__TAURI__) {
+          const { invoke } = await import('@tauri-apps/api/core');
+          try {
+            const result = await invoke<{ name: string; kind: string; file: string; line: number; column: number }[]>(
+              'extract_symbols', { path: projectPath }
+            );
+            if (Array.isArray(result)) {
+              workspaceSymbols = result.map(s => ({
+                name: s.name,
+                kind: (s.kind || 'function') as Symbol['kind'],
+                file: s.file,
+                line: s.line,
+                column: s.column || 0,
+              }));
+            }
+          } catch {
+            // Fallback: no symbols available
+          }
+        }
         setSymbols(workspaceSymbols);
       } finally {
         setIsLoading(false);

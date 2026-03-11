@@ -1,12 +1,20 @@
-// Authentication Tauri Commands — Self-contained implementation
+// Authentication Tauri Commands — Real session tracking implementation
 use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::auth::{AuthManager, AuthConfig, UserRole};
 
+struct AuthSession {
+    manager: AuthManager,
+    current_user: Option<UserInfo>,
+}
+
 lazy_static::lazy_static! {
-    static ref AUTH_STATE: Arc<RwLock<AuthManager>> = Arc::new(RwLock::new(AuthManager::new(AuthConfig::default())));
+    static ref AUTH_STATE: Arc<RwLock<AuthSession>> = Arc::new(RwLock::new(AuthSession {
+        manager: AuthManager::new(AuthConfig::default()),
+        current_user: None,
+    }));
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -21,40 +29,48 @@ pub struct UserInfo {
 #[command]
 pub async fn login_user(username: String, password: String) -> Result<UserInfo, String> {
     let mut state = AUTH_STATE.write().await;
-    let tokens = state.login(&username, &password, None)
+    let tokens = state.manager.login(&username, &password, None)
         .map_err(|e| format!("Login failed: {}", e))?;
-    Ok(UserInfo {
+    let user = UserInfo {
         id: tokens.user.id.to_string(), username: tokens.user.username.clone(),
         email: tokens.user.email.clone(), role: format!("{:?}", tokens.user.role),
         avatar_url: None,
-    })
+    };
+    state.current_user = Some(user.clone());
+    Ok(user)
 }
 
 #[command]
 pub async fn logout_user() -> Result<(), String> {
+    let mut state = AUTH_STATE.write().await;
+    state.current_user = None;
     Ok(())
 }
 
 #[command]
 pub async fn register_user(username: String, email: String, password: String) -> Result<UserInfo, String> {
     let mut state = AUTH_STATE.write().await;
-    let user = state.register(username, email, &password)
+    let user = state.manager.register(username, email, &password)
         .map_err(|e| format!("Registration failed: {}", e))?;
-    Ok(UserInfo {
+    let info = UserInfo {
         id: user.id.to_string(), username: user.username.clone(),
         email: user.email.clone(), role: format!("{:?}", user.role),
         avatar_url: None,
-    })
+    };
+    state.current_user = Some(info.clone());
+    Ok(info)
 }
 
 #[command]
 pub async fn get_current_user() -> Result<Option<UserInfo>, String> {
-    Ok(None)
+    let state = AUTH_STATE.read().await;
+    Ok(state.current_user.clone())
 }
 
 #[command]
 pub async fn is_authenticated() -> Result<bool, String> {
-    Ok(false)
+    let state = AUTH_STATE.read().await;
+    Ok(state.current_user.is_some())
 }
 
 #[command]
@@ -68,29 +84,31 @@ pub async fn update_user_role(user_id: String, role: String) -> Result<(), Strin
         "owner" => UserRole::Owner,
         _ => UserRole::Viewer,
     };
-    state.update_user_role(uid, new_role).map_err(|e| format!("Failed: {}", e))
+    state.manager.update_user_role(uid, new_role).map_err(|e| format!("Failed: {}", e))
 }
 
 #[command]
 pub async fn validate_session(token: String) -> Result<bool, String> {
     let state = AUTH_STATE.read().await;
-    Ok(state.validate_token(&token).is_ok())
+    Ok(state.manager.validate_token(&token).is_ok())
 }
 
 #[command]
 pub async fn get_oauth_url(provider: String) -> Result<String, String> {
     let state = AUTH_STATE.read().await;
-    state.get_oauth_url(&provider).map_err(|e| format!("Failed: {}", e))
+    state.manager.get_oauth_url(&provider).map_err(|e| format!("Failed: {}", e))
 }
 
 #[command]
 pub async fn handle_oauth_callback(provider: String, code: String) -> Result<UserInfo, String> {
     let mut state = AUTH_STATE.write().await;
-    let tokens = state.handle_oauth_callback(&provider, &code)
+    let tokens = state.manager.handle_oauth_callback(&provider, &code)
         .map_err(|e| format!("OAuth failed: {}", e))?;
-    Ok(UserInfo {
+    let user = UserInfo {
         id: tokens.user.id.to_string(), username: tokens.user.username.clone(),
         email: tokens.user.email.clone(), role: format!("{:?}", tokens.user.role),
         avatar_url: None,
-    })
+    };
+    state.current_user = Some(user.clone());
+    Ok(user)
 }
