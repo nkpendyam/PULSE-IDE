@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { useKyroStore, FileNode, OpenFile } from '@/store/kyroStore';
 import { AgentManagerPanel } from '@/components/agent-manager/AgentManagerPanel';
@@ -14,6 +14,21 @@ import { DebugPanel } from '@/components/debug/DebugPanel';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { TerminalPanel } from '@/components/terminal/TerminalPanel';
 import { CommandPalette } from '@/components/palette/CommandPalette';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { CollaborationPanel } from '@/components/collaboration/CollaborationPanel';
+import ExtensionMarketplace from '@/components/extensions/UnifiedMarketplace';
+import { FirstRunExperience } from '@/components/onboarding/FirstRunExperience';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { UpdatePanel } from '@/components/update/UpdatePanel';
+import { PluginManager } from '@/components/plugins/PluginManager';
+import { RagPanel } from '@/components/rag/RagPanel';
+import { LspPanel } from '@/components/lsp/LspPanel';
+import { HardwareInfoPanel } from '@/components/llm/HardwareInfoPanel';
+import { SymbolOutline } from '@/components/sidebar/SymbolOutline';
+import { SymbolSearch } from '@/components/search/SymbolSearch';
+import { DiffViewer } from '@/components/git/DiffViewer';
+import { InlineChat } from '@/components/chat/InlineChat';
+import { KeybindingManager } from '@/lib/keybindings';
 import {
   Files,
   Search,
@@ -27,6 +42,13 @@ import {
   Code2,
   Layout,
   Blocks,
+  Users,
+  Puzzle,
+  Database,
+  Cpu,
+  Download,
+  FileCode,
+  User,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -54,10 +76,10 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols';
 
-// Mock file tree data (for demo mode when Tauri is not available)
-const mockFileTree: FileNode = {
+// Fallback file tree (used when Tauri is not available)
+const fallbackFileTree: FileNode = {
   name: 'kyro-project',
   path: '/kyro-project',
   is_directory: true,
@@ -67,54 +89,11 @@ const mockFileTree: FileNode = {
       path: '/kyro-project/src',
       is_directory: true,
       children: [
-        {
-          name: 'components',
-          path: '/kyro-project/src/components',
-          is_directory: true,
-          children: [
-            { name: 'Button.tsx', path: '/kyro-project/src/components/Button.tsx', is_directory: false, extension: 'tsx' },
-            { name: 'Card.tsx', path: '/kyro-project/src/components/Card.tsx', is_directory: false, extension: 'tsx' },
-          ]
-        },
         { name: 'App.tsx', path: '/kyro-project/src/App.tsx', is_directory: false, extension: 'tsx' },
       ]
     },
     { name: 'package.json', path: '/kyro-project/package.json', is_directory: false, extension: 'json' },
   ]
-};
-
-// Sample file contents
-const sampleFileContents: Record<string, string> = {
-  '/kyro-project/src/App.tsx': `import React from 'react';
-
-export function App() {
-  const [count, setCount] = React.useState(0);
-  return (
-    <div className="app">
-      <h1>Welcome to Kyro IDE</h1>
-      <button onClick={() => setCount(c => c + 1)}>
-        Clicked {count} times
-      </button>
-    </div>
-  );
-}`,
-  '/kyro-project/src/components/Button.tsx': `import React from 'react';
-
-interface ButtonProps {
-  children: React.ReactNode;
-  onClick?: () => void;
-}
-
-export function Button({ children, onClick }: ButtonProps) {
-  return (
-    <button
-      className="px-4 py-2 bg-blue-500 text-white rounded"
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}`,
 };
 
 // Main IDE Page
@@ -124,6 +103,13 @@ export default function Home() {
   const [showChat, setShowChat] = useState(true);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [fileTreeKey, setFileTreeKey] = useState(0);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showFirstRun, setShowFirstRun] = useState(false);
+  const [showSymbolSearch, setShowSymbolSearch] = useState(false);
+  const [showInlineChat, setShowInlineChat] = useState(false);
+  const [showDiffViewer, setShowDiffViewer] = useState(false);
+  const [diffFile, setDiffFile] = useState<string>('');
+  const editorRef = useRef<unknown>(null);
 
   const {
     openFiles,
@@ -147,17 +133,21 @@ export default function Home() {
           // Tauri not available, use mock
         }
       }
-      setFileTree(mockFileTree);
+      setFileTree(fallbackFileTree);
     }
     loadInitialTree();
-    setGitStatus({
-      branch: 'main',
-      ahead: 2,
-      behind: 0,
-      staged: [{ path: 'src/App.tsx', status: 'modified' }],
-      unstaged: [],
-      untracked: []
-    });
+
+    // Try loading git status from Tauri
+    if (typeof window !== 'undefined' && window.__TAURI__) {
+      window.__TAURI__.core.invoke<{ branch: string; ahead: number; behind: number; staged: { path: string; status: string }[]; unstaged: { path: string; status: string }[]; untracked: string[] }>('git_status', { path: '.' })
+        .then(status => setGitStatus(status))
+        .catch(() => { /* Tauri not available */ });
+    }
+
+    // Check first run
+    if (typeof window !== 'undefined' && !localStorage.getItem('kyro-first-run-done')) {
+      setShowFirstRun(true);
+    }
   }, [setFileTree, setGitStatus]);
 
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
@@ -177,18 +167,27 @@ export default function Home() {
     }
   }, [currentFile]);
 
-  // Setup global keyboard shortcuts
+  // Setup global keyboard shortcuts via KeybindingManager
   React.useEffect(() => {
+    const km = new KeybindingManager();
+
+    const commandHandlers: Record<string, () => void> = {
+      'workbench.action.files.save': handleSaveFile,
+      'workbench.action.showCommands': () => setShowCommandPalette(prev => !prev),
+      'workbench.action.toggleSidebarVisibility': () => setShowChat(prev => !prev),
+      'workbench.action.showAllSymbols': () => setShowSymbolSearch(prev => !prev),
+      'editor.action.inlineChat': () => setShowInlineChat(prev => !prev),
+      'workbench.view.explorer': () => setActivePanel('explorer'),
+      'workbench.view.scm': () => setActivePanel('git'),
+      'workbench.view.debug': () => setActivePanel('debug'),
+      'workbench.view.extensions': () => setActivePanel('extensions'),
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+S (Mac) / Ctrl+S (Windows/Linux) - Save file
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      const command = km.findMatchingCommand(e);
+      if (command && commandHandlers[command]) {
         e.preventDefault();
-        handleSaveFile();
-      }
-      // Cmd+Shift+P / Ctrl+Shift+P - Command Palette
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'P') {
-        e.preventDefault();
-        setShowCommandPalette(prev => !prev);
+        commandHandlers[command]();
       }
     };
 
@@ -235,8 +234,8 @@ export default function Home() {
         
         openFile(file);
       } else {
-        // Fallback to mock data
-        const content = sampleFileContents[path] || '// File content would be loaded here';
+        // Fallback when Tauri is not available
+        const content = '// Open this project in Kyro IDE desktop for full file access';
         const ext = path.split('.').pop()?.toLowerCase() || 'txt';
         const languageMap: Record<string, string> = {
           'ts': 'typescript',
@@ -257,8 +256,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Failed to load file:', error);
-      // Fallback to mock data on error
-      const content = sampleFileContents[path] || '// File content would be loaded here';
+      const content = '// Failed to load file — check console for details';
       const ext = path.split('.').pop()?.toLowerCase() || 'txt';
       const languageMap: Record<string, string> = {
         'ts': 'typescript',
@@ -325,6 +323,13 @@ export default function Home() {
 
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowAuthModal(true)}
+            className="p-1.5 rounded transition-colors text-[#8b949e] hover:text-[#c9d1d9]"
+            title="Account"
+          >
+            <User size={16} />
+          </button>
+          <button
             onClick={() => setShowChat(!showChat)}
             className={`p-1.5 rounded transition-colors ${showChat ? 'bg-[#21262d] text-[#c9d1d9]' : 'text-[#8b949e] hover:text-[#c9d1d9]'}`}
             title="Toggle AI Chat"
@@ -349,6 +354,13 @@ export default function Home() {
               { id: 'git' as SidebarPanel, icon: GitBranch, label: 'Source Control' },
               { id: 'debug' as SidebarPanel, icon: Bug, label: 'Debug' },
               { id: 'extensions' as SidebarPanel, icon: Blocks, label: 'Extensions' },
+              { id: 'collaboration' as SidebarPanel, icon: Users, label: 'Collaboration' },
+              { id: 'plugins' as SidebarPanel, icon: Puzzle, label: 'Plugins' },
+              { id: 'rag' as SidebarPanel, icon: Database, label: 'RAG Search' },
+              { id: 'lsp' as SidebarPanel, icon: FileCode, label: 'Language Server' },
+              { id: 'llm' as SidebarPanel, icon: Cpu, label: 'LLM / Hardware' },
+              { id: 'update' as SidebarPanel, icon: Download, label: 'Updates' },
+              { id: 'symbols' as SidebarPanel, icon: Code2, label: 'Symbol Outline' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -390,6 +402,13 @@ export default function Home() {
                 {activePanel === 'debug' && 'Debug'}
                 {activePanel === 'extensions' && 'Extensions'}
                 {activePanel === 'settings' && 'Settings'}
+                {activePanel === 'collaboration' && 'Collaboration'}
+                {activePanel === 'plugins' && 'Plugins'}
+                {activePanel === 'rag' && 'RAG Search'}
+                {activePanel === 'lsp' && 'Language Server'}
+                {activePanel === 'llm' && 'LLM / Hardware'}
+                {activePanel === 'update' && 'Updates'}
+                {activePanel === 'symbols' && 'Symbol Outline'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -400,7 +419,7 @@ export default function Home() {
                     <Folder size={12} className="text-[#54aeff]" />
                     <span>KYRO-PROJECT</span>
                   </div>
-                  {mockFileTree.children?.map((child) => (
+                  {fallbackFileTree.children?.map((child) => (
                     <FileTree 
                       key={`${child.path}-${fileTreeKey}`} 
                       node={child} 
@@ -421,13 +440,31 @@ export default function Home() {
                 <DebugPanel />
               )}
               {activePanel === 'extensions' && (
-                <div className="p-2 text-xs text-[#8b949e]">
-                  <p className="mb-2">Search and manage extensions</p>
-                  <p>Use the Extensions panel for full marketplace</p>
-                </div>
+                <ExtensionMarketplace />
               )}
               {activePanel === 'settings' && (
                 <SettingsPanel />
+              )}
+              {activePanel === 'collaboration' && (
+                <CollaborationPanel />
+              )}
+              {activePanel === 'plugins' && (
+                <PluginManager />
+              )}
+              {activePanel === 'rag' && (
+                <RagPanel />
+              )}
+              {activePanel === 'lsp' && (
+                <LspPanel />
+              )}
+              {activePanel === 'llm' && (
+                <HardwareInfoPanel />
+              )}
+              {activePanel === 'update' && (
+                <UpdatePanel />
+              )}
+              {activePanel === 'symbols' && (
+                <SymbolOutline />
               )}
             </div>
           </div>
@@ -435,6 +472,7 @@ export default function Home() {
           {/* Main Editor Area */}
           <div className="flex-1 flex flex-col min-w-0">
             <TabBar />
+            {currentFile && <Breadcrumbs />}
             <div className="flex-1 flex overflow-hidden">
               <div className="flex-1 relative">
                 {currentFile ? (
@@ -444,7 +482,10 @@ export default function Home() {
                     value={currentFile.content}
                     theme="vs-dark"
                     onChange={handleEditorChange}
-                    onMount={handleEditorMount}
+                    onMount={(editor) => {
+                      editorRef.current = editor;
+                      handleEditorMount(editor);
+                    }}
                     options={{
                       fontSize: 14,
                       fontFamily: 'JetBrains Mono, Fira Code, monospace',
@@ -460,9 +501,21 @@ export default function Home() {
                   <div className="h-full flex flex-col items-center justify-center text-[#8b949e]">
                     <Layout size={48} className="mb-4 opacity-50" />
                     <p className="text-lg mb-2">No file open</p>
-                    <p className="text-xs">Select a file from the explorer</p>
+                    <p className="text-xs">Select a file from the explorer or press Ctrl+P</p>
                   </div>
                 )}
+                {/* Inline Chat Overlay */}
+                <InlineChat
+                  isOpen={showInlineChat}
+                  onClose={() => setShowInlineChat(false)}
+                  position={null}
+                  selection={null}
+                  onAccept={(newText) => {
+                    if (currentFile) setEditorContent(newText);
+                    setShowInlineChat(false);
+                  }}
+                  onReject={() => setShowInlineChat(false)}
+                />
               </div>
 
               {/* AI Chat Sidebar */}
@@ -483,6 +536,25 @@ export default function Home() {
 
       {/* Status Bar */}
       <StatusBar />
+
+      {/* Modals */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
+      {showFirstRun && (
+        <FirstRunExperience onComplete={() => {
+          setShowFirstRun(false);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kyro-first-run-done', 'true');
+          }
+        }} />
+      )}
+      {showSymbolSearch && (
+        <SymbolSearch isOpen={showSymbolSearch} onClose={() => setShowSymbolSearch(false)} />
+      )}
+      {showDiffViewer && (
+        <DiffViewer filePath={diffFile} mode="inline" />
+      )}
     </div>
   );
 }
