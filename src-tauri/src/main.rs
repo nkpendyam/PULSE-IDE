@@ -96,6 +96,33 @@ mod picoclaw;
 // ============ Orchestrator (Mission Control) ============
 mod orchestrator;
 
+// ============ Extension System (Open VSX) ============
+mod extensions;
+
+// ============ Trust Layer (Critical) ============
+mod trust;
+
+// ============ Hierarchical Memory ============
+mod memory;
+
+// ============ Quality Control ============
+mod quality;
+
+// ============ Business Model ============
+mod business;
+
+// ============ Autonomous Agent ============
+mod autonomous;
+
+// ============ Chat Sidebar with RAG ============
+mod chat_sidebar;
+
+// ============ MCP Agent Editor ============
+mod agent_editor;
+
+// ============ Agent Store ============
+mod agent_store;
+
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock as AsyncRwLock};
@@ -292,7 +319,7 @@ fn main() {
             log::info!("✓ Enhanced LSP state initialized");
             
             // ============ Initialize AirLLM State ============
-            let airllm_state = commands::airllm::AirLLMState(std::sync::Mutex::new(None));
+            let airllm_state = commands::airllm::AirLLMState(tokio::sync::Mutex::new(None));
             app.manage(airllm_state);
             log::info!("✓ AirLLM state initialized");
             
@@ -534,9 +561,9 @@ fn main() {
             commands::lsp_real::lsp_stop_server,
             commands::lsp_real::lsp_get_servers,
             commands::lsp_real::lsp_get_completions,
-            commands::lsp_real::lsp_get_hover,
+            commands::lsp_real::lsp_hover,
             commands::lsp_real::lsp_goto_definition,
-            commands::lsp_real::lsp_goto_references,
+            commands::lsp_real::lsp_find_references,
             commands::lsp_real::lsp_get_diagnostics,
             commands::lsp_real::lsp_rename,
             commands::lsp_real::lsp_format_document,

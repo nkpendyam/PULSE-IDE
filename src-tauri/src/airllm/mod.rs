@@ -412,10 +412,10 @@ except Exception as e:
 pub mod commands {
     use super::*;
     use tauri::State;
-    use std::sync::Mutex as StdMutex;
+    use tokio::sync::Mutex as TokioMutex;
 
     /// Global AirLLM state
-    pub struct AirLLMState(pub StdMutex<Option<AirLLMEngine>>);
+    pub struct AirLLMState(pub TokioMutex<Option<AirLLMEngine>>);
 
     /// Check AirLLM availability
     #[tauri::command]
@@ -436,7 +436,7 @@ pub mod commands {
         model_name: Option<String>,
         config: Option<AirLLMConfig>,
     ) -> Result<(), String> {
-        let mut engine_opt = state.0.lock().map_err(|e| e.to_string())?;
+        let mut engine_opt = state.0.lock().await;
         
         let config = config.unwrap_or_default();
         let mut engine = AirLLMEngine::new(config);
@@ -453,7 +453,7 @@ pub mod commands {
     pub async fn airllm_unload_model(
         state: State<'_, AirLLMState>,
     ) -> Result<(), String> {
-        let mut engine_opt = state.0.lock().map_err(|e| e.to_string())?;
+        let mut engine_opt = state.0.lock().await;
         
         if let Some(engine) = engine_opt.as_mut() {
             engine.unload_model().await.map_err(|e| e.to_string())?;
@@ -468,7 +468,7 @@ pub mod commands {
         state: State<'_, AirLLMState>,
         request: GenerationRequest,
     ) -> Result<GenerationResponse, String> {
-        let engine_opt = state.0.lock().map_err(|e| e.to_string())?;
+        let engine_opt = state.0.lock().await;
         
         let engine = engine_opt.as_ref()
             .ok_or_else(|| "No model loaded".to_string())?;
@@ -481,7 +481,7 @@ pub mod commands {
     pub async fn airllm_get_status(
         state: State<'_, AirLLMState>,
     ) -> Result<ModelStatus, String> {
-        let engine_opt = state.0.lock().map_err(|e| e.to_string())?;
+        let engine_opt = state.0.lock().await;
         
         match engine_opt.as_ref() {
             Some(engine) => Ok(engine.status().await),

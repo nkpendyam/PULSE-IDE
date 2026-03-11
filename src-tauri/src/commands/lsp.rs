@@ -1,7 +1,7 @@
 //! LSP commands for KYRO IDE with AI-powered completion
 
 use serde::{Deserialize, Serialize};
-use tauri::command;
+use tauri::{command, State};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use crate::lsp::{MolecularLsp, Symbol, CompletionItem, Diagnostic};
@@ -57,36 +57,36 @@ pub struct CompletionRequest {
 }
 
 #[command]
-pub async fn detect_language(lsp: Arc<Mutex<MolecularLsp>>, path: String) -> String {
+pub async fn detect_language(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, path: String) -> Result<String, String> {
     let lsp = lsp.lock().await;
-    lsp.detect_language(&path)
+    Ok(lsp.detect_language(&path))
 }
 
 #[command]
-pub async fn extract_symbols(lsp: Arc<Mutex<MolecularLsp>>, language: String, code: String) -> SymbolsResponse {
+pub async fn extract_symbols(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, language: String, code: String) -> Result<SymbolsResponse, String> {
     let lsp = lsp.lock().await;
     let symbols = lsp.extract_symbols(&language, &code);
-    SymbolsResponse { symbols, language }
+    Ok(SymbolsResponse { symbols, language })
 }
 
 #[command]
-pub async fn get_completions(lsp: Arc<Mutex<MolecularLsp>>, language: String, code: String, line: usize, col: usize) -> CompletionsResponse {
+pub async fn get_completions(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, language: String, code: String, line: usize, col: usize) -> Result<CompletionsResponse, String> {
     let lsp = lsp.lock().await;
     let completions = lsp.get_completions(&language, &code, line, col);
-    CompletionsResponse { completions }
+    Ok(CompletionsResponse { completions })
 }
 
 #[command]
-pub async fn get_diagnostics(lsp: Arc<Mutex<MolecularLsp>>, language: String, code: String) -> DiagnosticsResponse {
+pub async fn get_diagnostics(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, language: String, code: String) -> Result<DiagnosticsResponse, String> {
     let lsp = lsp.lock().await;
     let diagnostics = lsp.get_diagnostics(&language, &code);
-    DiagnosticsResponse { diagnostics }
+    Ok(DiagnosticsResponse { diagnostics })
 }
 
 #[command]
-pub async fn lsp_list_supported_languages(lsp: Arc<Mutex<MolecularLsp>>) -> Vec<String> {
+pub async fn lsp_list_supported_languages(lsp: State<'_, Arc<Mutex<MolecularLsp>>>) -> Result<Vec<String>, String> {
     let lsp = lsp.lock().await;
-    lsp.list_languages()
+    Ok(lsp.list_languages())
 }
 
 /// Enhanced AI-powered completion endpoint
@@ -104,9 +104,9 @@ pub async fn lsp_list_supported_languages(lsp: Arc<Mutex<MolecularLsp>>) -> Vec<
 /// 6. Returned to Monaco within 100ms budget
 #[command]
 pub async fn get_ai_completions(
-    completion_engine: Arc<Mutex<AiCompletionEngine>>,
+    completion_engine: State<'_, Arc<Mutex<AiCompletionEngine>>>,
     request: CompletionRequest,
-) -> EnhancedCompletionsResponse {
+) -> Result<EnhancedCompletionsResponse, String> {
     let engine = completion_engine.lock().await;
     
     let trigger_kind = match request.trigger_kind.as_str() {
@@ -129,7 +129,7 @@ pub async fn get_ai_completions(
 
     let response = engine.get_completions(context).await;
 
-    EnhancedCompletionsResponse {
+    Ok(EnhancedCompletionsResponse {
         items: response.items.iter().map(|item| ScoredCompletionItem {
             label: item.item.label.clone(),
             kind: format!("{:?}", item.item.kind),
@@ -142,28 +142,29 @@ pub async fn get_ai_completions(
         total_latency_ms: response.total_latency_ms,
         sources_used: response.sources_used,
         performance_warning: response.performance_warning,
-    }
+    })
 }
 
 /// Update symbol table for a file (call on file save/open)
 #[command]
 pub async fn update_file_symbols(
-    completion_engine: Arc<Mutex<AiCompletionEngine>>,
+    completion_engine: State<'_, Arc<Mutex<AiCompletionEngine>>>,
     file_path: String,
     code: String,
     language: String,
-) {
+) -> Result<(), String> {
     let engine = completion_engine.lock().await;
     engine.update_symbols(&file_path, &code, &language);
+    Ok(())
 }
 
 /// Get completion statistics
 #[command]
 pub async fn get_completion_stats(
-    completion_engine: Arc<Mutex<AiCompletionEngine>>,
-) -> CompletionStats {
+    completion_engine: State<'_, Arc<Mutex<AiCompletionEngine>>>,
+) -> Result<CompletionStats, String> {
     let engine = completion_engine.lock().await;
-    engine.get_stats()
+    Ok(engine.get_stats())
 }
 
 /// Get the performance budget in milliseconds

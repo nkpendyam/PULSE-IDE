@@ -1,7 +1,7 @@
 //! Terminal commands for KYRO IDE
 
 use serde::{Deserialize, Serialize};
-use tauri::command;
+use tauri::{command, State};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use crate::terminal::TerminalManager;
@@ -14,7 +14,7 @@ pub struct TerminalInfo {
 }
 
 #[command]
-pub async fn create_terminal(manager: Arc<Mutex<TerminalManager>>, id: String, cwd: Option<String>) -> Result<TerminalInfo, String> {
+pub async fn create_terminal(manager: State<'_, Arc<Mutex<TerminalManager>>>, id: String, cwd: Option<String>) -> Result<TerminalInfo, String> {
     let mut mgr = manager.lock().await;
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
     let cwd = cwd.unwrap_or_else(|| std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
@@ -23,19 +23,19 @@ pub async fn create_terminal(manager: Arc<Mutex<TerminalManager>>, id: String, c
 }
 
 #[command]
-pub async fn write_to_terminal(manager: Arc<Mutex<TerminalManager>>, id: String, data: String) -> Result<(), String> {
+pub async fn write_to_terminal(manager: State<'_, Arc<Mutex<TerminalManager>>>, id: String, data: String) -> Result<(), String> {
     let mut mgr = manager.lock().await;
     mgr.write_to_terminal(&id, &data)
 }
 
 #[command]
-pub async fn resize_terminal(manager: Arc<Mutex<TerminalManager>>, id: String, cols: u16, rows: u16) -> Result<(), String> {
+pub async fn resize_terminal(manager: State<'_, Arc<Mutex<TerminalManager>>>, id: String, cols: u16, rows: u16) -> Result<(), String> {
     let mut mgr = manager.lock().await;
     mgr.resize_terminal(&id, cols, rows)
 }
 
 #[command]
-pub async fn kill_terminal(manager: Arc<Mutex<TerminalManager>>, id: String) -> Result<(), String> {
+pub async fn kill_terminal(manager: State<'_, Arc<Mutex<TerminalManager>>>, id: String) -> Result<(), String> {
     let mut mgr = manager.lock().await;
     mgr.kill_terminal(&id)
 }
