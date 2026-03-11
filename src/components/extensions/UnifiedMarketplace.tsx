@@ -61,6 +61,16 @@ const CATEGORIES = [
   'Other',
 ];
 
+// Format download count
+function formatDownloads(count: number) {
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(1)}M`;
+  } else if (count >= 1_000) {
+    return `${(count / 1_000).toFixed(1)}K`;
+  }
+  return count.toString();
+}
+
 export function ExtensionMarketplace() {
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [installedExtensions, setInstalledExtensions] = useState<Extension[]>([]);
@@ -216,16 +226,6 @@ export function ExtensionMarketplace() {
     } catch (error) {
       console.error('Toggle failed:', error);
     }
-  };
-
-  // Format download count
-  const formatDownloads = (count: number) => {
-    if (count >= 1_000_000) {
-      return `${(count / 1_000_000).toFixed(1)}M`;
-    } else if (count >= 1_000) {
-      return `${(count / 1_000).toFixed(1)}K`;
-    }
-    return count.toString();
   };
 
   // Filtered extensions

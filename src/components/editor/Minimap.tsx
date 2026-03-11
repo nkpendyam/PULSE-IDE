@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useRef, useLayoutEffect, useState, useCallback } from 'react';
+import React, { useRef, useLayoutEffect, useEffect, useState, useCallback } from 'react';
+import * as monaco from 'monaco-editor';
 import { useKyroStore } from '@/store/kyroStore';
 
 // Minimap configuration
@@ -43,7 +44,7 @@ export function Minimap({ editor, visible = true, scale = 1, onToggle }: Minimap
     const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
     
     // Calculate viewport
-    const editorHeight = layoutInfo.contentHeight;
+    const editorHeight = editor.getContentHeight();
     const totalContentHeight = totalLines * lineHeight;
     
     if (visibleRanges.length > 0) {

@@ -7,12 +7,8 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   experimental: {
-    turbopack: {
-      root: __dirname,
-    },
   },
   // Optimize for production builds
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
   // Enable image optimization

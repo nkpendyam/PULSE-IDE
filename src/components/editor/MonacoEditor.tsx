@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useCallback, useEffect } from 'react';
+import type * as monaco from 'monaco-editor';
 import Editor, { OnMount, OnChange, Monaco } from '@monaco-editor/react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore } from '@/store/kyroStore';

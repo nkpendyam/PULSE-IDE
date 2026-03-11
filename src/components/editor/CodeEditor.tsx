@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
+import type * as monaco from 'monaco-editor';
 import Editor, { OnMount, OnChange, Monaco } from '@monaco-editor/react';
 import { useKyroStore } from '@/store/kyroStore';
 import { invoke } from '@tauri-apps/api/core';
@@ -48,14 +49,6 @@ export function CodeEditor() {
 
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
 
-  // Initialize ghost text provider with streaming
-  const { currentCompletion, isProcessing: isGhostTextProcessing } = useGhostTextProvider(
-    editorRef.current,
-    monacoRef.current,
-    currentFile?.language || 'plaintext',
-    { enabled: editorOptions.ghostText, debounceMs: 300, maxTokens: 100 }
-  );
-
   // Default editor options
   const defaultOptions: EditorOptions = {
     minimap: true,
@@ -72,6 +65,14 @@ export function CodeEditor() {
   };
 
   const editorOptions = settings?.editorOptions || defaultOptions;
+
+  // Initialize ghost text provider with streaming
+  const { currentCompletion, isProcessing: isGhostTextProcessing } = useGhostTextProvider(
+    editorRef.current,
+    monacoRef.current,
+    currentFile?.language || 'plaintext',
+    { enabled: (editorOptions as unknown as EditorOptions).ghostText, debounceMs: 300, maxTokens: 100 }
+  );
 
   // Handle multi-cursor editing shortcuts
   const setupMultiCursorShortcuts = useCallback((editor: monaco.editor.IStandaloneCodeEditor, monaco: Monaco) => {
@@ -569,7 +570,7 @@ export function CodeEditor() {
     foldingHighlight: true,
     showFoldingControls: 'mouseover',
     bracketPairColorization: { enabled: editorOptions.bracketPairColorization },
-    guides: editorOptions.guides,
+    guides: (editorOptions as unknown as EditorOptions).guides,
     stickyScroll: { enabled: editorOptions.stickyScroll },
     inlineSuggest: { enabled: editorOptions.inlineSuggest },
     quickSuggestions: {
@@ -586,10 +587,8 @@ export function CodeEditor() {
     formatOnType: true,
     autoIndent: 'full',
     smartSelect: { selectLeadingAndTrailingWhitespace: true },
-    multicursor: {
-      modifier: 'alt',
-      pasteOverCursor: 'spread'
-    },
+    multiCursorModifier: 'alt',
+    multiCursorPaste: 'spread',
     lineNumbers: editorOptions.lineNumbers,
     renderWhitespace: editorOptions.renderWhitespace,
     renderLineHighlight: 'all',
@@ -602,7 +601,6 @@ export function CodeEditor() {
     overviewRulerLanes: 3,
     overviewRulerBorder: true,
     hideCursorInOverviewRuler: false,
-    overviewRulerPosition: 'right',
     scrollbar: {
       vertical: 'auto',
       horizontal: 'auto',

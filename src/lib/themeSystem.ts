@@ -1,6 +1,8 @@
 // Theme System for KRO IDE
 // Supports TextMate themes (.tmTheme), VS Code themes, and custom JSON themes
 
+import type * as monaco from 'monaco-editor';
+
 export interface ThemeColor {
   id: string;
   description?: string;
@@ -474,26 +476,3 @@ export class ThemeManager {
 }
 
 export const themeManager = new ThemeManager();
-
-// Type for monaco (will be available at runtime)
-declare const monaco: {
-  editor: {
-    IStandaloneThemeData: {
-      base: 'vs' | 'vs-dark' | 'hc-black';
-      inherit: boolean;
-      rules: Array<{
-        token: string;
-        foreground?: string;
-        background?: string;
-        fontStyle?: string;
-      }>;
-      colors: Record<string, string>;
-    };
-    ITokenThemeRule: {
-      token: string;
-      foreground?: string;
-      background?: string;
-      fontStyle?: string;
-    };
-  };
-};

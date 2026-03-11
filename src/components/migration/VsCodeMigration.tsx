@@ -73,7 +73,7 @@ const SETTINGS_MAPPING: Record<string, { kyro: string; transform?: (value: unkno
 };
 
 // Known extension equivalents on Open VSX
-const EXTENSION_EQUIVALENTS: Record<string, string> = {
+const EXTENSION_EQUIVALENTS: Record<string, string | null> = {
   // Popular extensions with Open VSX equivalents
   'esbenp.prettier-vscode': 'esbenp.prettier-vscode',
   'dbaeumer.vscode-eslint': 'dbaeumer.vscode-eslint',
@@ -385,7 +385,7 @@ async function scanVSCodeExtensions(vscodePath: string): Promise<VSCodeExtension
           publisher,
           version,
           installed: false,
-          openVSXEquivalent: EXTENSION_EQUIVALENTS[id],
+          openVSXEquivalent: EXTENSION_EQUIVALENTS[id] ?? undefined,
         });
       }
     }

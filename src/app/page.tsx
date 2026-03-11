@@ -485,6 +485,24 @@ export default function Home() {
     });
   }, [setFileTree, setGitStatus]);
 
+  const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+
+  const handleSaveFile = useCallback(async () => {
+    if (!currentFile) return;
+
+    try {
+      if (typeof window !== 'undefined' && window.__TAURI__) {
+        await window.__TAURI__.core.invoke('write_file', {
+          path: currentFile.path,
+          content: currentFile.content
+        });
+        console.log('File saved successfully:', currentFile.path);
+      }
+    } catch (error) {
+      console.error('Failed to save file:', error);
+    }
+  }, [currentFile]);
+
   // Setup global keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -571,22 +589,6 @@ export default function Home() {
     }
   }, [setEditorContent]);
 
-  const handleSaveFile = useCallback(async () => {
-    if (!currentFile) return;
-
-    try {
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        await window.__TAURI__.core.invoke('write_file', {
-          path: currentFile.path,
-          content: currentFile.content
-        });
-        console.log('File saved successfully:', currentFile.path);
-      }
-    } catch (error) {
-      console.error('Failed to save file:', error);
-    }
-  }, [currentFile]);
-
   const handleEditorMount = useCallback((editor: unknown) => {
     const monacoEditor = editor as {
       onDidChangeCursorPosition: (callback: (e: { position: { lineNumber: number; column: number } }) => void) => void;
@@ -595,8 +597,6 @@ export default function Home() {
       setCursorPosition(e.position.lineNumber, e.position.column);
     });
   }, [setCursorPosition]);
-
-  const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
 
   return (
     <div className="h-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden">

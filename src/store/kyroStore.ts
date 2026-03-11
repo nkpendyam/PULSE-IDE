@@ -210,6 +210,7 @@ interface KyroState {
   setTerminalOutput: (output: string) => void; appendTerminalOutput: (output: string) => void; setGitStatus: (status: GitStatus | null) => void;
   setSupportedLanguages: (languages: string[]) => void;
   setSidebarWidth: (width: number) => void; setChatWidth: (width: number) => void; toggleChat: () => void; toggleTerminal: () => void; setTerminalHeight: (height: number) => void;
+  setShowTerminal: (show: boolean) => void; setShowChat: (show: boolean) => void;
   
   // Embedded LLM actions
   setHardwareInfo: (info: HardwareInfo) => void;
@@ -367,6 +368,7 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   setTerminalOutput: (output) => set({ terminalOutput: output }), appendTerminalOutput: (output) => set(state => ({ terminalOutput: state.terminalOutput + output })), setGitStatus: (status) => set({ gitStatus: status }),
   setSupportedLanguages: (languages) => set({ supportedLanguages: languages }),
   setSidebarWidth: (width) => set({ sidebarWidth: width }), setChatWidth: (width) => set({ chatWidth: width }), toggleChat: () => set(state => ({ showChat: !state.showChat })), toggleTerminal: () => set(state => ({ showTerminal: !state.showTerminal })), setTerminalHeight: (height) => set({ terminalHeight: height }),
+  setShowTerminal: (show) => set({ showTerminal: show }), setShowChat: (show) => set({ showChat: show }),
   
   // Embedded LLM actions
   setHardwareInfo: (info) => set({ hardwareInfo: info }),

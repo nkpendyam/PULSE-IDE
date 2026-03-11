@@ -192,7 +192,7 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
     );
   }
 
-  const menuItems = [
+  const menuItems: Array<{ divider?: boolean; icon?: React.ComponentType<{ size: number }>; label?: string; action?: () => void; danger?: boolean }> = [
     ...(node.is_directory ? [
       { icon: FilePlus, label: 'New File', action: () => { setNewName(''); setIsCreatingFile(true); } },
       { icon: FolderPlus, label: 'New Folder', action: () => { setNewName(''); setIsCreatingFolder(true); } },
@@ -219,7 +219,7 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
               item.danger ? 'text-[#f85149]' : 'text-[#c9d1d9]'
             }`}
           >
-            <item.icon size={14} />
+            {item.icon && <item.icon size={14} />}
             <span>{item.label}</span>
           </button>
         )

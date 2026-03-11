@@ -217,7 +217,7 @@ export function UpdatePanel() {
         <div className="flex flex-col items-center justify-center py-8 text-[#8b949e]">
           <Check size={48} className="text-[#3fb950] mb-4" />
           <p className="text-[#c9d1d9]">You're up to date!</p>
-          <p className="text-sm">v{update?.current_version || '0.1.0'}</p>
+          <p className="text-sm">v{'0.1.0'}</p>
         </div>
       )}
 

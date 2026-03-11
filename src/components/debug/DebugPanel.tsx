@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { 
-  Play, Pause, StepInto, StepOver, StepOut, Square, 
+  Play, Pause, ArrowDownToLine, ArrowRightToLine, ArrowUpFromLine, Square, 
   RefreshCw, Circle, CircleDot, Plus, Minus, ChevronRight, ChevronDown,
   Bug, Settings, File, Terminal
 } from 'lucide-react';
@@ -250,13 +250,13 @@ export function DebugPanel({ className = '' }: DebugPanelProps) {
               </button>
             )}
             <button onClick={stepOver} className="p-1.5 rounded hover:bg-[#21262d]" title="Step Over (F10)">
-              <StepOver size={14} className="text-[#8b949e]" />
+              <ArrowRightToLine size={14} className="text-[#8b949e]" />
             </button>
             <button onClick={stepInto} className="p-1.5 rounded hover:bg-[#21262d]" title="Step Into (F11)">
-              <StepInto size={14} className="text-[#8b949e]" />
+              <ArrowDownToLine size={14} className="text-[#8b949e]" />
             </button>
             <button onClick={stepOut} className="p-1.5 rounded hover:bg-[#21262d]" title="Step Out (Shift+F11)">
-              <StepOut size={14} className="text-[#8b949e]" />
+              <ArrowUpFromLine size={14} className="text-[#8b949e]" />
             </button>
             <button onClick={stopDebug} className="p-1.5 rounded hover:bg-[#21262d]" title="Stop (Shift+F5)">
               <Square size={14} className="text-[#f85149]" />

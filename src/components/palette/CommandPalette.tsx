@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { useKyroStore } from '@/store/kyroStore';
+import { useKyroStore, type FileNode } from '@/store/kyroStore';
 import {
   Search, File, GitBranch, Settings, Terminal, Code, Braces,
   Sparkles, Users, Puzzle, Bot, Download, FolderOpen, Save,
@@ -84,7 +84,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         if (selected && typeof selected === 'string') {
           setProjectPath(selected);
           const tree = await invoke('get_file_tree', { path: selected, maxDepth: 5 });
-          setFileTree(tree);
+          setFileTree(tree as FileNode | null);
         }
       }
     },
@@ -245,7 +245,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       action: async () => {
         if (projectPath) {
           const tree = await invoke('get_file_tree', { path: projectPath, maxDepth: 5 });
-          setFileTree(tree);
+          setFileTree(tree as FileNode | null);
         }
       }
     }

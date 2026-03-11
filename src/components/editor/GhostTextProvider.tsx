@@ -12,6 +12,7 @@
  */
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
+import type * as monaco from 'monaco-editor';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, UnlistenFn } from '@tauri-apps/api/event';
 
@@ -63,7 +64,7 @@ export function useGhostTextProvider(
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const [currentCompletion, setCurrentCompletion] = useState<StreamingCompletion | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const completionIdRef = useRef(0);
   const streamingRef = useRef(false);
   const unlistenRef = useRef<UnlistenFn | null>(null);
@@ -268,13 +269,12 @@ export function useGhostTextProvider(
         }
       },
 
-      freeInlineCompletions: () => {
+      handleRejection: () => {
         // Cleanup if needed
       },
 
-      handleItemDidAccept: (completionItem) => {
-        // Log acceptance for telemetry
-        console.log('Ghost text accepted');
+      disposeInlineCompletions: () => {
+        // Dispose completions
       },
     };
 
@@ -363,10 +363,11 @@ export function GhostTextOverlay({
 
       // Calculate pixel position
       const lineTop = editor.getTopForLineNumber(completion.position.lineNumber);
-      const columnLeft = (completion.position.column - 1) * layoutInfo.fontInfo.typicalFullwidthCharacterWidth;
+      const fontInfo = editor.getOption(59 /* EditorOption.fontInfo */) as { typicalFullwidthCharacterWidth: number };
+      const columnLeft = (completion.position.column - 1) * fontInfo.typicalFullwidthCharacterWidth;
 
       setPosition({
-        top: lineTop + layoutInfo.contentTop,
+        top: lineTop,
         left: columnLeft + layoutInfo.contentLeft
       });
     };

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useCallback, useEffect, useState } from 'react';
+import type * as monaco from 'monaco-editor';
 import Editor, { OnMount, OnChange, Monaco } from '@monaco-editor/react';
 import { useKyroStore, EditorGroup as EditorGroupType, EditorTab, SplitDirection } from '@/store/kyroStore';
 import { X, Pin, GripVertical, SplitSquareHorizontal, SplitSquareVertical, ChevronDown } from 'lucide-react';
@@ -258,10 +259,8 @@ function EditorPane({ groupId, isActive, onFocus }: EditorPaneProps) {
     stickyScroll: { enabled: editorOptions?.stickyScroll ?? true },
     inlineSuggest: { enabled: editorOptions?.inlineSuggest ?? true },
     quickSuggestions: { other: true, comments: false, strings: true },
-    multicursor: {
-      modifier: 'alt',
-      pasteOverCursor: 'spread'
-    },
+    multiCursorModifier: 'alt',
+    multiCursorPaste: 'spread',
     lineNumbers: editorOptions?.lineNumbers || 'on',
     renderWhitespace: editorOptions?.renderWhitespace || 'selection',
     cursorBlinking: 'smooth',

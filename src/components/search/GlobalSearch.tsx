@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore } from '@/store/kyroStore';
-import { Search, Replace, File, ChevronDown, ChevronRight, X, Regex, CaseSensitive, MatchWholeWord } from 'lucide-react';
+import { Search, Replace, File, ChevronDown, ChevronRight, X, Regex, CaseSensitive, WholeWord } from 'lucide-react';
 
 interface SearchResult {
   file: string;
@@ -177,7 +177,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                 className={`p-1 rounded ${matchWholeWord ? 'bg-[#21262d] text-[#58a6ff]' : 'text-[#8b949e] hover:text-[#c9d1d9]'}`}
                 title="Match Whole Word"
               >
-                <MatchWholeWord size={14} />
+                <WholeWord size={14} />
               </button>
               <button
                 onClick={() => setUseRegex(!useRegex)}
