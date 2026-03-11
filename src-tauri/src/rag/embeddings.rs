@@ -143,7 +143,7 @@ pub struct TfIdfEmbedder {
 
 impl TfIdfEmbedder {
     pub fn new(config: EmbeddingConfig) -> Self {
-        let stemmer = rust_stemmers::Stemmer::create(rust_stemmers::Algorithm::English).ok();
+        let stemmer = Some(rust_stemmers::Stemmer::create(rust_stemmers::Algorithm::English));
         Self {
             config,
             vocabulary: HashMap::new(),
@@ -180,7 +180,8 @@ impl TfIdfEmbedder {
         }
         
         for term in term_counts.keys() {
-            self.vocabulary.entry(term.clone()).or_insert(self.vocabulary.len());
+            let len = self.vocabulary.len();
+            self.vocabulary.entry(term.clone()).or_insert(len);
         }
         
         self.document_count += 1;

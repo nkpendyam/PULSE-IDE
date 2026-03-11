@@ -276,10 +276,10 @@ impl HierarchicalMemory {
     /// Resolve a symbol across all levels
     pub fn resolve_symbol(&self, name: &str) -> Option<SymbolContext> {
         // L1: Check current file
-        if let Some(ref path) = self.l1_immediate.file_path {
+        if let Some(ref _path) = self.l1_immediate.file_path {
             if let Some(symbol) = self.find_in_content(&self.l1_immediate.content, name) {
                 return Some(SymbolContext {
-                    symbol,
+                    symbol: serde_json::to_value(&symbol).unwrap_or_default(),
                     source: ContextSource::L1Current,
                 });
             }
@@ -291,7 +291,7 @@ impl HierarchicalMemory {
         // L4: Check symbol graph
         if let Some(node) = self.l4_symbols.nodes.get(name) {
             return Some(SymbolContext {
-                symbol: node.clone(),
+                symbol: serde_json::to_value(node).unwrap_or_default(),
                 source: ContextSource::L4Graph,
             });
         }
@@ -299,7 +299,7 @@ impl HierarchicalMemory {
         // L5: Check external docs
         if let Some(entry) = self.l5_external.doc_index.get(name) {
             return Some(SymbolContext {
-                symbol: entry.clone(),
+                symbol: serde_json::to_value(entry).unwrap_or_default(),
                 source: ContextSource::L5External,
             });
         }

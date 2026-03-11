@@ -79,16 +79,16 @@ impl YjsAdapter {
 
     /// Apply an operation to the document
     fn apply_operation(&mut self, operation: Operation) {
-        match operation {
+        match &operation {
             Operation::Insert { position, text, .. } => {
                 // Find byte position for character position
-                let byte_pos = self.char_to_byte(position as usize);
-                self.document.content.insert_str(byte_pos, &text);
+                let byte_pos = self.char_to_byte(*position as usize);
+                self.document.content.insert_str(byte_pos, text);
                 self.document.version += 1;
             }
             Operation::Delete { position, length, .. } => {
-                let start = self.char_to_byte(position as usize);
-                let end = self.char_to_byte((position + length) as usize);
+                let start = self.char_to_byte(*position as usize);
+                let end = self.char_to_byte((*position + *length) as usize);
                 self.document.content.drain(start..end);
                 self.document.version += 1;
             }

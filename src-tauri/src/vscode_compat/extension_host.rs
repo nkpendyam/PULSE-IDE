@@ -555,17 +555,23 @@ sendNotification('host/ready', {});
 
     /// Activate an extension
     pub fn activate_extension(&mut self, extension_id: &str) -> Result<()> {
-        let extension = self.extensions.get_mut(extension_id)
-            .ok_or_else(|| anyhow::anyhow!("Extension not found: {}", extension_id))?;
+        // Clone manifest and check state before mutable borrow
+        let (current_state, manifest) = {
+            let extension = self.extensions.get(extension_id)
+                .ok_or_else(|| anyhow::anyhow!("Extension not found: {}", extension_id))?;
+            (extension.state.clone(), extension.manifest.clone())
+        };
         
-        if extension.state == ExtensionState::Active {
+        if current_state == ExtensionState::Active {
             return Ok(());
         }
         
-        extension.state = ExtensionState::Activating;
+        if let Some(extension) = self.extensions.get_mut(extension_id) {
+            extension.state = ExtensionState::Activating;
+        }
 
         // Check activation events
-        if self.should_activate(&extension.manifest) {
+        if self.should_activate(&manifest) {
             // Send activate request to Node.js host
             if *self.is_ready.read() {
                 if let Some(_process) = &mut self.node_process {
@@ -574,11 +580,15 @@ sendNotification('host/ready', {});
                 }
             }
             
-            extension.state = ExtensionState::Active;
+            if let Some(extension) = self.extensions.get_mut(extension_id) {
+                extension.state = ExtensionState::Active;
+            }
             self.activated_extensions.insert(extension_id.to_string(), true);
             log::info!("Activated extension: {}", extension_id);
         } else {
-            extension.state = ExtensionState::Inactive;
+            if let Some(extension) = self.extensions.get_mut(extension_id) {
+                extension.state = ExtensionState::Inactive;
+            }
         }
         
         Ok(())
@@ -658,25 +668,30 @@ sendNotification('host/ready', {});
 
     /// Execute a command from an extension
     pub fn execute_command(&mut self, command_id: &str, args: Vec<Value>) -> Result<Option<Value>> {
-        // Find extension that registered this command
-        for extension in self.extensions.values_mut() {
-            if let Some(commands) = &extension.manifest.contributes {
-                if commands.commands.iter().any(|c| &c.command == command_id) {
-                    if extension.state != ExtensionState::Active {
-                        self.activate_extension(&extension.id)?;
-                    }
-                    
-                    // Would send RPC to execute command
-                    return Ok(Some(json!({
-                        "command": command_id,
-                        "args": args,
-                        "result": "executed"
-                    })));
+        // Find extension that registered this command (immutable search first)
+        let target = self.extensions.values()
+            .find(|extension| {
+                extension.manifest.contributes.as_ref()
+                    .map(|c| c.commands.iter().any(|cmd| &cmd.command == command_id))
+                    .unwrap_or(false)
+            })
+            .map(|ext| (ext.id.clone(), ext.state.clone()));
+
+        match target {
+            Some((ext_id, state)) => {
+                if state != ExtensionState::Active {
+                    self.activate_extension(&ext_id)?;
                 }
+                
+                // Would send RPC to execute command
+                Ok(Some(json!({
+                    "command": command_id,
+                    "args": args,
+                    "result": "executed"
+                })))
             }
+            None => Err(anyhow::anyhow!("Command not found: {}", command_id)),
         }
-        
-        Err(anyhow::anyhow!("Command not found: {}", command_id))
     }
 
     /// Set workspace root

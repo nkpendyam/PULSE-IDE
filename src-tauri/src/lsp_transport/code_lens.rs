@@ -125,7 +125,7 @@ pub fn parse_code_lenses(value: &Value) -> Vec<DecodedCodeLens> {
             .to_string();
         
         let cmd_name = command.and_then(|c| c.get("command")?.as_str()).map(|s| s.to_string());
-        let arguments = command.and_then(|c| c.get("arguments").cloned());
+        let arguments = command.and_then(|c| c.get("arguments")?.as_array().cloned());
         
         let is_resolved = command.is_some();
         let lens_type = cmd_name.as_ref()

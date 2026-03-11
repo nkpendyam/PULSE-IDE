@@ -87,7 +87,7 @@ pub struct UpdateManager {
     config: UpdateConfig,
     status: Arc<RwLock<UpdateStatus>>,
     delta_updater: DeltaUpdater,
-    rollback_manager: RollbackManager,
+    rollback_manager: tokio::sync::Mutex<RollbackManager>,
     health_monitor: HealthMonitor,
     versions_dir: PathBuf,
     current_link: PathBuf,
@@ -119,7 +119,7 @@ impl UpdateManager {
         
         Ok(Self {
             delta_updater: DeltaUpdater::new()?,
-            rollback_manager: RollbackManager::new(versions_dir.clone())?,
+            rollback_manager: tokio::sync::Mutex::new(RollbackManager::new(versions_dir.clone())?),
             health_monitor: HealthMonitor::new(),
             status: Arc::new(RwLock::new(status)),
             versions_dir,
@@ -263,7 +263,7 @@ impl UpdateManager {
     }
     
     /// Install a staged update
-    pub async fn install_update(&mut self) -> Result<()> {
+    pub async fn install_update(&self) -> Result<()> {
         let status = self.status.read().await;
         
         if !status.ready_to_install {
@@ -278,7 +278,7 @@ impl UpdateManager {
         drop(status);
         
         // Create rollback point
-        self.rollback_manager.create_restore_point()?;
+        self.rollback_manager.lock().await.create_restore_point()?;
         
         // Activate new version
         let new_version_dir = self.versions_dir.join(&version);
@@ -375,7 +375,7 @@ impl UpdateManager {
     
     /// Rollback to previous version
     pub async fn rollback(&self) -> Result<()> {
-        self.rollback_manager.rollback()
+        self.rollback_manager.lock().await.rollback()
     }
     
     /// Get current status

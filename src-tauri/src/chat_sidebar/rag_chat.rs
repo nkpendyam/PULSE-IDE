@@ -239,21 +239,21 @@ impl RAGChatEngine {
         let callback = Arc::new(Mutex::new(callback));
         let callback_clone = callback.clone();
         let response = llm.complete_stream(&request, move |token: &str| {
-            if let Ok(mut cb) = callback.lock() {
-                cb(StreamChunk {
-                    session_id: session_id_owned.clone(),
-                    message_id: message_id_clone.clone(),
-                    delta: token.to_string(),
-                    is_thinking: false,
-                    is_done: false,
-                    rag_sources: vec![],
-                });
-            }
+            let mut cb = callback.blocking_lock();
+            cb(StreamChunk {
+                session_id: session_id_owned.clone(),
+                message_id: message_id_clone.clone(),
+                delta: token.to_string(),
+                is_thinking: false,
+                is_done: false,
+                rag_sources: vec![],
+            });
         }).await?;
         drop(llm);
 
         // Send final chunk
-        if let Ok(mut cb) = callback_clone.lock() {
+        {
+            let mut cb = callback_clone.lock().await;
             cb(StreamChunk {
                 session_id: session_id.to_string(),
                 message_id: message_id.clone(),

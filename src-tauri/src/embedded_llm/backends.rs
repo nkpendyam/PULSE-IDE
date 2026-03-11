@@ -57,14 +57,14 @@ impl InferenceBackend for CpuBackend {
     async fn infer_stream_boxed(
         &mut self,
         request: &InferenceRequest,
-        mut callback: Box<dyn FnMut(&str) + Send>,
+        mut callback: Box<dyn FnMut(String) + Send>,
     ) -> Result<InferenceResponse> {
         // Simulate streaming
         let response = self.infer(request).await?;
 
         // Stream word by word
         for word in response.text.split_whitespace() {
-            callback(&format!("{} ", word));
+            callback(format!("{} ", word));
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
         }
 
@@ -133,11 +133,11 @@ impl InferenceBackend for CudaBackend {
     async fn infer_stream_boxed(
         &mut self,
         request: &InferenceRequest,
-        mut callback: Box<dyn FnMut(&str) + Send>,
+        mut callback: Box<dyn FnMut(String) + Send>,
     ) -> Result<InferenceResponse> {
         let response = self.infer(request).await?;
         for word in response.text.split_whitespace() {
-            callback(&format!("{} ", word));
+            callback(format!("{} ", word));
             tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
         }
         Ok(response)
@@ -201,11 +201,11 @@ impl InferenceBackend for MetalBackend {
     async fn infer_stream_boxed(
         &mut self,
         request: &InferenceRequest,
-        mut callback: Box<dyn FnMut(&str) + Send>,
+        mut callback: Box<dyn FnMut(String) + Send>,
     ) -> Result<InferenceResponse> {
         let response = self.infer(request).await?;
         for word in response.text.split_whitespace() {
-            callback(&format!("{} ", word));
+            callback(format!("{} ", word));
             tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
         }
         Ok(response)
@@ -270,11 +270,11 @@ impl InferenceBackend for VulkanBackend {
     async fn infer_stream_boxed(
         &mut self,
         request: &InferenceRequest,
-        mut callback: Box<dyn FnMut(&str) + Send>,
+        mut callback: Box<dyn FnMut(String) + Send>,
     ) -> Result<InferenceResponse> {
         let response = self.infer(request).await?;
         for word in response.text.split_whitespace() {
-            callback(&format!("{} ", word));
+            callback(format!("{} ", word));
             tokio::time::sleep(tokio::time::Duration::from_millis(33)).await;
         }
         Ok(response)

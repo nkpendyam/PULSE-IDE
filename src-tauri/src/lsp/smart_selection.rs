@@ -40,9 +40,10 @@ impl SmartSelection {
         
         if let Some(node) = smallest_node {
             let range = node_to_range(node, source);
+            let result = range.clone();
             self.selection_history = vec![range];
             self.current_index = 0;
-            return Some(range);
+            return Some(result);
         }
         
         None

@@ -108,7 +108,8 @@ impl ModelManager {
     
     /// Scan model directories for available GGUF files
     fn scan_models(&mut self) -> Result<()> {
-        for path_str in &self.model_paths {
+        let paths: Vec<String> = self.model_paths.clone();
+        for path_str in &paths {
             let expanded = shellexpand::tilde(path_str).into_owned();
             let path = PathBuf::from(expanded);
             

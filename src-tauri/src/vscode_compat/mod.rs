@@ -389,7 +389,7 @@ impl Clone for LoadedExtension {
     fn clone(&self) -> Self {
         Self {
             manifest: self.manifest.clone(),
-            state: self.state,
+            state: self.state.clone(),
             extension_path: self.extension_path.clone(),
             subscriptions: self.subscriptions.clone(),
             activation_events: self.activation_events.clone(),

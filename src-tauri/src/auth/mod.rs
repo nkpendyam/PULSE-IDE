@@ -360,7 +360,7 @@ impl AuthManager {
     }
 
     /// Get audit log entries
-    pub fn get_audit_log(&self, limit: usize) -> Vec<&AuditEntry> {
+    pub fn get_audit_log(&self, limit: usize) -> Vec<AuditEntry> {
         self.audit_log.get_entries(limit)
     }
 

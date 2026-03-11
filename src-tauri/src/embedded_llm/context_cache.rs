@@ -36,15 +36,24 @@ impl ContextCache {
     
     /// Get cached result
     pub fn get(&mut self, key: &str) -> Option<CachedContext> {
-        if let Some(cached) = self.cache.get(key) {
+        let cached_clone = if let Some(cached) = self.cache.get(key) {
             // Check if still fresh (5 minute TTL)
             if let Ok(elapsed) = cached.timestamp.elapsed() {
                 if elapsed.as_secs() < 300 {
-                    self.hits += 1;
-                    self.touch(key);
-                    return Some(cached.clone());
+                    Some(cached.clone())
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
+        };
+        if let Some(result) = cached_clone {
+            self.hits += 1;
+            self.touch(key);
+            return Some(result);
         }
         self.misses += 1;
         None

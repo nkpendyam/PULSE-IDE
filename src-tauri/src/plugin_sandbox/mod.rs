@@ -298,7 +298,7 @@ impl PluginManager {
     
     /// Grant capabilities to a plugin
     pub fn grant_capabilities(&mut self, plugin_id: &str, capabilities: &[&str]) {
-        let cap_set = CapabilitySet::from_iter(capabilities);
+        let cap_set = CapabilitySet::from_iter(capabilities.iter().copied());
         self.capability_grants.insert(plugin_id.to_string(), cap_set);
     }
     

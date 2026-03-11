@@ -507,7 +507,7 @@ impl EmbeddedLLMEngine {
     pub async fn complete_stream(
         &self,
         request: &InferenceRequest,
-        callback: impl FnMut(&str) + Send + 'static,
+        mut callback: impl FnMut(&str) + Send + 'static,
     ) -> anyhow::Result<InferenceResponse> {
         // Ensure model is loaded
         let model_name = &self.config.default_model;
@@ -517,7 +517,9 @@ impl EmbeddedLLMEngine {
 
         let start = Instant::now();
         let mut backend = self.backend.write().await;
-        let response = backend.infer_stream_boxed(request, Box::new(callback)).await?;
+        let response = backend.infer_stream_boxed(request, Box::new(move |s: String| {
+            callback(&s);
+        })).await?;
         let elapsed = start.elapsed();
 
         Ok(InferenceResponse {
@@ -578,7 +580,7 @@ pub trait InferenceBackend: Send + Sync {
     async fn infer_stream_boxed(
         &mut self,
         request: &InferenceRequest,
-        callback: Box<dyn FnMut(&str) + Send>,
+        callback: Box<dyn FnMut(String) + Send>,
     ) -> anyhow::Result<InferenceResponse>;
 
     /// Get backend name

@@ -168,12 +168,13 @@ impl KVCache {
         let to_remove = (self.max_entries as f32 * 0.1) as usize;
         
         let mut entries: Vec<_> = self.entries.iter()
+            .map(|(k, e)| (k.clone(), e.last_accessed))
             .collect();
         
-        entries.sort_by_key(|(_, e)| e.last_accessed);
+        entries.sort_by_key(|(_, last_accessed)| *last_accessed);
 
         for (key, _) in entries.into_iter().take(to_remove) {
-            self.entries.remove(key);
+            self.entries.remove(&key);
         }
     }
 

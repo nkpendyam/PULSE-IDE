@@ -10,6 +10,7 @@ pub mod requests;
 pub mod audit;
 pub mod sandbox;
 
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
