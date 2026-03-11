@@ -1,6 +1,6 @@
 [package]
 name = "kyro-ide"
-version = "0.1.0"
+version = "0.2.0"
 description = "KRO_IDE - AI-Powered Code Editor with Embedded LLM, MCP Agents, and Zero-Dependency Distribution"
 authors = ["KRO_IDE Team"]
 edition = "2021"

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: "export",
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -11,14 +11,9 @@ const nextConfig: NextConfig = {
   // Optimize for production builds
   compress: true,
   poweredByHeader: false,
-  // Enable image optimization
+  // Static export requires unoptimized images (no server to resize)
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
+    unoptimized: true,
   },
   // Webpack configuration for Monaco Editor
   webpack: (config, { isServer }) => {

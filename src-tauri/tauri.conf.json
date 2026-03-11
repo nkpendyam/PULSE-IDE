@@ -1,13 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Kyro IDE",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "dev.kyro.ide",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "bun run build",
-    "frontendDist": "../.next"
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../out"
   },
   "app": {
     "windows": [
