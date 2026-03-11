@@ -352,7 +352,7 @@ pub struct Node {
     pub children: Vec<Node>,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

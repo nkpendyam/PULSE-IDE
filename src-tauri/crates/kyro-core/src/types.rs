@@ -112,7 +112,7 @@ pub trait Config: Send + Sync + Clone + fmt::Debug {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

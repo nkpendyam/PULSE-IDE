@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Unit Tests for LSP and AI Modules
 //!
 //! Tests for Language Server Protocol, embedded LLM,

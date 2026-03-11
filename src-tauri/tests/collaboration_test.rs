@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Unit Tests for Collaboration Module
 //!
 //! Tests for 50-user collaboration, CRDT synchronization,

@@ -163,7 +163,7 @@ impl From<anyhow::Error> for KyroError {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

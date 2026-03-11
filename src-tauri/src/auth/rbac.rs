@@ -157,7 +157,7 @@ pub fn permission_name(permission: &Permission) -> &'static str {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

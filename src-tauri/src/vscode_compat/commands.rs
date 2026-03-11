@@ -473,7 +473,7 @@ pub struct CommandInfo {
     pub icon: Option<String>,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

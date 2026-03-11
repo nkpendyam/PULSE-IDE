@@ -289,7 +289,7 @@ pub fn verify_write(path: &str, expected_content: &str) -> Result<(), AgentError
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

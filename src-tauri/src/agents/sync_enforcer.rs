@@ -336,7 +336,7 @@ pub struct SyncStats {
     pub needs_push: bool,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

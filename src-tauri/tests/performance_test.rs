@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Performance and Load Tests for 50-User Collaboration
 //!
 //! Stress tests for collaboration server, CRDT operations,

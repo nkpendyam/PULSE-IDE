@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "dev:turbo": "next dev --turbo -p 3000",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
+    "build": "next build --webpack",
+    "build:standalone": "next build --webpack && node -e \"const fs=require('fs');fs.cpSync('.next/static','.next/standalone/.next/static',{recursive:true});fs.cpSync('public','.next/standalone/public',{recursive:true})\"",
     "build:analyze": "ANALYZE=true next build",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",

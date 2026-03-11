@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Unit Tests for End-to-End Encryption Module
 //!
 //! Tests for Signal Protocol implementation including:

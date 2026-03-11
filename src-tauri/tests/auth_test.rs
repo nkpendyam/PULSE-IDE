@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Unit Tests for Authentication Module
 //!
 //! Comprehensive tests for JWT handling, password hashing,

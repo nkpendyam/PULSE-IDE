@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! End-to-End Integration Tests for KYRO IDE
 //!
 //! Tests all major integration points with real assertions

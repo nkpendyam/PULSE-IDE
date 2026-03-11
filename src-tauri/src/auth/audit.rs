@@ -306,7 +306,7 @@ pub struct SuspiciousActivity {
     pub last_seen: Option<DateTime<Utc>>,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

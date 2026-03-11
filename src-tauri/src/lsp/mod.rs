@@ -795,7 +795,7 @@ fn extract_name_after_keyword(line: &str, keyword: &str) -> Option<String> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
     

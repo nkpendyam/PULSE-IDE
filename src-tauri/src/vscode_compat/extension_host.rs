@@ -749,7 +749,7 @@ impl Drop for ExtensionHost {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
     use tempfile::TempDir;

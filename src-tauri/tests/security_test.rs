@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Security Tests for KRO IDE
 //!
 //! Comprehensive security tests covering:

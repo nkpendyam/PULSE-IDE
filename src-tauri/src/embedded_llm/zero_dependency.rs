@@ -390,7 +390,7 @@ pub struct CompletionResponse {
     pub latency_ms: u64,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

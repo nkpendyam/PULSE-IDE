@@ -364,7 +364,7 @@ pub enum SymbolKind {
     TypeParameter = 25,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

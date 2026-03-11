@@ -810,7 +810,7 @@ fn generate_mock_response(prompt: &str) -> String {
     } else if prompt_lower.contains("refactor") {
         "Here are some refactoring suggestions:\n\n1. **Extract Method**: Consider breaking this into smaller functions\n2. **Naming**: Variable names could be more descriptive\n3. **Error Handling**: Add proper error types\n\nShall I apply these changes?".to_string()
     } else if prompt_lower.contains("test") {
-        "Here's a test structure for this code:\n\n```rust\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_basic_functionality() {\n        // Arrange\n        let input = \"test\";\n        \n        // Act\n        let result = process(input);\n        \n        // Assert\n        assert!(result.is_ok());\n    }\n}\n```\n\nWant me to generate more specific tests?".to_string()
+"Here's a test structure for this code:\n\n```rust\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_basic_functionality() {\n        // Arrange\n        let input = \"test\";\n        \n        // Act\n        let result = process(input);\n        \n        // Assert\n         assert!(result.is_ok());\n    }\n}\n```\n\nWant me to generate more specific tests?".to_string()
     } else {
         format!("I understand you're asking about: \"{}\"\n\nI can help you with:\n- Fixing bugs\n- Explaining code\n- Refactoring\n- Writing tests\n\nWhat would you like me to do?", 
             prompt.chars().take(100).collect::<String>())

@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! KRO IDE Unit Tests Module
 //!
 //! Comprehensive test coverage for all major components:

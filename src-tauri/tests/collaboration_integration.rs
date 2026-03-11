@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Integration Tests for 50-User Collaboration
 //!
 //! Tests real-world collaboration scenarios

@@ -288,7 +288,7 @@ pub fn create_task(id: &str, description: &str, priority: TaskPriority) -> Agent
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

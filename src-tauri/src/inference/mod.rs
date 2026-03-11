@@ -428,7 +428,7 @@ impl InferenceEngine {
             r#"🧪 **Rust Test Template**
 
 ```rust
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

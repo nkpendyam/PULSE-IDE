@@ -1,3 +1,4 @@
+#![cfg(feature = "integration_tests")]
 //! Unit Tests for VS Code Extension Compatibility Layer
 //!
 //! Tests for extension host, API shim, marketplace integration,

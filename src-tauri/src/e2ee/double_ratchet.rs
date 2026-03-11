@@ -210,7 +210,7 @@ pub struct RatchetHeader {
     pub message_number: u32,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
 

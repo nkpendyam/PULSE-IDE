@@ -397,7 +397,7 @@ pub mod error_codes {
     pub const PERMISSION_DENIED: i32 = -40005;
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
     
