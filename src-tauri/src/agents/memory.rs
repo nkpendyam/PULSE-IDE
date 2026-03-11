@@ -2,7 +2,7 @@
 //! 
 //! SQLite-backed memory for agent context across sessions.
 
-use rusqlite::{Connection, params, Result as SqliteResult};
+use rusqlite::{Connection, params, Result as SqliteResult, Error as SqliteError};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -210,17 +210,18 @@ impl AgentMemory {
         )
         .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
         
-        let wip = stmt
-            .query_row(params![agent_id], |row| {
-                Ok(WorkInProgress {
-                    task: row.get(0)?,
-                    file: row.get(1)?,
-                    line: row.get(2)?,
-                    status: row.get(3)?,
-                })
+        let wip = match stmt.query_row(params![agent_id], |row| {
+            Ok(WorkInProgress {
+                task: row.get(0)?,
+                file: row.get(1)?,
+                line: row.get(2)?,
+                status: row.get(3)?,
             })
-            .optional()
-            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+        }) {
+            Ok(wip) => Some(wip),
+            Err(SqliteError::QueryReturnedNoRows) => None,
+            Err(e) => return Err(AgentError::DatabaseError(e.to_string())),
+        };
         
         Ok(wip)
     }

@@ -111,6 +111,7 @@ pub struct AgentTask {
     pub prompt: String,
     pub context: Option<String>,
     pub priority: u8,
+    #[serde(skip, default = "Instant::now")]
     pub created_at: Instant,
     pub status: TaskStatus,
 }

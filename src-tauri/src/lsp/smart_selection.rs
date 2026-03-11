@@ -65,9 +65,9 @@ impl SmartSelection {
                 let parent_range = node_to_range(p, &[]);
                 if parent_range.start_byte < current.start_byte || 
                    parent_range.end_byte > current.end_byte {
-                    self.selection_history.push(parent_range);
+                    self.selection_history.push(parent_range.clone());
                     self.current_index = self.selection_history.len() - 1;
-                    return Some(parent_range);
+                    return Some(parent_range.clone());
                 }
                 parent = p.parent();
             }
@@ -84,7 +84,7 @@ impl SmartSelection {
         
         self.selection_history.pop();
         self.current_index = self.selection_history.len() - 1;
-        self.selection_history.last().copied()
+        self.selection_history.last().cloned()
     }
     
     /// Get current selection

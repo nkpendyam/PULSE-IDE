@@ -39,7 +39,7 @@ impl GapBuffer {
     /// Create from text
     pub fn from_text(text: &str) -> Self {
         let mut buf = Self::with_capacity(text.len().max(1024));
-        buf.insert(0, text).ok();
+        let _ = buf.insert(0, text);
         buf
     }
     

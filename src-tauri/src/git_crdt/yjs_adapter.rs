@@ -14,7 +14,7 @@ pub struct YjsAdapter {
 
 /// Simple Yjs document representation
 /// In production, this would use the actual y-crdt library
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct YjsDocument {
     content: String,
     version: u64,

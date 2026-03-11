@@ -185,7 +185,7 @@ pub fn decode_semantic_tokens(data: &Value, legend: &SemanticTokensLegend) -> Se
     
     let data_array = data.get("data")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_u64() as Option<u32>).collect::<Vec<_>>())
+        .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|x| x as u32)).collect::<Vec<_>>())
         .unwrap_or_default();
     
     let mut tokens = Vec::new();

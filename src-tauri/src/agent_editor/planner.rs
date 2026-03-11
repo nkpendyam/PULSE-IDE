@@ -177,7 +177,7 @@ impl EditPlanner {
 
                 let end_line = edit.get("end_line")
                     .and_then(|e| e.as_i64())
-                    .unwrap_or(start_line) as usize;
+                    .unwrap_or(start_line as i64) as usize;
 
                 let new_content = edit.get("new_content")
                     .or_else(|| edit.get("content"))

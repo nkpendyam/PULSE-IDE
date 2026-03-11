@@ -1,0 +1,1661 @@
+warning: unused import: `std::fmt`
+ --> crates\kyro-core\src\error.rs:5:5
+  |
+5 | use std::fmt;
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates\kyro-core\src\registry.rs:188:13
+    |
+188 |         let mut results = Vec::new();
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kyro-core` (lib) generated 2 warnings (run `cargo fix --lib -p kyro-core` to apply 2 suggestions)
+warning: use of deprecated field `lsp_types::InitializeParams::root_uri`: Use `workspace_folders` instead when possible
+   --> crates\kyro-lsp\src\server.rs:237:13
+    |
+237 |             root_uri: self.config.root_uri.clone(),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+   Compiling kyro-ide v0.1.0 (C:\Users\nkpen\Desktop\Kyro_ide\Kyro_IDE\src-tauri)
+warning: `kyro-lsp` (lib) generated 1 warning
+warning: unused import: `KyroError`
+ --> crates\kyro-collab\src\manager.rs:3:17
+  |
+3 | use kyro_core::{KyroError, KyroResult, Service};
+  |                 ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `kyro-collab` (lib) generated 1 warning (run `cargo fix --lib -p kyro-collab` to apply 1 suggestion)
+warning: unused import: `KyroError`
+ --> crates\kyro-ai\src\orchestrator.rs:3:17
+  |
+3 | use kyro_core::{KyroError, KyroResult, Service};
+  |                 ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::Arc`
+ --> crates\kyro-ai\src\orchestrator.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: `kyro-ai` (lib) generated 2 warnings (run `cargo fix --lib -p kyro-ai` to apply 2 suggestions)
+warning: unused import: `std::path::PathBuf`
+  --> src\ai\real_ai_service.rs:13:5
+   |
+13 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `PathBuf`
+  --> src\files\mod.rs:14:23
+   |
+14 | use std::path::{Path, PathBuf};
+   |                       ^^^^^^^
+
+warning: unused import: `futures_util::future::join_all`
+  --> src\lsp\completion_engine.rs:17:5
+   |
+17 | use futures_util::future::join_all;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variant `Q4_K_M` should have an upper camel case name
+  --> src\embedded_llm\model_manager.rs:41:5
+   |
+41 |     Q4_K_M,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Q4KM`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `Q4_K_S` should have an upper camel case name
+  --> src\embedded_llm\model_manager.rs:43:5
+   |
+43 |     Q4_K_S,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Q4KS`
+
+warning: variant `Q5_K_M` should have an upper camel case name
+  --> src\embedded_llm\model_manager.rs:45:5
+   |
+45 |     Q5_K_M,
+   |     ^^^^^^ help: convert the identifier to upper camel case: `Q5KM`
+
+warning: unused import: `Result`
+ --> src\git_crdt\yjs_adapter.rs:5:14
+  |
+5 | use anyhow::{Result, Context};
+  |              ^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\git_crdt\git_persistence.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\git_crdt\ai_merge.rs:5:22
+  |
+5 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `WebSocketStream`
+  --> src\git_crdt\websocket_sync.rs:13:39
+   |
+13 | use tokio_tungstenite::{accept_async, WebSocketStream};
+   |                                       ^^^^^^^^^^^^^^^
+
+warning: unused import: `TelegramSession`
+ --> src\telegram\commands.rs:6:40
+  |
+6 | use crate::telegram::{TelegramMessage, TelegramSession, PendingAction};
+  |                                        ^^^^^^^^^^^^^^^
+
+warning: unused import: `Result as SqliteResult`
+ --> src\agents\memory.rs:5:36
+  |
+5 | use rusqlite::{Connection, params, Result as SqliteResult, Error as SqliteError};
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Duration`
+ --> src\agents\branch_manager.rs:7:17
+  |
+7 | use std::time::{Duration, SystemTime, UNIX_EPOCH};
+  |                 ^^^^^^^^
+
+warning: unused imports: `SystemTime` and `UNIX_EPOCH`
+ --> src\agents\sync_enforcer.rs:7:36
+  |
+7 | use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+  |                                    ^^^^^^^^^^  ^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\update\delta.rs:5:22
+  |
+5 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\update\rollback.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\update\rollback.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\update\models.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\update\models.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `sha2::Sha256`
+   --> src\update\models.rs:238:5
+    |
+238 | use sha2::Sha256;
+    |     ^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\update\mod.rs:23:22
+   |
+23 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\plugin_sandbox\runtime.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\plugin_sandbox\runtime.rs:8:5
+  |
+8 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\plugin_sandbox\mod.rs:15:22
+   |
+15 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `flate2::read::GzDecoder`
+   --> src\plugin_sandbox\mod.rs:347:5
+    |
+347 | use flate2::read::GzDecoder;
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+   --> src\accessibility\mod.rs:139:9
+    |
+139 |     use super::*;
+    |         ^^^^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\benchmark\startup.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Ordering`
+  --> src\benchmark\startup.rs:11:36
+   |
+11 | use std::sync::atomic::{AtomicU64, Ordering};
+   |                                    ^^^^^^^^
+
+warning: unused import: `Mutex`
+  --> src\benchmark\memory.rs:12:27
+   |
+12 | use tokio::sync::{RwLock, Mutex};
+   |                           ^^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\vscode_compat\protocol.rs:6:5
+  |
+6 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `serde_json::Map`
+   --> src\vscode_compat\protocol.rs:301:13
+    |
+301 |         use serde_json::Map;
+    |             ^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\vscode_compat\mod.rs:35:22
+   |
+35 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\lsp_tower\backend.rs:5:5
+  |
+5 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `get_language_capabilities`
+  --> src\lsp_tower\backend.rs:13:39
+   |
+13 | use super::{LspConfig, DocumentState, get_language_capabilities};
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `self`
+ --> src\lsp_transport\transport.rs:6:15
+  |
+6 | use std::io::{self, BufRead, BufReader, Read, Write};
+  |               ^^^^
+
+warning: unused import: `ChildStdout`
+ --> src\lsp_transport\transport.rs:7:39
+  |
+7 | use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+  |                                       ^^^^^^^^^^^
+
+warning: unused import: `warn`
+  --> src\lsp_transport\transport.rs:14:31
+   |
+14 | use log::{debug, error, info, warn};
+   |                               ^^^^
+
+warning: unused label
+   --> src\lsp_transport\transport.rs:214:9
+    |
+214 |         'outer: loop {
+    |         ^^^^^^
+    |
+    = note: `#[warn(unused_labels)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `info` and `warn`
+ --> src\lsp_transport\dispatcher.rs:9:18
+  |
+9 | use log::{debug, info, warn};
+  |                  ^^^^  ^^^^
+
+warning: unused import: `std::collections::HashMap`
+ --> src\lsp_transport\semantic_tokens.rs:8:5
+  |
+8 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: ambiguous glob re-exports
+  --> src\lsp_transport\mod.rs:16:9
+   |
+16 | pub use inlay_hints::*;
+   |         ^^^^^^^^^^^^^^ the name `Range` in the type namespace is first re-exported here
+17 | pub use code_lens::*;
+   |         ------------ but the name `Range` in the type namespace is also re-exported here
+   |
+   = note: `#[warn(ambiguous_glob_reexports)]` on by default
+
+warning: ambiguous glob re-exports
+  --> src\lsp_transport\mod.rs:16:9
+   |
+16 | pub use inlay_hints::*;
+   |         ^^^^^^^^^^^^^^ the name `Position` in the type namespace is first re-exported here
+17 | pub use code_lens::*;
+   |         ------------ but the name `Position` in the type namespace is also re-exported here
+
+warning: ambiguous glob re-exports
+  --> src\lsp_transport\mod.rs:16:9
+   |
+16 | pub use inlay_hints::*;
+   |         ^^^^^^^^^^^^^^ the name `Command` in the type namespace is first re-exported here
+17 | pub use code_lens::*;
+   |         ------------ but the name `Command` in the type namespace is also re-exported here
+
+warning: unused imports: `Context` and `Result`
+ --> src\collab\sync.rs:8:14
+  |
+8 | use anyhow::{Result, Context};
+  |              ^^^^^^  ^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\collab\document.rs:8:13
+  |
+8 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\collab\mod.rs:16:22
+   |
+16 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused imports: `debug`, `error`, and `warn`
+  --> src\collab\mod.rs:17:11
+   |
+17 | use log::{debug, info, warn, error};
+   |           ^^^^^        ^^^^  ^^^^^
+
+warning: unused import: `info`
+ --> src\debug\server.rs:9:18
+  |
+9 | use log::{debug, info};
+  |                  ^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\debug\session.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: ambiguous glob re-exports
+  --> src\debug\mod.rs:14:9
+   |
+14 | pub use client::*;
+   |         ^^^^^^^^^ the name `DebugAdapterConfig` in the type namespace is first re-exported here
+...
+20 | pub use debug_adapter::*;
+   |         ---------------- but the name `DebugAdapterConfig` in the type namespace is also re-exported here
+
+warning: unused import: `std::path::PathBuf`
+  --> src\trust\mod.rs:15:5
+   |
+15 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `HashSet`
+  --> src\memory\mod.rs:16:43
+   |
+16 | use std::collections::{HashMap, VecDeque, HashSet};
+   |                                           ^^^^^^^
+
+warning: unused import: `std::path::PathBuf`
+  --> src\memory\mod.rs:17:5
+   |
+17 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\quality\mod.rs:6:5
+  |
+6 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+ --> src\quality\mod.rs:8:5
+  |
+8 | use tokio::sync::RwLock;
+  |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> src\autonomous\mod.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `RwLock`
+ --> src\autonomous\mod.rs:8:25
+  |
+8 | use tokio::sync::{mpsc, RwLock};
+  |                         ^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\buffer\rope_buffer.rs:7:13
+  |
+7 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `Cursor` and `Selection`
+  --> src\buffer\rope_buffer.rs:10:38
+   |
+10 | use super::{TextBuffer, BufferStats, Cursor, Selection, EditResult, Edit, EditKind};
+   |                                      ^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\buffer\gap_buffer.rs:5:13
+  |
+5 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::ops::Range`
+ --> src\buffer\gap_buffer.rs:6:5
+  |
+6 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `EditKind`
+ --> src\buffer\gap_buffer.rs:8:43
+  |
+8 | use super::{TextBuffer, EditResult, Edit, EditKind};
+  |                                           ^^^^^^^^
+
+warning: unnecessary parentheses around assigned value
+   --> src\buffer\gap_buffer.rs:154:27
+    |
+154 |         self.gap_start -= (end - start);
+    |                           ^           ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+154 -         self.gap_start -= (end - start);
+154 +         self.gap_start -= end - start;
+    |
+
+warning: unused imports: `Deserialize` and `Serialize`
+ --> src\buffer\piece_table.rs:6:13
+  |
+6 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^  ^^^^^^^^^
+
+warning: unused import: `std::ops::Range`
+ --> src\buffer\piece_table.rs:7:5
+  |
+7 | use std::ops::Range;
+  |     ^^^^^^^^^^^^^^^
+
+warning: unused import: `Deserialize`
+ --> src\auth\jwt_handler.rs:8:13
+  |
+8 | use serde::{Deserialize, Serialize};
+  |             ^^^^^^^^^^^
+
+warning: unused imports: `Claims` and `User`
+ --> src\auth\session.rs:5:19
+  |
+5 | use crate::auth::{User, Claims};
+  |                   ^^^^  ^^^^^^
+
+warning: unused import: `PasswordHasher`
+   --> src\auth\mod.rs:176:51
+    |
+176 |         use argon2::password_hash::{PasswordHash, PasswordHasher};
+    |                                                   ^^^^^^^^^^^^^^
+
+warning: unused imports: `VectorMetadata` and `VectorSearchResult`
+ --> src\chat_sidebar\rag_chat.rs:7:49
+  |
+7 | use crate::rag::vector_store::{HnswVectorStore, VectorSearchResult, VectorMetadata};
+  |                                                 ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\chat_sidebar\rag_chat.rs:8:22
+  |
+8 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\chat_sidebar\context_builder.rs:6:22
+  |
+6 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused imports: `PathBuf` and `Path`
+ --> src\chat_sidebar\context_builder.rs:7:17
+  |
+7 | use std::path::{Path, PathBuf};
+  |                 ^^^^  ^^^^^^^
+
+warning: unused import: `anyhow::Result`
+ --> src\chat_sidebar\code_aware.rs:6:5
+  |
+6 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `MCPServer`
+ --> src\agent_editor\agent.rs:8:38
+  |
+8 | use crate::mcp::{ToolRegistry, Tool, MCPServer};
+  |                                      ^^^^^^^^^
+
+warning: unused imports: `Context` and `Result`
+  --> src\agent_editor\agent.rs:10:14
+   |
+10 | use anyhow::{Result, Context};
+   |              ^^^^^^  ^^^^^^^
+
+warning: unused import: `super::*`
+ --> src\agent_editor\tools.rs:5:5
+  |
+5 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\agent_editor\executor.rs:8:22
+  |
+8 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\agent_editor\planner.rs:5:22
+  |
+5 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `WebSocketStream`
+  --> src\p2p\webrtc.rs:12:25
+   |
+12 | use tokio_tungstenite::{WebSocketStream, connect_async, tungstenite::Message as WsMessage};
+   |                         ^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode`
+  --> src\p2p\webrtc.rs:13:5
+   |
+13 | use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `StateChange`
+  --> src\p2p\webrtc.rs:15:40
+   |
+15 | use super::{PeerId, Peer, PeerMessage, StateChange};
+   |                                        ^^^^^^^^^^^
+
+warning: unused imports: `Result` and `bail`
+ --> src\p2p\sync.rs:6:14
+  |
+6 | use anyhow::{Result, Context, bail};
+  |              ^^^^^^           ^^^^
+
+warning: unused import: `PeerMessage`
+  --> src\p2p\sync.rs:12:21
+   |
+12 | use super::{PeerId, PeerMessage, DocumentEdit, CursorPosition, Selection};
+   |                     ^^^^^^^^^^^
+
+warning: unused import: `Result`
+  --> src\p2p\mod.rs:14:14
+   |
+14 | use anyhow::{Result, Context};
+   |              ^^^^^^
+
+warning: unused import: `std::path::PathBuf`
+  --> src\picoclaw\mod.rs:28:5
+   |
+28 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> src\picoclaw\mod.rs:29:5
+   |
+29 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::sync::RwLock`
+  --> src\picoclaw\mod.rs:30:5
+   |
+30 | use tokio::sync::RwLock;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated function `base64::decode`: Use Engine::decode
+   --> src\p2p\mod.rs:355:31
+    |
+355 |         let decoded = base64::decode(code)
+    |                               ^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated function `base64::encode`: Use Engine::encode
+   --> src\p2p\mod.rs:376:30
+    |
+376 |         let base64 = base64::encode(&encoded);
+    |                              ^^^^^^
+
+warning: variable does not need to be mutable
+   --> src\commands\embedded_llm.rs:162:13
+    |
+162 |         let mut engine_write = engine.write().await;
+    |             ----^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> src\commands\embedded_llm.rs:180:13
+    |
+180 |         let mut engine = engine.write().await;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\lsp\completion_engine.rs:564:13
+    |
+564 |         let mut client = ai_client.lock().await;
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\swarm_ai\p2p_swarm.rs:283:14
+    |
+283 |         let (mut reader, mut writer) = socket.into_split();
+    |              ----^^^^^^
+    |              |
+    |              help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\swarm_ai\p2p_swarm.rs:360:13
+    |
+360 |         let mut current_shape = input_shape.clone();
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\swarm_ai\mod.rs:155:17
+    |
+155 |             let mut swarm = swarm.write().await;
+    |                 ----^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: use of deprecated field `tower_lsp::lsp_types::SymbolInformation::deprecated`: Use tags instead
+   --> src\lsp_tower\backend.rs:878:29
+    |
+878 | ...                   deprecated: None,
+    |                       ^^^^^^^^^^^^^^^^
+
+error[E0382]: use of moved value: `reader`
+    --> src\lsp_transport\transport.rs:221:25
+     |
+ 211 |         let mut reader = BufReader::new(stdout);
+     |             ---------- move occurs because `reader` has type `std::io::BufReader<std::process::ChildStdout>`, which does not implement the `Copy` trait
+...
+ 214 |         'outer: loop {
+     |                 ---- inside of this loop
+...
+ 221 |             for line in reader.lines() {
+     |                         ^^^^^^ ------- `reader` moved due to this method call, in previous iteration of loop
+     |
+note: `std::io::BufRead::lines` takes ownership of the receiver `self`, which moves `reader`
+    --> C:\Users\nkpen\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib/rustlib/src/rust\library\std\src\io\mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error[E0382]: borrow of moved value: `callback`
+   --> src\chat_sidebar\rag_chat.rs:252:9
+    |
+170 |         mut callback: impl FnMut(StreamChunk) + Send + 'static,
+    |         ------------ move occurs because `callback` has type `impl FnMut(StreamChunk) + Send + 'static`, which does not implement the `Copy` trait
+...
+239 |         let response = llm.complete_stream(&request, move |token: &str| {
+    |                                                      ------------------ value moved into closure here
+240 |             callback(StreamChunk {
+    |             -------- variable moved due to use in closure
+...
+252 |         callback(StreamChunk {
+    |         ^^^^^^^^ value borrowed here after move
+    |
+help: if `impl FnMut(StreamChunk) + Send + 'static` implemented `Clone`, you could clone the value
+   --> src\chat_sidebar\rag_chat.rs:170:23
+    |
+170 |         mut callback: impl FnMut(StreamChunk) + Send + 'static,
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ consider constraining this type parameter with `Clone`
+...
+240 |             callback(StreamChunk {
+    |             -------- you could clone this value
+
+warning: variable does not need to be mutable
+   --> src\p2p\mod.rs:214:27
+    |
+214 |         let (shutdown_tx, mut shutdown_rx) = mpsc::channel(1);
+    |                           ----^^^^^^^^^^^
+    |                           |
+    |                           help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\p2p\mod.rs:281:26
+    |
+281 |         let (mut webrtc, mut message_rx) = WebRTCManager::new(
+    |                          ----^^^^^^^^^^
+    |                          |
+    |                          help: remove this `mut`
+
+warning: unreachable expression
+   --> src\lsp\lsp_manager.rs:226:9
+    |
+224 |             return "x86_64-pc-windows-msvc.exe".to_string();
+    |             ----------------------------------------------- any code following this expression is unreachable
+225 |         }
+226 |         "unknown".to_string()
+    |         ^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+    |
+    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `ok` found for struct `Stemmer` in the current scope
+   --> src\rag\embeddings.rs:146:89
+    |
+146 |         let stemmer = rust_stemmers::Stemmer::create(rust_stemmers::Algorithm::English).ok();
+    |                                                                                         ^^
+    |
+help: there is a method `or` with a similar name, but with different arguments
+   --> C:\Users\nkpen\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tower-http-0.6.8\src\follow_redirect\policy\mod.rs:165:5
+    |
+165 | /     fn or<P, B, E>(self, other: P) -> Or<Self, P>
+166 | |     where
+167 | |         Self: Policy<B, E> + Sized,
+168 | |         P: Policy<B, E>;
+    | |________________________^
+
+error[E0271]: type mismatch resolving `<&[&str] as IntoIterator>::Item == &str`
+   --> src\plugin_sandbox\mod.rs:301:48
+    |
+301 |         let cap_set = CapabilitySet::from_iter(capabilities);
+    |                       ------------------------ ^^^^^^^^^^^^ expected `&str`, found `&&str`
+    |                       |
+    |                       required by a bound introduced by this call
+    |
+    = note: expected reference `&_`
+               found reference `&&_`
+note: required by a bound in `capabilities::CapabilitySet::from_iter`
+   --> src\plugin_sandbox\capabilities.rs:189:42
+    |
+189 |     pub fn from_iter<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
+    |                                          ^^^^^^^^^^^^^^ required by this bound in `CapabilitySet::from_iter`
+
+warning: unreachable expression
+   --> src\benchmark\memory.rs:306:9
+    |
+302 |                 return status.ullTotalPhys;
+    |                 -------------------------- any code following this expression is unreachable
+...
+306 |         8 * 1024 * 1024 * 1024 // Default 8GB
+    |         ^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+
+error[E0308]: mismatched types
+   --> src\lsp_transport\code_lens.rs:141:13
+    |
+141 |             arguments,
+    |             ^^^^^^^^^ expected `Option<Vec<Value>>`, found `Option<Value>`
+    |
+    = note: expected enum `std::option::Option<Vec<serde_json::Value>>`
+               found enum `std::option::Option<serde_json::Value>`
+
+warning: unreachable expression
+   --> src\debug\debug_adapter.rs:225:9
+    |
+223 |             return "x86_64-windows".to_string();
+    |             ----------------------------------- any code following this expression is unreachable
+224 |         }
+225 |         "unknown".to_string()
+    |         ^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+
+error[E0277]: the `?` operator can only be used in a method that returns `Result` or `Option` (or another type that implements `FromResidual`)
+   --> src\trust\mod.rs:230:82
+    |
+223 | /     pub fn request_permission(
+224 | |         &mut self,
+225 | |         agent_id: &str,
+226 | |         permission: Permission,
+227 | |         context: &str,
+228 | |     ) -> PermissionResult {
+    | |_________________________- this function should return `Result` or `Option` to accept `?`
+229 |           let agent = self.agents.get(agent_id)
+230 |               .ok_or_else(|| anyhow::anyhow!("Agent not registered: {}", agent_id))?;
+    |                                                                                    ^ cannot use the `?` operator in a method that returns `PermissionResult`
+
+error[E0308]: mismatched types
+   --> src\memory\mod.rs:282:21
+    |
+282 |                     symbol,
+    |                     ^^^^^^ expected `Value`, found `SymbolInfo`
+
+error[E0308]: mismatched types
+   --> src\memory\mod.rs:294:25
+    |
+294 |                 symbol: node.clone(),
+    |                         ^^^^^^^^^^^^ expected `Value`, found `SymbolNode`
+
+error[E0308]: mismatched types
+   --> src\memory\mod.rs:302:25
+    |
+302 |                 symbol: entry.clone(),
+    |                         ^^^^^^^^^^^^^ expected `Value`, found `DocEntry`
+
+error[E0308]: mismatched types
+   --> src\auth\mod.rs:364:9
+    |
+363 |     pub fn get_audit_log(&self, limit: usize) -> Vec<&AuditEntry> {
+    |                                                  ---------------- expected `Vec<&auth::audit::AuditEntry>` because of return type
+364 |         self.audit_log.get_entries(limit)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<&AuditEntry>`, found `Vec<AuditEntry>`
+    |
+    = note: expected struct `Vec<&auth::audit::AuditEntry>`
+               found struct `Vec<auth::audit::AuditEntry>`
+
+warning: unused import: `Context`
+  --> src\picoclaw\mod.rs:25:22
+   |
+25 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `sha2::Digest`
+  --> src\swarm_ai\local_inference.rs:11:5
+   |
+11 | use sha2::Digest;
+   |     ^^^^^^^^^^^^
+
+warning: unused import: `std::io::Write`
+   --> src\embedded_llm\model_manager.rs:286:13
+    |
+286 |         use std::io::Write;
+    |             ^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+  --> src\rag\mod.rs:14:22
+   |
+14 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `Context`
+  --> src\agents\parallel_agents.rs:12:22
+   |
+12 | use anyhow::{Result, Context};
+   |                      ^^^^^^^
+
+warning: unused import: `Write`
+  --> src\vscode_compat\extension_host.rs:10:35
+   |
+10 | use std::io::{BufRead, BufReader, Write};
+   |                                   ^^^^^
+
+warning: unused import: `BufRead`
+   --> src\debug\client.rs:402:27
+    |
+402 |             use std::io::{BufRead, Read};
+    |                           ^^^^^^^
+
+warning: unused import: `Digest`
+   --> src\auth\jwt_handler.rs:121:24
+    |
+121 |     use sha2::{Sha256, Digest};
+    |                        ^^^^^^
+
+warning: unused variable: `root_uri`
+   --> src\commands\lsp_real.rs:109:49
+    |
+109 | pub async fn lsp_start_server(language: String, root_uri: String) -> Result<LspServerStatus, String> {
+    |                                                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_root_uri`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:135:34
+    |
+135 | pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Result<Vec<CompletionItem>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:135:47
+    |
+135 | pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Result<Vec<CompletionItem>, String> {
+    |                                               ^^^^ help: if this is intentional, prefix it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:135:58
+    |
+135 | pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Result<Vec<CompletionItem>, String> {
+    |                                                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:146:34
+    |
+146 | pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Result<Option<Location>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:146:47
+    |
+146 | pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Result<Option<Location>, String> {
+    |                                               ^^^^ help: if this is intentional, prefix it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:146:58
+    |
+146 | pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Result<Option<Location>, String> {
+    |                                                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:151:24
+    |
+151 | pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<HoverResult>, String> {
+    |                        ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:151:37
+    |
+151 | pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<HoverResult>, String> {
+    |                                     ^^^^ help: if this is intentional, prefix it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:151:48
+    |
+151 | pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<HoverResult>, String> {
+    |                                                ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:162:34
+    |
+162 | pub async fn lsp_format_document(uri: String) -> Result<Vec<TextEdit>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:167:31
+    |
+167 | pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> Result<Vec<CodeAction>, String> {
+    |                               ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `start_line`
+   --> src\commands\lsp_real.rs:167:44
+    |
+167 | pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> Result<Vec<CodeAction>, String> {
+    |                                            ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_start_line`
+
+warning: unused variable: `end_line`
+   --> src\commands\lsp_real.rs:167:61
+    |
+167 | pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> Result<Vec<CodeAction>, String> {
+    |                                                             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_end_line`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:172:34
+    |
+172 | pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> Result<Vec<Location>, String> {
+    |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:172:47
+    |
+172 | pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> Result<Vec<Location>, String> {
+    |                                               ^^^^ help: if this is intentional, prefix it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:172:58
+    |
+172 | pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> Result<Vec<Location>, String> {
+    |                                                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:177:25
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> Result<Vec<TextEdit>, String> {
+    |                         ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:177:38
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> Result<Vec<TextEdit>, String> {
+    |                                      ^^^^ help: if this is intentional, prefix it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:177:49
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> Result<Vec<TextEdit>, String> {
+    |                                                 ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `new_name`
+   --> src\commands\lsp_real.rs:177:65
+    |
+177 | pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> Result<Vec<TextEdit>, String> {
+    |                                                                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_new_name`
+
+warning: unused variable: `uri`
+   --> src\commands\lsp_real.rs:182:33
+    |
+182 | pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> Result<Option<String>, String> {
+    |                                 ^^^ help: if this is intentional, prefix it with an underscore: `_uri`
+
+warning: unused variable: `line`
+   --> src\commands\lsp_real.rs:182:46
+    |
+182 | pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> Result<Option<String>, String> {
+    |                                              ^^^^ help: if this is intentional, prefix it with an underscore: `_line`
+
+warning: unused variable: `character`
+   --> src\commands\lsp_real.rs:182:57
+    |
+182 | pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> Result<Option<String>, String> {
+    |                                                         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_character`
+
+warning: unused variable: `query`
+  --> src\extensions\registry.rs:27:32
+   |
+27 |     pub async fn search(&self, query: &str) -> anyhow::Result<Vec<ExtensionMetadata>> {
+   |                                ^^^^^ help: if this is intentional, prefix it with an underscore: `_query`
+
+warning: unused variable: `metadata`
+   --> src\extensions\registry.rs:108:44
+    |
+108 |     pub async fn download_extension(&self, metadata: &ExtensionMetadata, dest: &Path) -> anyhow::Result<()> {
+    |                                            ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metadata`
+
+warning: unused variable: `query`
+   --> src\agent_store\mod.rs:142:43
+    |
+142 |     pub async fn search_github(&mut self, query: &str) -> anyhow::Result<Vec<AgentDefinition>> {
+    |                                           ^^^^^ help: if this is intentional, prefix it with an underscore: `_query`
+
+warning: unused variable: `query`
+  --> src\extensions\github_marketplace.rs:45:32
+   |
+45 |     pub async fn search(&self, query: &str) -> anyhow::Result<Vec<GitHubExtension>> {
+   |                                ^^^^^ help: if this is intentional, prefix it with an underscore: `_query`
+
+warning: unused variable: `owner`
+   --> src\extensions\github_marketplace.rs:103:38
+    |
+103 |     pub async fn get_versions(&self, owner: &str, repo: &str) -> anyhow::Result<Vec<ExtensionVersion>> {
+    |                                      ^^^^^ help: if this is intentional, prefix it with an underscore: `_owner`
+
+warning: unused variable: `repo`
+   --> src\extensions\github_marketplace.rs:103:51
+    |
+103 |     pub async fn get_versions(&self, owner: &str, repo: &str) -> anyhow::Result<Vec<ExtensionVersion>> {
+    |                                                   ^^^^ help: if this is intentional, prefix it with an underscore: `_repo`
+
+warning: unused variable: `language`
+   --> src\ai\quality_gate.rs:261:50
+    |
+261 |     async fn check_formatting(&self, code: &str, language: &str) -> CheckResult {
+    |                                                  ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `language`
+   --> src\lsp\wasm_loader.rs:321:35
+    |
+321 |     pub fn get_completions(&self, language: &str, content: &str, position: Position) -> anyhow::Result<Vec<Completion>> {
+    |                                   ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `content`
+   --> src\lsp\wasm_loader.rs:321:51
+    |
+321 |     pub fn get_completions(&self, language: &str, content: &str, position: Position) -> anyhow::Result<Vec<Completion>> {
+    |                                                   ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_content`
+
+warning: unused variable: `position`
+   --> src\lsp\wasm_loader.rs:321:66
+    |
+321 |     pub fn get_completions(&self, language: &str, content: &str, position: Position) -> anyhow::Result<Vec<Completion>> {
+    |                                                                  ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_position`
+
+warning: unused variable: `language`
+   --> src\lsp\wasm_loader.rs:327:35
+    |
+327 |     pub fn get_diagnostics(&self, language: &str, content: &str) -> anyhow::Result<Vec<Diagnostic>> {
+    |                                   ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `content`
+   --> src\lsp\wasm_loader.rs:327:51
+    |
+327 |     pub fn get_diagnostics(&self, language: &str, content: &str) -> anyhow::Result<Vec<Diagnostic>> {
+    |                                                   ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_content`
+
+error[E0382]: use of moved value: `range`
+  --> src\lsp\smart_selection.rs:45:25
+   |
+42 |             let range = node_to_range(node, source);
+   |                 ----- move occurs because `range` has type `smart_selection::SelectionRange`, which does not implement the `Copy` trait
+43 |             self.selection_history = vec![range];
+   |                                           ----- value moved here
+44 |             self.current_index = 0;
+45 |             return Some(range);
+   |                         ^^^^^ value used here after move
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+43 |             self.selection_history = vec![range.clone()];
+   |                                                ++++++++
+
+warning: unused variable: `max_tokens`
+   --> src\swarm_ai\local_inference.rs:381:9
+    |
+381 |         max_tokens: u32,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_max_tokens`
+
+warning: unused variable: `full_prompt`
+   --> src\swarm_ai\speculative_decoder.rs:151:13
+    |
+151 |         let full_prompt = format!("{}{}", prompt, draft.full_text);
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_full_prompt`
+
+warning: unused variable: `similarity_threshold`
+  --> src\swarm_ai\kv_cache.rs:95:43
+   |
+95 |     pub fn get_fuzzy(&self, prompt: &str, similarity_threshold: f32) -> Option<String> {
+   |                                           ^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_similarity_threshold`
+
+error[E0502]: cannot borrow `self.entries` as mutable because it is also borrowed as immutable
+   --> src\swarm_ai\kv_cache.rs:176:13
+    |
+170 |         let mut entries: Vec<_> = self.entries.iter()
+    |                                   ------------ immutable borrow occurs here
+...
+175 |         for (key, _) in entries.into_iter().take(to_remove) {
+    |                         ----------------------------------- immutable borrow later used here
+176 |             self.entries.remove(key);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+warning: unused variable: `reader`
+   --> src\swarm_ai\p2p_swarm.rs:283:14
+    |
+283 |         let (mut reader, mut writer) = socket.into_split();
+    |              ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_reader`
+
+warning: unused variable: `peer_id`
+   --> src\swarm_ai\p2p_swarm.rs:363:25
+    |
+363 |             if let Some(peer_id) = assignments.get(&layer_idx) {
+    |                         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_peer_id`
+
+warning: unused variable: `variance`
+   --> src\swarm_ai\p2p_swarm.rs:396:17
+    |
+396 |             let variance = context.iter()
+    |                 ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_variance`
+
+error[E0716]: temporary value dropped while borrowed
+  --> src\embedded_llm\backends.rs:67:23
+   |
+57 |     async fn infer_stream_boxed(
+   |         - borrow might be used here, when `callback` is dropped and runs the destructor for type `Box<dyn FnMut(&str) + std::marker::Send>`
+...
+67 |             callback(&format!("{} ", word));
+   |                       ^^^^^^^^^^^^^^^^^^^^ - temporary value is freed at the end of this statement
+   |                       |
+   |                       creates a temporary value which is freed while still in use
+   |
+   = note: consider using a `let` binding to create a longer lived value
+   = note: this error originates in the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused variable: `request`
+   --> src\embedded_llm\backends.rs:256:31
+    |
+256 |     async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
+    |                               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+error[E0716]: temporary value dropped while borrowed
+   --> src\embedded_llm\backends.rs:277:23
+    |
+270 |     async fn infer_stream_boxed(
+    |         - borrow might be used here, when `callback` is dropped and runs the destructor for type `Box<dyn FnMut(&str) + std::marker::Send>`
+...
+277 |             callback(&format!("{} ", word));
+    |                       ^^^^^^^^^^^^^^^^^^^^ - temporary value is freed at the end of this statement
+    |                       |
+    |                       creates a temporary value which is freed while still in use
+    |
+    = note: consider using a `let` binding to create a longer lived value
+    = note: this error originates in the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+   --> src\embedded_llm\model_manager.rs:116:17
+    |
+111 |         for path_str in &self.model_paths {
+    |                         -----------------
+    |                         |
+    |                         immutable borrow occurs here
+    |                         immutable borrow later used here
+...
+116 |                 self.scan_directory(&path)?;
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> src\embedded_llm\context_cache.rs:44:21
+   |
+39 |         if let Some(cached) = self.cache.get(key) {
+   |                               ---------- immutable borrow occurs here
+...
+44 |                     self.touch(key);
+   |                     ^^^^^^^^^^^^^^^ mutable borrow occurs here
+45 |                     return Some(cached.clone());
+   |                                 ------ immutable borrow later used here
+
+warning: unused variable: `start`
+   --> src\embedded_llm\real_inference.rs:230:13
+    |
+230 |         let start = Instant::now();
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_start`
+
+warning: unused variable: `params`
+   --> src\mcp\server.rs:370:38
+    |
+370 |             MCPRequest::Initialize { params } => {
+    |                                      ^^^^^^ help: try ignoring the field: `params: _`
+
+warning: unused variable: `index_path`
+   --> src\rag\vector_store.rs:176:13
+    |
+176 |         let index_path = path.join("index.bin");
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_index_path`
+
+error[E0502]: cannot borrow `self.vocabulary` as immutable because it is also borrowed as mutable
+   --> src\rag\embeddings.rs:183:59
+    |
+183 |             self.vocabulary.entry(term.clone()).or_insert(self.vocabulary.len());
+    |             ---------------                     --------- ^^^^^^^^^^^^^^^ immutable borrow occurs here
+    |             |                                   |
+    |             |                                   mutable borrow later used by call
+    |             mutable borrow occurs here
+
+warning: unused variable: `embedder`
+   --> src\rag\embeddings.rs:393:19
+    |
+393 | pub fn embed_code(embedder: &dyn Embedder, code: &str, language: &str) -> anyhow::Result<EmbeddingResult> {
+    |                   ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_embedder`
+
+warning: unused variable: `language`
+   --> src\rag\embeddings.rs:393:56
+    |
+393 | pub fn embed_code(embedder: &dyn Embedder, code: &str, language: &str) -> anyhow::Result<EmbeddingResult> {
+    |                                                        ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language`
+
+warning: unused variable: `text`
+   --> src\rag\mod.rs:244:40
+    |
+244 |     async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
+    |                                        ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+
+error[E0382]: use of partially moved value: `operation`
+   --> src\git_crdt\yjs_adapter.rs:101:39
+    |
+ 83 |             Operation::Insert { position, text, .. } => {
+    |                                           ---- value partially moved here
+...
+101 |         self.document.operations.push(operation);
+    |                                       ^^^^^^^^^ value used here after partial move
+    |
+    = note: partial move occurs because value has type `std::string::String`, which does not implement the `Copy` trait
+help: borrow this binding in the pattern to avoid moving the value
+    |
+ 83 |             Operation::Insert { position, ref text, .. } => {
+    |                                           +++
+
+warning: unused variable: `prompt`
+   --> src\git_crdt\ai_merge.rs:107:41
+    |
+107 |     async fn generate_resolution(&self, prompt: &str, conflict: &MergeConflict) -> Result<MergeSuggestion> {
+    |                                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_prompt`
+
+warning: unused variable: `user_id`
+   --> src\git_crdt\mod.rs:116:59
+    |
+116 |     pub async fn create_session(&self, document_id: &str, user_id: &str) -> Result<String> {
+    |                                                           ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_user_id`
+
+warning: unused variable: `session_id`
+   --> src\git_crdt\mod.rs:194:42
+    |
+194 |     pub async fn resolve_conflict(&self, session_id: &str, conflict: &MergeConflict) -> Result<String> {
+    |                                          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_session_id`
+
+warning: variable does not need to be mutable
+   --> src\update\delta.rs:133:13
+    |
+133 |         let mut old_pos = 0usize;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `old_pos`
+   --> src\update\delta.rs:133:13
+    |
+133 |         let mut old_pos = 0usize;
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_old_pos`
+
+error[E0596]: cannot borrow data in an `Arc` as mutable
+   --> src\update\mod.rs:424:41
+    |
+424 | ...                   let _ = self.install_update().await;
+    |                               ^^^^ cannot borrow as mutable
+    |
+    = help: trait `DerefMut` is required to modify through a dereference, but it is not implemented for `Arc<UpdateManager>`
+
+warning: unused variable: `context`
+  --> src\plugin_sandbox\runtime.rs:41:32
+   |
+41 |     pub fn activate(&mut self, context: &PluginContext) -> Result<()> {
+   |                                ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_context`
+
+warning: unused variable: `command`
+  --> src\plugin_sandbox\runtime.rs:84:31
+   |
+84 |     pub fn execute(&mut self, command: &str, args: &serde_json::Value) -> Result<serde_json::Value> {
+   |                               ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_command`
+
+warning: unused variable: `args`
+  --> src\plugin_sandbox\runtime.rs:84:46
+   |
+84 |     pub fn execute(&mut self, command: &str, args: &serde_json::Value) -> Result<serde_json::Value> {
+   |                                              ^^^^ help: if this is intentional, prefix it with an underscore: `_args`
+
+warning: variable does not need to be mutable
+   --> src\accessibility\mod.rs:114:13
+    |
+114 |         let mut config = AccessibilityConfig::default();
+    |             ----^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable `stack` is assigned to, but never used
+  --> src\benchmark\lsp_perf.rs:72:13
+   |
+72 |         let mut stack = 0;
+   |             ^^^^^^^^^
+   |
+   = note: consider using `_stack` instead
+
+warning: value assigned to `stack` is never read
+  --> src\benchmark\lsp_perf.rs:75:36
+   |
+75 |                 '(' | '[' | '{' => stack += 1,
+   |                                    ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `stack` is never read
+  --> src\benchmark\lsp_perf.rs:76:36
+   |
+76 |                 ')' | ']' | '}' => stack -= 1,
+   |                                    ^^^^^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+error[E0502]: cannot borrow `*self` as immutable because it is also borrowed as mutable
+   --> src\vscode_compat\extension_host.rs:568:12
+    |
+558 |         let extension = self.extensions.get_mut(extension_id)
+    |                         --------------- mutable borrow occurs here
+...
+568 |         if self.should_activate(&extension.manifest) {
+    |            ^^^^                 ------------------- mutable borrow later used here
+    |            |
+    |            immutable borrow occurs here
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+   --> src\vscode_compat\extension_host.rs:666:25
+    |
+662 |         for extension in self.extensions.values_mut() {
+    |                          --------------- first mutable borrow occurs here
+...
+666 |                         self.activate_extension(&extension.id)?;
+    |                         ^^^^                    ------------- first borrow later used here
+    |                         |
+    |                         second mutable borrow occurs here
+
+warning: unused variable: `version`
+   --> src\vscode_compat\marketplace.rs:251:65
+    |
+251 |     pub async fn get_readme(&self, publisher: &str, name: &str, version: &str) -> Result<String> {
+    |                                                                 ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_version`
+
+warning: unused variable: `context`
+   --> src\vscode_compat\mod.rs:248:13
+    |
+248 |         let context = ExtensionContext {
+    |             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_context`
+
+error[E0507]: cannot move out of `self.state` which is behind a shared reference
+   --> src\vscode_compat\mod.rs:392:20
+    |
+392 |             state: self.state,
+    |                    ^^^^^^^^^^ move occurs because `self.state` has type `extension_host::ExtensionState`, which does not implement the `Copy` trait
+    |
+help: consider cloning the value if the performance cost is acceptable
+    |
+392 |             state: self.state.clone(),
+    |                              ++++++++
+
+warning: unused variable: `owner`
+   --> src\extensions\github_marketplace.rs:117:34
+    |
+117 |     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> anyhow::Result<Vec<u8>> {
+    |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_owner`
+
+warning: unused variable: `repo`
+   --> src\extensions\github_marketplace.rs:117:47
+    |
+117 |     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> anyhow::Result<Vec<u8>> {
+    |                                               ^^^^ help: if this is intentional, prefix it with an underscore: `_repo`
+
+warning: unused variable: `version`
+   --> src\extensions\github_marketplace.rs:117:59
+    |
+117 |     pub async fn download(&self, owner: &str, repo: &str, version: &str) -> anyhow::Result<Vec<u8>> {
+    |                                                           ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_version`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:417:68
+    |
+417 |     async fn compute_diagnostics(&self, _uri: &Url, content: &str, language_id: &str) -> Vec<Diagnostic> {
+    |                                                                    ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:790:51
+    |
+790 |     async fn get_references(&self, content: &str, language_id: &str, position: Position) -> Vec<Location> {
+    |                                                   ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:897:52
+    |
+897 |     async fn format_document(&self, content: &str, language_id: &str, options: &FormattingOptions) -> Vec<TextEdit> {
+    |                                                    ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `language_id`
+   --> src\lsp_tower\backend.rs:952:53
+    |
+952 |     async fn get_rename_edits(&self, content: &str, language_id: &str, position: Position, new_name: &str) -> Vec<TextEdit> {
+    |                                                     ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_language_id`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:545:32
+    |
+545 |     fn rust_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                                ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_text_before`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:559:34
+    |
+559 |     fn python_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                                  ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_text_before`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:573:33
+    |
+573 |     fn js_ts_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                                 ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_text_before`
+
+warning: unused variable: `text_before`
+   --> src\lsp_tower\backend.rs:587:30
+    |
+587 |     fn go_completions(&self, text_before: &str) -> Vec<CompletionItem> {
+    |                              ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_text_before`
+
+warning: unused variable: `capabilities`
+   --> src\lsp_transport\transport.rs:208:9
+    |
+208 |         capabilities: Arc<RwLock<Option<Value>>>,
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_capabilities`
+
+warning: unused variable: `request`
+  --> src\debug\server.rs:91:43
+   |
+91 |     async fn handle_initialize(&mut self, request: &Request) -> Result<serde_json::Value> {
+   |                                           ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `request`
+   --> src\debug\server.rs:120:39
+    |
+120 |     async fn handle_launch(&mut self, request: &Request) -> Result<serde_json::Value> {
+    |                                       ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_request`
+
+warning: unused variable: `has_cuda`
+   --> src\quality\mod.rs:144:57
+    |
+144 |     fn determine_tier(&self, ram_mb: u64, vram_mb: u64, has_cuda: bool, has_metal: bool) -> ExperienceTier {
+    |                                                         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_has_cuda`
+
+warning: unused variable: `path`
+  --> src\autonomous\verifier.rs:62:13
+   |
+62 |         let path = Path::new(file_path);
+   |             ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `project_path`
+   --> src\autonomous\mod.rs:193:56
+    |
+193 |     async fn create_plan(&mut self, description: &str, project_path: &str) -> Result<ExecutionPlan, String> {
+    |                                                        ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_project_path`
+
+warning: unused variable: `description`
+   --> src\autonomous\mod.rs:217:42
+    |
+217 |     async fn decompose_into_tasks(&self, description: &str) -> Result<Vec<Task>, String> {
+    |                                          ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_description`
+
+warning: unused variable: `path`
+  --> src\inference\model.rs:54:23
+   |
+54 | fn load_gguf_metadata(path: &Path) -> Result<ModelMetadata> {
+   |                       ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `path`
+  --> src\inference\model.rs:67:30
+   |
+67 | fn load_safetensors_metadata(path: &Path) -> Result<ModelMetadata> {
+   |                              ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `path`
+  --> src\inference\model.rs:80:26
+   |
+80 | fn load_pytorch_metadata(path: &Path) -> Result<ModelMetadata> {
+   |                          ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+
+warning: unused variable: `model`
+   --> src\inference\mod.rs:180:13
+    |
+180 |         let model = model.read().await;
+    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_model`
+
+warning: unused variable: `text`
+   --> src\inference\mod.rs:611:31
+    |
+611 |     pub async fn embed(&self, text: &str) -> Result<Vec<f32>> {
+    |                               ^^^^ help: if this is intentional, prefix it with an underscore: `_text`
+
+warning: unused variable: `end`
+  --> src\buffer\edit.rs:38:33
+   |
+38 |     pub fn delete(start: usize, end: usize, deleted: String) -> Self {
+   |                                 ^^^ help: if this is intentional, prefix it with an underscore: `_end`
+
+warning: unused variable: `end`
+  --> src\buffer\edit.rs:49:34
+   |
+49 |     pub fn replace(start: usize, end: usize, text: String, deleted: String) -> Self {
+   |                                  ^^^ help: if this is intentional, prefix it with an underscore: `_end`
+
+warning: variable does not need to be mutable
+   --> src\buffer\edit.rs:138:17
+    |
+138 |             let mut offset = 0i64;
+    |                 ----^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: unused variable: `dh4`
+  --> src\e2ee\key_exchange.rs:74:14
+   |
+74 |         let (dh4, responder_opk_public) = if let Some(opk) = &responder_bundle.one_time_pre_key {
+   |              ^^^ help: if this is intentional, prefix it with an underscore: `_dh4`
+
+warning: unused variable: `query`
+  --> src\chat_sidebar\context_builder.rs:27:9
+   |
+27 |         query: &str,
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_query`
+
+warning: unused variable: `word_count`
+   --> src\chat_sidebar\context_builder.rs:213:13
+    |
+213 |         let word_count = text.split_whitespace().count();
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_word_count`
+
+warning: unused variable: `result`
+   --> src\agent_editor\agent.rs:439:20
+    |
+439 |                 Ok(result) => {
+    |                    ^^^^^^ help: if this is intentional, prefix it with an underscore: `_result`
+
+warning: unused variable: `context`
+   --> src\agent_editor\agent.rs:481:53
+    |
+481 |     fn validate_action(&self, action: &AgentAction, context: &AgentContext) -> anyhow::Result<()> {
+    |                                                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_context`
+
+warning: unreachable pattern
+   --> src\agent_editor\tools.rs:212:17
+    |
+195 |                 "rs" => "rust",
+    |                 ---- matches all the relevant values
+...
+212 |                 "rs" => "rust",
+    |                 ^^^^ no value can reach this
+    |
+    = note: `#[warn(unreachable_patterns)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `meta`
+   --> src\agent_editor\executor.rs:209:33
+    |
+209 |                     if let Some(meta) = &rollback.original_metadata {
+    |                                 ^^^^ help: if this is intentional, prefix it with an underscore: `_meta`
+
+warning: variable does not need to be mutable
+   --> src\agent_editor\executor.rs:242:17
+    |
+242 |             let mut current_start = hunk.new_start;
+    |                 ----^^^^^^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+
+warning: unused variable: `context`
+   --> src\agent_editor\planner.rs:242:70
+    |
+242 |     pub fn plan_quick_fix(&self, file_path: &str, description: &str, context: &AgentContext) -> ExecutionPlan {
+    |                                                                      ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_context`
+
+warning: unused variable: `message_tx`
+   --> src\p2p\webrtc.rs:279:9
+    |
+279 |         message_tx: &mpsc::Sender<PeerMessage>,
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message_tx`
+
+warning: unused variable: `shutdown_rx`
+   --> src\p2p\mod.rs:214:27
+    |
+214 |         let (shutdown_tx, mut shutdown_rx) = mpsc::channel(1);
+    |                           ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_shutdown_rx`
+
+warning: unused variable: `message_rx`
+   --> src\p2p\mod.rs:281:26
+    |
+281 |         let (mut webrtc, mut message_rx) = WebRTCManager::new(
+    |                          ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_message_rx`
+
+Some errors have detailed explanations: E0271, E0277, E0308, E0382, E0499, E0502, E0507, E0596, E0599...
+For more information about an error, try `rustc --explain E0271`.
+warning: `kyro-ide` (lib) generated 210 warnings
+error: could not compile `kyro-ide` (lib) due to 22 previous errors; 210 warnings emitted

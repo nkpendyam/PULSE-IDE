@@ -86,10 +86,13 @@ fn default_main() -> String {
 }
 
 /// Extension identifier
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExtensionIdentifier {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub publisher: String,
+    #[serde(default)]
     pub name: String,
 }
 

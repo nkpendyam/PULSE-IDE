@@ -208,7 +208,7 @@ impl LspTransport {
         capabilities: Arc<RwLock<Option<Value>>>,
         mut shutdown_rx: mpsc::Receiver<()>,
     ) {
-        let reader = BufReader::new(stdout);
+        let mut reader = BufReader::new(stdout);
         let mut content_length = 0;
         
         'outer: loop {
@@ -218,16 +218,25 @@ impl LspTransport {
             }
             
             // Read headers
-            for line in reader.lines() {
-                match line {
-                    Ok(l) if l.is_empty() => break,
-                    Ok(l) if l.starts_with("Content-Length:") => {
-                        content_length = l[15..].trim().parse().unwrap_or(0);
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match reader.read_line(&mut line) {
+                    Ok(0) => break 'outer,  // EOF
+                    Ok(_) => {
+                        let l = line.trim().to_string();
+                        if l.is_empty() {
+                            break;
+                        }
+                        if l.starts_with("Content-Length:") {
+                            content_length = l[15..].trim().parse().unwrap_or(0);
+                        }
+                        // Content-Type usually application/json, ignore
                     }
-                    Ok(l) if l.starts_with("Content-Type:") => {
-                        // Usually application/json, we can ignore
+                    Err(e) => {
+                        error!("Failed to read LSP headers: {}", e);
+                        break 'outer;
                     }
-                    _ => {}
                 }
             }
             

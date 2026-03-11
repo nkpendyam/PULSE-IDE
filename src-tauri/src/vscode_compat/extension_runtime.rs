@@ -234,8 +234,8 @@ impl ExtensionRuntime {
     }
 
     /// Make an RPC call to the extension host
-    async fn rpc_call(&self, method: &str, params: serde_json::Value) -> Result<RpcResponse> {
-        let process = self.process.as_ref()
+    async fn rpc_call(&mut self, method: &str, params: serde_json::Value) -> Result<RpcResponse> {
+        let process = self.process.as_mut()
             .ok_or_else(|| anyhow::anyhow!("Extension runtime not started"))?;
 
         // Get next message ID

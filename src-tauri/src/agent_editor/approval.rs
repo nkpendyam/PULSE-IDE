@@ -89,8 +89,7 @@ impl ApprovalWorkflow {
     pub fn clear_expired(&mut self) -> usize {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|_| log::warn!("System time error in clear_expired"))
-            .unwrap_or(0)
+            .unwrap_or_else(|_| std::time::Duration::from_secs(0))
             .as_secs();
 
         let expired: Vec<String> = self.pending.iter()

@@ -281,7 +281,7 @@ impl StartupBenchmark {
                             // Read activation events to determine priority
                             if let Ok(content) = std::fs::read_to_string(&manifest_path) {
                                 if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&content) {
-                                    let activation_events = manifest.get("activationEvents")
+                                    let activation_events: Vec<String> = manifest.get("activationEvents")
                                         .and_then(|v| v.as_array())
                                         .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
                                         .unwrap_or_default();
@@ -662,7 +662,7 @@ impl BenchmarkModule for StartupBenchmark {
                 "cold_start",
                 BenchmarkCategory::Startup,
                 || {
-                    let rt = tokio::runtime::Runtime::new().unwrap_or_default();
+                    let rt = tokio::runtime::Runtime::new().unwrap();
                     rt.block_on(async {
                         let profile = self.benchmark_cold_start().await?;
                         Ok(std::time::Duration::from_micros(profile.total_duration_ms as u64 * 1000))
@@ -677,7 +677,7 @@ impl BenchmarkModule for StartupBenchmark {
                 "warm_start",
                 BenchmarkCategory::Startup,
                 || {
-                    let rt = tokio::runtime::Runtime::new().unwrap_or_default();
+                    let rt = tokio::runtime::Runtime::new().unwrap();
                     rt.block_on(async {
                         let profile = self.benchmark_warm_start().await?;
                         Ok(std::time::Duration::from_micros(profile.total_duration_ms as u64 * 1000))

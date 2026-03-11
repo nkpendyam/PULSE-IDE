@@ -62,7 +62,6 @@ pub struct EncryptedEnvelope {
 }
 
 /// E2EE session between two users
-#[derive(Debug)]
 pub struct E2eeSession {
     pub session_id: Uuid,
     pub user_id: Uuid,
@@ -72,6 +71,21 @@ pub struct E2eeSession {
     pub double_ratchet: Option<DoubleRatchetState>,
     pub created_at: DateTime<Utc>,
     pub last_activity: DateTime<Utc>,
+}
+
+impl std::fmt::Debug for E2eeSession {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("E2eeSession")
+            .field("session_id", &self.session_id)
+            .field("user_id", &self.user_id)
+            .field("peer_id", &self.peer_id)
+            .field("local_keypair", &"<StaticSecret>")
+            .field("peer_public_key", &self.peer_public_key)
+            .field("double_ratchet", &"<DoubleRatchetState>")
+            .field("created_at", &self.created_at)
+            .field("last_activity", &self.last_activity)
+            .finish()
+    }
 }
 
 impl E2eeSession {

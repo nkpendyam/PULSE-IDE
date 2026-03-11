@@ -33,7 +33,7 @@ impl DebugAdapterConfig {
             "python" => Some(Self {
                 adapter_type: "debugpy".to_string(),
                 command: "python".to_string(),
-                args: vec!["-m", "debugpy.adapter".to_string()],
+                args: vec!["-m".to_string(), "debugpy.adapter".to_string()],
                 env: HashMap::new(),
             }),
             "go" => Some(Self {

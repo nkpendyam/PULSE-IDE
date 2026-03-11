@@ -48,7 +48,7 @@ pub enum RequestId {
 #[serde(untagged)]
 pub enum Params {
     Array(Vec<serde_json::Value>),
-    Object(HashMap<String, serde_json::Value>),
+    Object(serde_json::Map<String, serde_json::Value>),
 }
 
 /// Extension protocol message types
@@ -185,6 +185,7 @@ pub struct ErrorParams {
 }
 
 /// API methods for extension protocol
+#[derive(Debug, Clone, PartialEq)]
 pub enum ApiMethod {
     // Window API
     WindowShowMessage,
@@ -297,15 +298,19 @@ pub struct ExtensionProtocol;
 impl ExtensionProtocol {
     /// Create initialize request
     pub fn create_initialize(params: InitializeParams) -> JsonRpcRequest {
+        use serde_json::Map;
+        
         JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
             id: Some(RequestId::Number(1)),
             method: "initialize".to_string(),
-            params: Some(Params::Object(serde_json::to_value(params)
-                .unwrap_or_default()
-                .as_object()
-                .cloned()
-                .unwrap_or_default())),
+            params: Some(Params::Object(
+                serde_json::to_value(params)
+                    .unwrap_or_default()
+                    .as_object()
+                    .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+                    .unwrap_or_default()
+            )),
         }
     }
     
@@ -359,7 +364,7 @@ impl ExtensionProtocol {
                 serde_json::to_value(data)
                     .unwrap_or_default()
                     .as_object()
-                    .cloned()
+                    .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
                     .unwrap_or_default()
             )),
         }
@@ -423,10 +428,10 @@ mod tests {
     
     #[test]
     fn test_api_method_conversion() {
-        assert_eq!(
+        assert!(matches!(
             ApiMethod::from_str("window.showInformationMessage"),
             Some(ApiMethod::WindowShowMessage)
-        );
+        ));
         assert_eq!(
             ApiMethod::WindowShowMessage.to_str(),
             "window.showInformationMessage"

@@ -231,9 +231,7 @@ impl ExtensionHost {
             .ok()
             .and_then(|output| {
                 String::from_utf8(output.stdout).ok()
-                    .lines()
-                    .next()
-                    .map(|s| PathBuf::from(s.trim()))
+                    .and_then(|stdout: String| stdout.lines().next().map(|s: &str| PathBuf::from(s.trim())))
             })
     }
 
@@ -588,8 +586,8 @@ sendNotification('host/ready', {});
 
     /// Check if extension should activate based on events
     fn should_activate(&self, manifest: &ExtensionManifest) -> bool {
-        if let Some(activation_events) = &manifest.activation_events {
-            for event in activation_events {
+        if !manifest.activation_events.is_empty() {
+            for event in &manifest.activation_events {
                 match event.as_str() {
                     "*" => return true, // Activate on startup
                     e if e.starts_with("onLanguage:") => {
@@ -663,19 +661,17 @@ sendNotification('host/ready', {});
         // Find extension that registered this command
         for extension in self.extensions.values_mut() {
             if let Some(commands) = &extension.manifest.contributes {
-                if let Some(cmds) = &commands.commands {
-                    if cmds.iter().any(|c| &c.command == command_id) {
-                        if extension.state != ExtensionState::Active {
-                            self.activate_extension(&extension.id)?;
-                        }
-                        
-                        // Would send RPC to execute command
-                        return Ok(Some(json!({
-                            "command": command_id,
-                            "args": args,
-                            "result": "executed"
-                        })));
+                if commands.commands.iter().any(|c| &c.command == command_id) {
+                    if extension.state != ExtensionState::Active {
+                        self.activate_extension(&extension.id)?;
                     }
+                    
+                    // Would send RPC to execute command
+                    return Ok(Some(json!({
+                        "command": command_id,
+                        "args": args,
+                        "result": "executed"
+                    })));
                 }
             }
         }

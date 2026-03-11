@@ -7,7 +7,7 @@ use crate::embedded_llm::{EmbeddedLLMEngine, InferenceRequest, ConversationTurn}
 use crate::rag::vector_store::{HnswVectorStore, VectorSearchResult, VectorMetadata};
 use anyhow::{Result, Context};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Mutex};
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -236,27 +236,33 @@ impl RAGChatEngine {
         let rag_sources_clone = rag_sources.clone();
 
         let llm = self.llm.read().await;
+        let callback = Arc::new(Mutex::new(callback));
+        let callback_clone = callback.clone();
         let response = llm.complete_stream(&request, move |token: &str| {
-            callback(StreamChunk {
-                session_id: session_id_owned.clone(),
-                message_id: message_id_clone.clone(),
-                delta: token.to_string(),
-                is_thinking: false,
-                is_done: false,
-                rag_sources: vec![],
-            });
+            if let Ok(mut cb) = callback.lock() {
+                cb(StreamChunk {
+                    session_id: session_id_owned.clone(),
+                    message_id: message_id_clone.clone(),
+                    delta: token.to_string(),
+                    is_thinking: false,
+                    is_done: false,
+                    rag_sources: vec![],
+                });
+            }
         }).await?;
         drop(llm);
 
         // Send final chunk
-        callback(StreamChunk {
-            session_id: session_id.to_string(),
-            message_id: message_id.clone(),
-            delta: String::new(),
-            is_thinking: false,
-            is_done: true,
-            rag_sources: rag_sources_clone,
-        });
+        if let Ok(mut cb) = callback_clone.lock() {
+            cb(StreamChunk {
+                session_id: session_id.to_string(),
+                message_id: message_id.clone(),
+                delta: String::new(),
+                is_thinking: false,
+                is_done: true,
+                rag_sources: rag_sources_clone,
+            });
+        }
 
         // Create assistant message
         let assistant_msg = ChatMessage {

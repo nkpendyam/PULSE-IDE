@@ -21,13 +21,25 @@ pub use awareness::*;
 
 
 /// Collaboration room
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct CollabRoom {
     pub id: String,
     pub document: Arc<RwLock<CollabDocument>>,
     pub awareness: Arc<RwLock<AwarenessState>>,
     pub users: HashMap<String, CollabUser>,
     pub created_at: u64,
+}
+
+impl std::fmt::Debug for CollabRoom {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CollabRoom")
+            .field("id", &self.id)
+            .field("document", &"<CollabDocument>")
+            .field("awareness", &self.awareness)
+            .field("users", &self.users)
+            .field("created_at", &self.created_at)
+            .finish()
+    }
 }
 
 impl CollabRoom {

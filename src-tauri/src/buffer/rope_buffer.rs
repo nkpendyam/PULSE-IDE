@@ -158,8 +158,8 @@ impl RopeBuffer {
     }
     
     /// Get a slice of the rope
-    pub fn slice_range(&self, range: Range<usize>) -> RopeSlice {
-        self.rope.get_slice(range.start..range.end).unwrap_or_default()
+    pub fn slice_range(&self, range: Range<usize>) -> Option<RopeSlice> {
+        self.rope.get_slice(range.start..range.end)
     }
     
     /// Iterate over characters

@@ -206,47 +206,46 @@ impl MCPAgent {
                     }
                     
                     // Walk directory
-                    if let Ok(entries) = walkdir::WalkDir::new(dir_path)
+                    let entries: Vec<_> = walkdir::WalkDir::new(dir_path)
                         .max_depth(5)
                         .into_iter()
                         .filter_map(|e| e.ok())
                         .filter(|e| e.file_type().is_file())
-                        .take(limit * 2) // Limit files to scan
-                        .collect::<Vec<_>>()
-                    {
-                        for entry in entries {
-                            let path = entry.path();
-                            
-                            // Check if it's a code file
-                            let ext = path.extension()
-                                .and_then(|e| e.to_str())
-                                .unwrap_or("");
-                            
-                            if !["rs", "py", "js", "ts", "go", "java", "c", "cpp", "h"].contains(&ext) {
-                                continue;
-                            }
-                            
-                            // Read file and search for query
-                            if let Ok(content) = std::fs::read_to_string(path) {
-                                for (line_num, line) in content.lines().enumerate() {
-                                    if line.to_lowercase().contains(&query_lower) {
-                                        results.push(json!({
-                                            "file": path.to_string_lossy().to_string(),
-                                            "line": line_num + 1,
-                                            "content": line.trim().to_string(),
-                                            "match_type": "contains"
-                                        }));
-                                        
-                                        if results.len() >= limit {
-                                            break;
-                                        }
+                        .take(limit * 2)
+                        .collect();
+                    
+                    for entry in entries {
+                        let path = entry.path();
+                        
+                        // Check if it's a code file
+                        let ext: &str = path.extension()
+                            .and_then(|e| e.to_str())
+                            .unwrap_or("");
+                        
+                        if !["rs", "py", "js", "ts", "go", "java", "c", "cpp", "h"].contains(&ext) {
+                            continue;
+                        }
+                        
+                        // Read file and search for query
+                        if let Ok(content) = std::fs::read_to_string(path) {
+                            for (line_num, line) in content.lines().enumerate() {
+                                if line.to_lowercase().contains(&query_lower) {
+                                    results.push(json!({
+                                        "file": path.to_string_lossy().to_string(),
+                                        "line": line_num + 1,
+                                        "content": line.trim().to_string(),
+                                        "match_type": "contains"
+                                    }));
+                                    
+                                    if results.len() >= limit {
+                                        break;
                                     }
                                 }
                             }
-                            
-                            if results.len() >= limit {
-                                break;
-                            }
+                        }
+                        
+                        if results.len() >= limit {
+                            break;
                         }
                     }
                     
@@ -580,7 +579,7 @@ impl MCPAgent {
     }
 
     /// Approve pending actions
-    pub async fn approve(&self, approval_id: &str, context: &AgentContext) -> anyhow::Result<AgentResult> {
+    pub async fn approve(&mut self, approval_id: &str, context: &AgentContext) -> anyhow::Result<AgentResult> {
         let pending = self.approval_workflow.approve(approval_id)?;
 
         if !pending.approved {
