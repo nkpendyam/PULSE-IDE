@@ -38,6 +38,9 @@ jobs:
         with:
           components: rustfmt, clippy
       
+      - name: Create Frontend Dist Directory
+        run: mkdir -p out && echo '<html><body></body></html>' > out/index.html
+
       - name: Check Formatting
         working-directory: src-tauri
         run: cargo fmt -- --check
@@ -78,6 +81,9 @@ jobs:
             src-tauri/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
+      - name: Create Frontend Dist Directory
+        run: mkdir -p out && echo '<html><body></body></html>' > out/index.html
+
       - name: Run Tests
         working-directory: src-tauri
         run: cargo test --workspace --lib --tests
@@ -131,6 +137,9 @@ jobs:
             src-tauri/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       
+      - name: Create Frontend Dist Directory
+        run: mkdir -p out && echo '<html><body></body></html>' > out/index.html
+
       - name: Build Release
         working-directory: src-tauri
         run: cargo build --release
@@ -181,6 +190,9 @@ jobs:
       - name: Install cargo-llvm-cov
         run: cargo install cargo-llvm-cov
       
+      - name: Create Frontend Dist Directory
+        run: mkdir -p out && echo '<html><body></body></html>' > out/index.html
+
       - name: Generate Coverage
         working-directory: src-tauri
         run: cargo llvm-cov --lcov --output-path lcov.info --workspace --lib --tests
@@ -213,6 +225,9 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       
+      - name: Create Frontend Dist Directory
+        run: mkdir -p out && echo '<html><body></body></html>' > out/index.html
+
       - name: Build Documentation
         working-directory: src-tauri
         run: cargo doc --no-deps --workspace
