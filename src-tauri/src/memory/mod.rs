@@ -392,17 +392,98 @@ impl HierarchicalMemory {
             .join("\n")
     }
     
-    fn extract_symbols(&self, _content: &str) -> Vec<SymbolInfo> {
-        // Would use tree-sitter in real impl
+    fn extract_symbols(&self, content: &str) -> Vec<SymbolInfo> {
+        // Try each language parser — fall back gracefully
+        let languages: &[(&tree_sitter::Language, &[&str])] = &[
+            (&tree_sitter_rust::LANGUAGE.into(), &["function_item", "struct_item", "enum_item", "impl_item", "trait_item", "const_item", "static_item", "type_item"]),
+            (&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(), &["function_declaration", "class_declaration", "interface_declaration", "enum_declaration", "type_alias_declaration"]),
+            (&tree_sitter_python::LANGUAGE.into(), &["function_definition", "class_definition"]),
+        ];
+
+        for (lang, symbol_kinds) in languages {
+            let mut parser = tree_sitter::Parser::new();
+            if parser.set_language(lang).is_err() { continue; }
+            let tree = match parser.parse(content, None) {
+                Some(t) if t.root_node().has_error() == false || t.root_node().child_count() > 2 => t,
+                _ => continue,
+            };
+            let mut symbols = Vec::new();
+            Self::walk_for_symbols(tree.root_node(), content.as_bytes(), symbol_kinds, &mut symbols);
+            if !symbols.is_empty() {
+                return symbols;
+            }
+        }
         Vec::new()
     }
-    
-    fn extract_imports(&self, _content: &str) -> Vec<String> {
-        Vec::new()
+
+    fn walk_for_symbols(
+        node: tree_sitter::Node,
+        source: &[u8],
+        kinds: &[&str],
+        out: &mut Vec<SymbolInfo>,
+    ) {
+        if kinds.contains(&node.kind()) {
+            let name = node.child_by_field_name("name")
+                .map(|n| n.utf8_text(source).unwrap_or("").to_string())
+                .unwrap_or_default();
+            if !name.is_empty() {
+                let first_line = node.start_position().row as u32 + 1;
+                let signature = {
+                    let text = node.utf8_text(source).unwrap_or("");
+                    text.lines().next().map(|l| l.trim().to_string())
+                };
+                out.push(SymbolInfo {
+                    name,
+                    kind: Self::map_ts_kind(node.kind()),
+                    line: first_line,
+                    signature,
+                    documentation: None,
+                });
+            }
+        }
+        for i in 0..node.child_count() {
+            if let Some(child) = node.child(i) {
+                Self::walk_for_symbols(child, source, kinds, out);
+            }
+        }
+    }
+
+    fn map_ts_kind(kind: &str) -> SymbolKind {
+        match kind {
+            "function_item" | "function_declaration" | "function_definition" => SymbolKind::Function,
+            "struct_item" | "class_declaration" | "class_definition" => SymbolKind::Struct,
+            "enum_item" | "enum_declaration" => SymbolKind::Enum,
+            "trait_item" | "interface_declaration" => SymbolKind::Interface,
+            "impl_item" => SymbolKind::Module,
+            "type_item" | "type_alias_declaration" => SymbolKind::Variable,
+            _ => SymbolKind::Variable,
+        }
+    }
+
+    fn extract_imports(&self, content: &str) -> Vec<String> {
+        let mut result = Vec::new();
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("use ") || trimmed.starts_with("import ") || trimmed.starts_with("from ") || trimmed.starts_with("#include") {
+                result.push(trimmed.to_string());
+            }
+        }
+        result
     }
     
-    fn extract_exports(&self, _content: &str) -> Vec<String> {
-        Vec::new()
+    fn extract_exports(&self, content: &str) -> Vec<String> {
+        let mut result = Vec::new();
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("pub fn ") || trimmed.starts_with("pub struct ")
+                || trimmed.starts_with("pub enum ") || trimmed.starts_with("pub trait ")
+                || trimmed.starts_with("export ") {
+                if let Some(name) = trimmed.split_whitespace().nth(2) {
+                    result.push(name.trim_end_matches(|c: char| !c.is_alphanumeric() && c != '_').to_string());
+                }
+            }
+        }
+        result
     }
     
     fn find_in_content(&self, content: &str, name: &str) -> Option<SymbolInfo> {

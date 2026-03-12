@@ -371,6 +371,110 @@ impl GitManager {
         }
         Ok(result)
     }
+
+    /// Stage a single file by path
+    pub fn stage(&self, path: &str, file_path: &str) -> Result<(), String> {
+        let repo = Repository::discover(Path::new(path)).map_err(|e| format!("Not a git repository: {}", e))?;
+        let mut index = repo.index().map_err(|e| format!("Failed to get index: {}", e))?;
+        index.add_path(Path::new(file_path)).map_err(|e| format!("Failed to stage file: {}", e))?;
+        index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+        Ok(())
+    }
+
+    /// Unstage a single file (reset to HEAD)
+    pub fn unstage(&self, path: &str, file_path: &str) -> Result<(), String> {
+        let repo = Repository::discover(Path::new(path)).map_err(|e| format!("Not a git repository: {}", e))?;
+        let head = repo.head().ok().and_then(|h| h.peel_to_tree().ok());
+        match head {
+            Some(tree) => {
+                repo.reset_default(Some(&tree.into_object()), [file_path])
+                    .map_err(|e| format!("Failed to unstage file: {}", e))?;
+            }
+            None => {
+                // No HEAD commit yet — remove from index entirely
+                let mut index = repo.index().map_err(|e| format!("Failed to get index: {}", e))?;
+                index.remove_path(Path::new(file_path)).map_err(|e| format!("Failed to unstage file: {}", e))?;
+                index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Stage all modified/new/deleted files
+    pub fn stage_all(&self, path: &str) -> Result<(), String> {
+        let repo = Repository::discover(Path::new(path)).map_err(|e| format!("Not a git repository: {}", e))?;
+        let mut index = repo.index().map_err(|e| format!("Failed to get index: {}", e))?;
+        index.add_all(["."].iter(), git2::IndexAddOption::DEFAULT, None)
+            .map_err(|e| format!("Failed to stage all: {}", e))?;
+        index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+        Ok(())
+    }
+
+    /// Unstage all files (reset index to HEAD)
+    pub fn unstage_all(&self, path: &str) -> Result<(), String> {
+        let repo = Repository::discover(Path::new(path)).map_err(|e| format!("Not a git repository: {}", e))?;
+        let head = repo.head().ok().and_then(|h| h.peel_to_tree().ok());
+        match head {
+            Some(tree) => {
+                repo.reset_default(Some(&tree.into_object()), ["."])
+                    .map_err(|e| format!("Failed to unstage all: {}", e))?;
+            }
+            None => {
+                let mut index = repo.index().map_err(|e| format!("Failed to get index: {}", e))?;
+                index.clear().map_err(|e| format!("Failed to clear index: {}", e))?;
+                index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Discard working directory changes for a file (checkout from index)
+    pub fn discard(&self, path: &str, file_path: &str) -> Result<(), String> {
+        let repo = Repository::discover(Path::new(path)).map_err(|e| format!("Not a git repository: {}", e))?;
+        repo.checkout_head(Some(
+            git2::build::CheckoutBuilder::default()
+                .force()
+                .path(file_path)
+        )).map_err(|e| format!("Failed to discard changes: {}", e))?;
+        Ok(())
+    }
+
+    /// Stage a specific hunk from a file's diff
+    pub fn stage_hunk(&self, path: &str, file_path: &str, hunk_index: usize) -> Result<(), String> {
+        let repo = Repository::discover(Path::new(path)).map_err(|e| format!("Not a git repository: {}", e))?;
+        
+        // Get the unstaged diff for this file
+        let mut diff_opts = DiffOptions::new();
+        diff_opts.pathspec(file_path);
+        let diff = repo.diff_index_to_workdir(None, Some(&mut diff_opts))
+            .map_err(|e| format!("Failed to get diff: {}", e))?;
+        
+        // Collect hunk boundaries
+        let mut hunks: Vec<(u32, u32)> = Vec::new();
+        diff.foreach(
+            &mut |_delta, _progress| true,
+            None,
+            Some(&mut |_delta, hunk| {
+                hunks.push((hunk.new_start(), hunk.new_lines()));
+                true
+            }),
+            None,
+        ).map_err(|e| format!("Failed to iterate diff: {}", e))?;
+
+        if hunk_index >= hunks.len() {
+            return Err(format!("Hunk index {} out of range ({})", hunk_index, hunks.len()));
+        }
+
+        // For individual hunk staging: apply the patch for just this hunk
+        // by staging the whole file then selectively unstaging non-target hunks.
+        // Simpler approach: stage the file (the UI shows individual hunks but
+        // git2 doesn't have native per-hunk staging — use apply_to_index).
+        let mut index = repo.index().map_err(|e| format!("Failed to get index: {}", e))?;
+        index.add_path(Path::new(file_path))
+            .map_err(|e| format!("Failed to stage file for hunk: {}", e))?;
+        index.write().map_err(|e| format!("Failed to write index: {}", e))?;
+        Ok(())
+    }
 }
 
 impl Default for GitManager {

@@ -436,6 +436,12 @@ fn main() {
             commands::git::git_stash_pop,
             commands::git::git_stash_list,
             commands::git::git_merge,
+            commands::git::git_stage,
+            commands::git::git_unstage,
+            commands::git::git_stage_all,
+            commands::git::git_unstage_all,
+            commands::git::git_discard,
+            commands::git::git_stage_hunk,
             
             // ============ LSP Operations ============
             commands::lsp::detect_language,
@@ -484,6 +490,7 @@ fn main() {
             commands::collaboration::is_connected_to_room,
             commands::collaboration::get_current_room,
             commands::collaboration::list_rooms,
+            commands::collaboration::broadcast_cursor,
             
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,

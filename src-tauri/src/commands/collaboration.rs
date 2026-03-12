@@ -229,3 +229,37 @@ pub async fn list_rooms() -> Result<Vec<RoomInfo>, String> {
     let state = COLLAB_STATE.read().await;
     Ok(state.rooms.values().cloned().collect())
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CursorBroadcast {
+    pub line: u32,
+    pub column: u32,
+    #[serde(rename = "userId")]
+    pub user_id: Option<String>,
+    pub selection: Option<CursorSelection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CursorSelection {
+    #[serde(rename = "startLine")]
+    pub start_line: u32,
+    #[serde(rename = "startColumn")]
+    pub start_column: u32,
+    #[serde(rename = "endLine")]
+    pub end_line: u32,
+    #[serde(rename = "endColumn")]
+    pub end_column: u32,
+}
+
+#[command]
+pub async fn broadcast_cursor(room_id: String, cursor: CursorBroadcast) -> Result<(), String> {
+    let mut state = COLLAB_STATE.write().await;
+    let room = state.rooms.get_mut(&room_id).ok_or("Room not found")?;
+    // Update the user's cursor in presence
+    let user_id = cursor.user_id.as_deref().unwrap_or("local");
+    if let Some(user) = room.users.iter_mut().find(|u| u.id == user_id || u.name == user_id) {
+        user.cursor_line = Some(cursor.line);
+        user.cursor_col = Some(cursor.column);
+    }
+    Ok(())
+}
