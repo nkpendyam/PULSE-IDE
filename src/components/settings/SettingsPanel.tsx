@@ -2,11 +2,29 @@
 
 import React, { useState } from 'react';
 import { useExtendedKyroStore } from '@/store/extendedStore';
+import { useKyroStore } from '@/store/kyroStore';
 import { invoke } from '@tauri-apps/api/core';
-import { Settings, Sun, Moon, Monitor, Save, RotateCcw } from 'lucide-react';
+import { Settings, Sun, Moon, Monitor, Save, RotateCcw, Cpu, Sparkles } from 'lucide-react';
+
+// Reusable toggle switch component
+function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) {
+  return (
+    <button
+      onClick={() => onChange(!value)}
+      className={`w-12 h-6 rounded-full relative ${value ? 'bg-[#238636]' : 'bg-[#21262d]'}`}
+      aria-label={label}
+    >
+      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${value ? 'translate-x-7' : 'translate-x-1'}`} />
+    </button>
+  );
+}
 
 export function SettingsPanel() {
   const { theme, settings, updateSettings, setTheme, updateChannel, autoUpdateEnabled, setUpdateChannel } = useExtendedKyroStore();
+  const editorOptions = useKyroStore(s => s.settings.editorOptions);
+  const setEditorOptions = useKyroStore(s => s.setEditorOptions);
+  const ghostTextConfig = useKyroStore(s => s.ghostTextConfig);
+  const setGhostTextConfig = useKyroStore(s => s.setGhostTextConfig);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -124,69 +142,186 @@ export function SettingsPanel() {
             {/* Word Wrap */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-[#8b949e]">Word Wrap</label>
-              <button
-                onClick={() => updateSettings({ wordWrap: !settings.wordWrap })}
-                className={`w-12 h-6 rounded-full relative ${
-                  settings.wordWrap ? 'bg-[#238636]' : 'bg-[#21262d]'
-                }`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                    settings.wordWrap ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <Toggle value={settings.wordWrap} onChange={(v) => updateSettings({ wordWrap: v })} label="Word Wrap" />
             </div>
 
             {/* Minimap */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-[#8b949e]">Show Minimap</label>
-              <button
-                onClick={() => updateSettings({ minimap: !settings.minimap })}
-                className={`w-12 h-6 rounded-full relative ${
-                  settings.minimap ? 'bg-[#238636]' : 'bg-[#21262d]'
-                }`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                    settings.minimap ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <Toggle value={settings.minimap} onChange={(v) => updateSettings({ minimap: v })} label="Show Minimap" />
             </div>
 
             {/* Format on Save */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-[#8b949e]">Format on Save</label>
-              <button
-                onClick={() => updateSettings({ formatOnSave: !settings.formatOnSave })}
-                className={`w-12 h-6 rounded-full relative ${
-                  settings.formatOnSave ? 'bg-[#238636]' : 'bg-[#21262d]'
-                }`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                    settings.formatOnSave ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <Toggle value={settings.formatOnSave} onChange={(v) => updateSettings({ formatOnSave: v })} label="Format on Save" />
             </div>
 
             {/* Auto Save */}
             <div className="flex items-center justify-between">
               <label className="text-sm text-[#8b949e]">Auto Save</label>
-              <button
-                onClick={() => updateSettings({ autoSave: !settings.autoSave })}
-                className={`w-12 h-6 rounded-full relative ${
-                  settings.autoSave ? 'bg-[#238636]' : 'bg-[#21262d]'
-                }`}
+              <Toggle value={settings.autoSave} onChange={(v) => updateSettings({ autoSave: v })} label="Auto Save" />
+            </div>
+          </div>
+        </section>
+
+        {/* Advanced Editor */}
+        <section>
+          <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Advanced Editor</h4>
+          
+          <div className="space-y-4">
+            {/* Sticky Scroll */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Sticky Scroll</label>
+                <p className="text-[10px] text-[#484f58]">Pin scope headers at top of editor</p>
+              </div>
+              <Toggle value={editorOptions.stickyScroll} onChange={(v) => setEditorOptions({ stickyScroll: v })} label="Sticky Scroll" />
+            </div>
+
+            {/* Bracket Pair Colorization */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Bracket Colorization</label>
+                <p className="text-[10px] text-[#484f58]">Colorize matching bracket pairs</p>
+              </div>
+              <Toggle value={editorOptions.bracketPairColorization} onChange={(v) => setEditorOptions({ bracketPairColorization: v })} label="Bracket Colorization" />
+            </div>
+
+            {/* Inline Suggest */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Inline Suggestions</label>
+                <p className="text-[10px] text-[#484f58]">Show AI completions inline</p>
+              </div>
+              <Toggle value={editorOptions.inlineSuggest} onChange={(v) => setEditorOptions({ inlineSuggest: v })} label="Inline Suggest" />
+            </div>
+
+            {/* Render Whitespace */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-[#8b949e]">Render Whitespace</label>
+              <select
+                value={editorOptions.renderWhitespace}
+                onChange={(e) => setEditorOptions({ renderWhitespace: e.target.value as 'none' | 'boundary' | 'selection' | 'all' })}
+                className="w-28 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#c9d1d9] text-sm"
               >
-                <div
-                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                    settings.autoSave ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+                <option value="none">None</option>
+                <option value="boundary">Boundary</option>
+                <option value="selection">Selection</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+
+            {/* Line Numbers */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-[#8b949e]">Line Numbers</label>
+              <select
+                value={editorOptions.lineNumbers}
+                onChange={(e) => setEditorOptions({ lineNumbers: e.target.value as 'on' | 'off' | 'relative' })}
+                className="w-28 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#c9d1d9] text-sm"
+              >
+                <option value="on">On</option>
+                <option value="off">Off</option>
+                <option value="relative">Relative</option>
+              </select>
+            </div>
+
+            {/* Auto Save mode */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-[#8b949e]">Auto Save Mode</label>
+              <select
+                value={editorOptions.autoSave}
+                onChange={(e) => setEditorOptions({ autoSave: e.target.value as 'off' | 'afterDelay' | 'onFocusChange' })}
+                className="w-32 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#c9d1d9] text-sm"
+              >
+                <option value="off">Off</option>
+                <option value="afterDelay">After Delay</option>
+                <option value="onFocusChange">On Focus Change</option>
+              </select>
+            </div>
+
+            {/* Format on Save */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-[#8b949e]">Format on Save</label>
+              <Toggle value={editorOptions.formatOnSave} onChange={(v) => setEditorOptions({ formatOnSave: v })} label="Format on Save" />
+            </div>
+          </div>
+        </section>
+
+        {/* AI Settings */}
+        <section>
+          <h4 className="text-sm text-[#c9d1d9] font-medium mb-3 flex items-center gap-1.5">
+            <Sparkles size={14} className="text-[#a371f7]" /> AI / Ghost Text
+          </h4>
+          
+          <div className="space-y-4">
+            {/* Ghost Text Enabled */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Ghost Text</label>
+                <p className="text-[10px] text-[#484f58]">AI-powered inline completions</p>
+              </div>
+              <Toggle value={ghostTextConfig.enabled} onChange={(v) => setGhostTextConfig({ enabled: v })} label="Ghost Text" />
+            </div>
+
+            {/* Temperature */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Temperature</label>
+                <p className="text-[10px] text-[#484f58]">Lower = more focused, higher = more creative</p>
+              </div>
+              <input
+                type="number"
+                value={ghostTextConfig.temperature}
+                onChange={(e) => setGhostTextConfig({ temperature: Math.max(0, Math.min(2, parseFloat(e.target.value) || 0)) })}
+                min={0}
+                max={2}
+                step={0.1}
+                className="w-20 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#c9d1d9] text-sm"
+              />
+            </div>
+
+            {/* Max Tokens */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Max Tokens</label>
+                <p className="text-[10px] text-[#484f58]">Completion length limit</p>
+              </div>
+              <input
+                type="number"
+                value={ghostTextConfig.maxTokens}
+                onChange={(e) => setGhostTextConfig({ maxTokens: Math.max(10, parseInt(e.target.value) || 100) })}
+                min={10}
+                max={500}
+                step={10}
+                className="w-20 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#c9d1d9] text-sm"
+              />
+            </div>
+
+            {/* Debounce */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Debounce (ms)</label>
+                <p className="text-[10px] text-[#484f58]">Delay before triggering completion</p>
+              </div>
+              <input
+                type="number"
+                value={ghostTextConfig.debounceMs}
+                onChange={(e) => setGhostTextConfig({ debounceMs: Math.max(50, parseInt(e.target.value) || 200) })}
+                min={50}
+                max={2000}
+                step={50}
+                className="w-20 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#c9d1d9] text-sm"
+              />
+            </div>
+
+            {/* Cache */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm text-[#8b949e]">Completion Cache</label>
+                <p className="text-[10px] text-[#484f58]">Cache completions for faster repeats</p>
+              </div>
+              <Toggle value={ghostTextConfig.cacheEnabled} onChange={(v) => setGhostTextConfig({ cacheEnabled: v })} label="Cache" />
             </div>
           </div>
         </section>

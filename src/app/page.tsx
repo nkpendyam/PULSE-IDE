@@ -31,6 +31,9 @@ import { BrowserPreview } from '@/components/browser/BrowserPreview';
 import { SymbolSearch } from '@/components/search/SymbolSearch';
 import { DiffViewer } from '@/components/git/DiffViewer';
 import { InlineChat } from '@/components/chat/InlineChat';
+import { ModelSelector } from '@/components/chat/ModelSelector';
+import { TerminalAI } from '@/components/terminal/TerminalAI';
+import { ProjectRules } from '@/components/settings/ProjectRules';
 import { KeybindingManager } from '@/lib/keybindings';
 import {
   Files,
@@ -55,6 +58,7 @@ import {
   PlayCircle,
   Globe,
   Zap,
+  BookOpen,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -82,7 +86,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules';
 
 // Fallback file tree (used when Tauri is not available)
 const fallbackFileTree: FileNode = {
@@ -370,6 +374,7 @@ export default function Home() {
               { id: 'agent-stream' as SidebarPanel, icon: Zap, label: 'Agent Stream' },
               { id: 'testing' as SidebarPanel, icon: PlayCircle, label: 'Test Runner' },
               { id: 'browser' as SidebarPanel, icon: Globe, label: 'Browser Preview' },
+              { id: 'rules' as SidebarPanel, icon: BookOpen, label: 'Project Rules' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -421,6 +426,7 @@ export default function Home() {
                 {activePanel === 'agent-stream' && 'Agent Stream'}
                 {activePanel === 'testing' && 'Test Runner'}
                 {activePanel === 'browser' && 'Browser Preview'}
+                {activePanel === 'rules' && 'Project Rules'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -487,6 +493,9 @@ export default function Home() {
               {activePanel === 'browser' && (
                 <BrowserPreview />
               )}
+              {activePanel === 'rules' && (
+                <ProjectRules projectPath={useKyroStore.getState().projectPath} />
+              )}
             </div>
           </div>
 
@@ -542,6 +551,10 @@ export default function Home() {
               {/* AI Chat Sidebar */}
               {showChat && (
                 <div className="w-80 border-l border-[#30363d] flex flex-col">
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-[#161b22] border-b border-[#30363d]">
+                    <span className="text-xs font-medium text-[#8b949e]">AI Chat</span>
+                    <ModelSelector />
+                  </div>
                   <AIChatSidebar />
                 </div>
               )}
@@ -549,6 +562,17 @@ export default function Home() {
 
             {/* Terminal Panel */}
             <div className="h-40 border-t border-[#30363d]">
+              <TerminalAI
+                terminalOutput={useKyroStore.getState().terminalOutput}
+                onSendToChat={(msg) => {
+                  useKyroStore.getState().addChatMessage({
+                    id: `msg-${Date.now()}`,
+                    role: 'user',
+                    content: msg,
+                    timestamp: new Date(),
+                  });
+                }}
+              />
               <TerminalPanel />
             </div>
           </div>

@@ -198,6 +198,30 @@ interface KyroState {
   
   // Ghost text state
   ghostTextCompletion: GhostTextCompletion | null;
+
+  // Autopilot state
+  autopilotMode: 'default' | 'yolo' | 'autopilot';
+  isAgentRunning: boolean;
+  
+  // Checkpoints state
+  checkpoints: Array<{
+    id: string;
+    label: string;
+    timestamp: number;
+    messageIndex: number;
+    fileSnapshots: Record<string, string>;
+    description: string;
+    isAutomatic: boolean;
+  }>;
+  
+  // Project rules
+  projectRules: Array<{
+    id: string;
+    name: string;
+    content: string;
+    enabled: boolean;
+    source: string;
+  }>;
   ghostTextCacheStats: GhostTextCacheStats;
   ghostTextConfig: GhostTextConfig;
   isGhostTextProcessing: boolean;
@@ -268,6 +292,19 @@ interface KyroState {
   // Minimap actions
   setMinimapVisible: (visible: boolean) => void;
   setMinimapScale: (scale: number) => void;
+  
+  // Autopilot actions
+  setAutopilotMode: (mode: 'default' | 'yolo' | 'autopilot') => void;
+  setAgentRunning: (running: boolean) => void;
+  
+  // Checkpoint actions
+  addCheckpoint: (checkpoint: KyroState['checkpoints'][0]) => void;
+  removeCheckpoint: (id: string) => void;
+  clearCheckpoints: () => void;
+  
+  // Project rules actions
+  setProjectRules: (rules: KyroState['projectRules']) => void;
+  updateProjectRule: (id: string, updates: Partial<KyroState['projectRules'][0]>) => void;
 }
 
 export const useKyroStore = create<KyroState>((set, get) => ({
@@ -344,6 +381,16 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   // Minimap initial state
   minimapVisible: true,
   minimapScale: 1,
+  
+  // Autopilot initial state
+  autopilotMode: 'default',
+  isAgentRunning: false,
+  
+  // Checkpoints initial state
+  checkpoints: [],
+  
+  // Project rules initial state
+  projectRules: [],
   
   setProjectPath: (path) => set({ projectPath: path }), setFileTree: (tree) => set({ fileTree: tree }),
   openFile: (file) => {
@@ -564,4 +611,25 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   setMinimapVisible: (visible) => set({ minimapVisible: visible }),
   
   setMinimapScale: (scale) => set({ minimapScale: scale }),
+  
+  // Autopilot actions
+  setAutopilotMode: (mode) => set({ autopilotMode: mode }),
+  setAgentRunning: (running) => set({ isAgentRunning: running }),
+  
+  // Checkpoint actions
+  addCheckpoint: (checkpoint) => set(state => ({
+    checkpoints: [...state.checkpoints, checkpoint]
+  })),
+  removeCheckpoint: (id) => set(state => ({
+    checkpoints: state.checkpoints.filter(c => c.id !== id)
+  })),
+  clearCheckpoints: () => set({ checkpoints: [] }),
+  
+  // Project rules actions
+  setProjectRules: (rules) => set({ projectRules: rules }),
+  updateProjectRule: (id, updates) => set(state => ({
+    projectRules: state.projectRules.map(r =>
+      r.id === id ? { ...r, ...updates } : r
+    )
+  })),
 }));
