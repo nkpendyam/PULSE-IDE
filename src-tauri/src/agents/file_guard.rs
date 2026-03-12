@@ -46,6 +46,7 @@ pub const FORBIDDEN_PATHS: &[&str] = &[
     "*.lock",
     "*.log",
     "worklog.md",
+    "docs/status/worklog.md",
     "AGENT_MEMORY.json",
     "kyro-status.json",
     "PROJECT_STATUS.md",

@@ -108,7 +108,7 @@
 | GAP_ANALYSIS.md | Gap analysis | ✅ Complete |
 | OPEN_SOURCE_INTEGRATION.md | Dependencies | ✅ Complete |
 | V0_RELEASE_STATUS.md | This status report | ✅ Complete |
-| worklog.md | Development history | ✅ Complete |
+| docs/status/worklog.md | Development history | ✅ Complete |
 | openapi.yaml | API specification | ✅ Complete |
 | docs/SECURITY_AUDIT.md | Security audit report | ✅ Complete |
 | docs/USER_GUIDE.md | User documentation | ✅ Complete |

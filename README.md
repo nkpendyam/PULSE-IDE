@@ -39,7 +39,7 @@ cd src-tauri
 cargo build
 ```
 
-See [ROADMAP.md](ROADMAP.md) for version goals and [docs/KYRO_IDE_2026_ENGINEERING_PLAN.md](docs/KYRO_IDE_2026_ENGINEERING_PLAN.md) for the full 2026 engineering plan (VS Code/Antigravity comparison, stages, and open-source stack).
+See [docs/status/ROADMAP.md](docs/status/ROADMAP.md) for version goals and [docs/KYRO_IDE_2026_ENGINEERING_PLAN.md](docs/KYRO_IDE_2026_ENGINEERING_PLAN.md) for the full 2026 engineering plan (VS Code/Antigravity comparison, stages, and open-source stack).
 
 ## Repository
 
