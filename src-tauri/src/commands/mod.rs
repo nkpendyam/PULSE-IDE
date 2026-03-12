@@ -87,5 +87,17 @@ pub mod search;
 // ============ Debug Operations ============
 pub mod debug;
 
+// ============ Settings Persistence ============
+pub mod settings;
+
+// ============ Project Config ============
+pub mod project_config;
+
+// ============ Model Download ============
+pub mod model_download;
+
+// ============ Test Runner ============
+pub mod testing;
+
 // ============ RepoWiki Operations ============
 pub mod repowiki;

@@ -8,6 +8,7 @@ pub mod retriever;
 pub mod vector_store;
 pub mod embeddings;
 pub mod file_watcher;
+pub mod graph_rag;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

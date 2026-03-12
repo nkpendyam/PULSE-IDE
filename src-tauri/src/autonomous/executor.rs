@@ -57,15 +57,74 @@ impl Executor {
             };
         }
 
-        // Extremely simplified tool execution stub routing
         let result = match tool_name.as_str() {
             "read_file" | "ast_prune" => {
                 let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or("");
                 access_resource(&ExternalResource::File(path.to_string())).await
             },
+            "write_file" => {
+                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let content = step.tool_args.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                if path.is_empty() {
+                    ResourceResult {
+                        resource: ExternalResource::File(path.to_string()),
+                        success: false,
+                        data: None,
+                        error: Some("write_file: path is required".to_string()),
+                    }
+                } else if path.contains("..") {
+                    ResourceResult {
+                        resource: ExternalResource::File(path.to_string()),
+                        success: false,
+                        data: None,
+                        error: Some("write_file: path traversal forbidden".to_string()),
+                    }
+                } else {
+                    match std::fs::write(path, content) {
+                        Ok(_) => ResourceResult {
+                            resource: ExternalResource::File(path.to_string()),
+                            success: true,
+                            data: Some(format!("Wrote {} bytes to {}", content.len(), path)),
+                            error: None,
+                        },
+                        Err(e) => ResourceResult {
+                            resource: ExternalResource::File(path.to_string()),
+                            success: false,
+                            data: None,
+                            error: Some(format!("write_file error: {}", e)),
+                        },
+                    }
+                }
+            },
             "run_terminal" => {
                 let cmd = step.tool_args.get("command").and_then(|v| v.as_str()).unwrap_or("");
                 access_resource(&ExternalResource::Tool(format!("terminal:{}", cmd))).await
+            },
+            "list_dir" => {
+                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+                match std::fs::read_dir(path) {
+                    Ok(entries) => {
+                        let listing: Vec<String> = entries
+                            .filter_map(|e| e.ok())
+                            .map(|e| {
+                                let name = e.file_name().to_string_lossy().to_string();
+                                if e.path().is_dir() { format!("{}/", name) } else { name }
+                            })
+                            .collect();
+                        ResourceResult {
+                            resource: ExternalResource::File(path.to_string()),
+                            success: true,
+                            data: Some(listing.join("\n")),
+                            error: None,
+                        }
+                    }
+                    Err(e) => ResourceResult {
+                        resource: ExternalResource::File(path.to_string()),
+                        success: false,
+                        data: None,
+                        error: Some(format!("list_dir error: {}", e)),
+                    },
+                }
             },
             _ => {
                 ResourceResult {
@@ -89,9 +148,12 @@ impl Executor {
 
 impl Default for Executor {
     fn default() -> Self { 
-        Self::new(vec!["read_file".to_string(), "ast_prune".to_string(), "run_terminal".to_string(), "write_file".to_string()])
+        Self::new(vec![
+            "read_file".to_string(),
+            "write_file".to_string(),
+            "list_dir".to_string(),
+            "ast_prune".to_string(),
+            "run_terminal".to_string(),
+        ])
     }
 }
-
-
-

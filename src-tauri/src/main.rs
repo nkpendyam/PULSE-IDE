@@ -718,6 +718,29 @@ fn main() {
             commands::debug::debug_set_breakpoint_condition,
             commands::debug::debug_evaluate,
             
+            // ============ Settings Persistence ============
+            commands::settings::get_settings,
+            commands::settings::set_setting,
+            commands::settings::reset_settings,
+            commands::settings::export_settings,
+            commands::settings::import_settings,
+            commands::settings::is_first_run,
+            
+            // ============ Project Config ============
+            commands::project_config::init_project_config,
+            commands::project_config::get_project_config,
+            commands::project_config::set_project_config,
+            
+            // ============ Model Download ============
+            commands::model_download::list_available_models,
+            commands::model_download::download_model,
+            commands::model_download::delete_model,
+            commands::model_download::get_download_status,
+            
+            // ============ Test Runner ============
+            commands::testing::detect_test_framework,
+            commands::testing::run_tests,
+            
             // ============ RepoWiki Operations ============
             commands::repowiki::repowiki_init,
             commands::repowiki::repowiki_generate,
