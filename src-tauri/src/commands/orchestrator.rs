@@ -1,8 +1,8 @@
 //! Kyro Orchestrator Tauri Commands
 //!
-//! Exposes mission control, model listing, and agent control to the frontend.
+//! Exposes mission control, model listing, agent control, and Quest mode to the frontend.
 
-use crate::orchestrator::{KyroOrchestrator, Mission, MissionPhase, OrchestratorConfig};
+use crate::orchestrator::{KyroOrchestrator, Mission, MissionPhase, OrchestratorConfig, QuestState};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
@@ -72,4 +72,38 @@ pub async fn orchestrator_update_mission_phase(
 pub async fn orchestrator_get_config(state: State<'_, OrchestratorState>) -> Result<OrchestratorConfig, String> {
     let orchestrator = state.0.read().await;
     Ok(orchestrator.config().clone())
+}
+
+// ============ Quest Mode Commands ============
+
+/// Start a quest: spec → planner produces checklist
+#[tauri::command]
+pub async fn quest_start(
+    state: State<'_, OrchestratorState>,
+    spec: String,
+    project_path: String,
+) -> Result<QuestState, String> {
+    let orchestrator = state.0.write().await;
+    orchestrator.start_quest(spec, project_path).await
+}
+
+/// Execute all pending steps in a quest (coder → reviewer → tester)
+#[tauri::command]
+pub async fn quest_execute(
+    state: State<'_, OrchestratorState>,
+    mission_id: String,
+    project_path: String,
+) -> Result<QuestState, String> {
+    let orchestrator = state.0.write().await;
+    orchestrator.execute_quest(&mission_id, &project_path).await
+}
+
+/// Get quest state
+#[tauri::command]
+pub async fn quest_get_status(
+    state: State<'_, OrchestratorState>,
+    mission_id: String,
+) -> Result<Option<QuestState>, String> {
+    let orchestrator = state.0.read().await;
+    Ok(orchestrator.get_quest(&mission_id).await)
 }

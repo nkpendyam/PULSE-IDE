@@ -113,3 +113,6 @@ pub mod aot;
 
 // ============ Orchestrator (Mission Control) ============
 pub mod orchestrator;
+
+// ============ Learning Flywheel (Feedback DB) ============
+pub mod feedback;

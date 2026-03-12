@@ -12,6 +12,7 @@ pub mod kv_cache;
 pub mod p2p_swarm;
 pub mod model_registry;
 pub mod agents;
+pub mod router;
 
 pub use local_inference::LocalInferenceEngine;
 pub use speculative_decoder::SpeculativeDecoder;
@@ -19,6 +20,7 @@ pub use kv_cache::KVCache;
 pub use p2p_swarm::P2PSwarm;
 pub use model_registry::ModelRegistry;
 pub use agents::AgentOrchestrator;
+pub use router::ModelRouter;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

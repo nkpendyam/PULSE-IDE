@@ -7,6 +7,7 @@ pub mod embedder;
 pub mod retriever;
 pub mod vector_store;
 pub mod embeddings;
+pub mod file_watcher;
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -149,7 +150,7 @@ impl RAGManager {
     }
     
     /// Index a single file
-    async fn index_file(&mut self, path: &std::path::Path) -> Result<usize> {
+    pub async fn index_file(&mut self, path: &std::path::Path) -> Result<usize> {
         let content = std::fs::read_to_string(path)?;
         let language = self.detect_language(path);
         
@@ -190,32 +191,173 @@ impl RAGManager {
         false
     }
     
-    /// Split code into chunks
+    /// Split code into AST-aware chunks using tree-sitter.
+    /// Extracts functions, classes, impl blocks, and struct definitions as individual chunks.
+    /// Falls back to line-based chunking for unsupported languages.
     fn chunk_code(&self, content: &str, file_path: String, language: &str) -> Vec<CodeChunk> {
-        let lines: Vec<&str> = content.lines().collect();
+        // Try AST-aware chunking first
+        if let Some(chunks) = self.ast_chunk(content, &file_path, language) {
+            if !chunks.is_empty() {
+                return chunks;
+            }
+        }
+        // Fallback: line-based chunking with overlap
+        self.line_chunk(content, file_path, language)
+    }
+
+    /// AST-aware chunking via tree-sitter
+    fn ast_chunk(&self, content: &str, file_path: &str, language: &str) -> Option<Vec<CodeChunk>> {
+        let ts_lang = match language {
+            "rust"       => tree_sitter_rust::LANGUAGE,
+            "typescript" => tree_sitter_typescript::LANGUAGE_TYPESCRIPT,
+            "javascript" => tree_sitter_typescript::LANGUAGE_TSX,
+            "python"     => tree_sitter_python::LANGUAGE,
+            "go"         => tree_sitter_go::LANGUAGE,
+            "java"       => tree_sitter_java::LANGUAGE,
+            "c"          => tree_sitter_c::LANGUAGE,
+            "cpp"        => tree_sitter_cpp::LANGUAGE,
+            _            => return None,
+        };
+
+        let mut parser = tree_sitter::Parser::new();
+        parser.set_language(&ts_lang.into()).ok()?;
+        let tree = parser.parse(content, None)?;
+        let root = tree.root_node();
+        let bytes = content.as_bytes();
         let mut chunks = Vec::new();
-        
-        // Simple line-based chunking (would use AST-aware chunking in production)
-        for (i, chunk_lines) in lines.chunks(self.config.chunk_size).enumerate() {
-            let start_line = i * self.config.chunk_size;
-            let end_line = start_line + chunk_lines.len();
-            
-            let chunk_content = chunk_lines.join("\n");
-            let id = format!("{}:{}:{}", file_path, start_line, end_line);
-            
+
+        // Node kinds that represent top-level semantic units per language
+        let semantic_kinds: &[&str] = match language {
+            "rust"       => &["function_item", "impl_item", "struct_item", "enum_item", "trait_item", "mod_item", "macro_definition"],
+            "typescript" | "javascript" => &["function_declaration", "class_declaration", "lexical_declaration", "export_statement", "interface_declaration", "type_alias_declaration"],
+            "python"     => &["function_definition", "class_definition", "decorated_definition"],
+            "go"         => &["function_declaration", "method_declaration", "type_declaration"],
+            "java"       => &["class_declaration", "method_declaration", "interface_declaration", "enum_declaration"],
+            "c" | "cpp"  => &["function_definition", "struct_specifier", "class_specifier", "enum_specifier"],
+            _            => &[],
+        };
+
+        self.collect_semantic_nodes(root, bytes, file_path, language, semantic_kinds, &mut chunks);
+
+        // If file has content outside semantic chunks (imports, top-level statements), add them
+        if chunks.is_empty() {
+            return None; // fall back to line-based
+        }
+
+        Some(chunks)
+    }
+
+    /// Recursively collect semantic AST nodes as chunks
+    fn collect_semantic_nodes(
+        &self,
+        node: tree_sitter::Node,
+        source: &[u8],
+        file_path: &str,
+        language: &str,
+        semantic_kinds: &[&str],
+        chunks: &mut Vec<CodeChunk>,
+    ) {
+        let kind = node.kind();
+        if semantic_kinds.contains(&kind) {
+            let start_line = node.start_position().row;
+            let end_line = node.end_position().row;
+            let node_text = &source[node.start_byte()..node.end_byte()];
+            let content = String::from_utf8_lossy(node_text).to_string();
+
+            // Extract symbol name from first named child (usually the identifier)
+            let symbol_name = self.extract_symbol_name(node, source);
+            let symbol_type = match kind {
+                k if k.contains("function") || k.contains("method") => Some("function".to_string()),
+                k if k.contains("class") => Some("class".to_string()),
+                k if k.contains("struct") || k.contains("interface") => Some("struct".to_string()),
+                k if k.contains("enum") => Some("enum".to_string()),
+                k if k.contains("impl") => Some("impl".to_string()),
+                k if k.contains("trait") => Some("trait".to_string()),
+                k if k.contains("mod") => Some("module".to_string()),
+                _ => Some(kind.to_string()),
+            };
+
+            let id = format!("{}:{}:{}:{}", file_path, start_line, end_line,
+                             symbol_name.as_deref().unwrap_or("anon"));
+
+            // If chunk exceeds max size, split it
+            if content.lines().count() > self.config.chunk_size * 2 {
+                let sub_chunks = self.line_chunk(&content, file_path.to_string(), language);
+                for mut sc in sub_chunks {
+                    sc.start_line += start_line;
+                    sc.end_line += start_line;
+                    sc.symbol_type = symbol_type.clone();
+                    sc.symbol_name = symbol_name.clone();
+                    chunks.push(sc);
+                }
+            } else {
+                chunks.push(CodeChunk {
+                    id,
+                    file_path: file_path.to_string(),
+                    start_line,
+                    end_line,
+                    content,
+                    language: language.to_string(),
+                    symbol_type,
+                    symbol_name,
+                    embedding: None,
+                });
+            }
+            return; // don't recurse into children of a captured node
+        }
+
+        // Recurse into children
+        let child_count = node.child_count();
+        for i in 0..child_count {
+            if let Some(child) = node.child(i) {
+                self.collect_semantic_nodes(child, source, file_path, language, semantic_kinds, chunks);
+            }
+        }
+    }
+
+    /// Extract symbol name from an AST node (looks for identifier / name child)
+    fn extract_symbol_name(&self, node: tree_sitter::Node, source: &[u8]) -> Option<String> {
+        for i in 0..node.named_child_count() {
+            if let Some(child) = node.named_child(i) {
+                let kind = child.kind();
+                if kind == "identifier" || kind == "name" || kind == "type_identifier" || kind == "property_identifier" {
+                    let text = &source[child.start_byte()..child.end_byte()];
+                    return Some(String::from_utf8_lossy(text).to_string());
+                }
+            }
+        }
+        None
+    }
+
+    /// Line-based chunking fallback with overlap
+    fn line_chunk(&self, content: &str, file_path: String, language: &str) -> Vec<CodeChunk> {
+        let lines: Vec<&str> = content.lines().collect();
+        let chunk_size = self.config.chunk_size;
+        let overlap = self.config.chunk_overlap;
+        let mut chunks = Vec::new();
+        let mut start = 0usize;
+
+        while start < lines.len() {
+            let end = (start + chunk_size).min(lines.len());
+            let chunk_content = lines[start..end].join("\n");
+            let id = format!("{}:{}:{}", file_path, start, end);
+
             chunks.push(CodeChunk {
                 id,
                 file_path: file_path.clone(),
-                start_line,
-                end_line,
+                start_line: start,
+                end_line: end,
                 content: chunk_content,
                 language: language.to_string(),
                 symbol_type: None,
                 symbol_name: None,
                 embedding: None,
             });
+
+            if end >= lines.len() { break; }
+            start = end.saturating_sub(overlap);
         }
-        
+
         chunks
     }
     
@@ -240,12 +382,64 @@ impl RAGManager {
             .to_string()
     }
     
-    /// Generate embedding for text
+    /// Generate embedding for text via Ollama /api/embeddings
     async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
-        // In production, this would call a local embedding model
-        // For now, return a dummy embedding
-        let dim = 384; // nomic-embed-text dimension
-        Ok(vec![0.0; dim])
+        let client = reqwest::Client::new();
+        let body = serde_json::json!({
+            "model": self.config.embedding_model,
+            "prompt": text,
+        });
+
+        let resp = client
+            .post("http://localhost:11434/api/embeddings")
+            .json(&body)
+            .send()
+            .await;
+
+        match resp {
+            Ok(r) if r.status().is_success() => {
+                #[derive(Deserialize)]
+                struct EmbeddingResponse {
+                    embedding: Vec<f32>,
+                }
+                let parsed: EmbeddingResponse = r.json().await
+                    .context("Failed to parse Ollama embedding response")?;
+                Ok(parsed.embedding)
+            }
+            Ok(r) => {
+                log::warn!("Ollama embeddings returned {}, falling back to hash-based", r.status());
+                Ok(self.hash_embedding(text))
+            }
+            Err(e) => {
+                log::warn!("Ollama not reachable ({}), falling back to hash-based embedding", e);
+                Ok(self.hash_embedding(text))
+            }
+        }
+    }
+
+    /// Deterministic hash-based embedding fallback (when Ollama is unavailable)
+    fn hash_embedding(&self, text: &str) -> Vec<f32> {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let dim = 384;
+        let mut embedding = vec![0.0f32; dim];
+        // Produce a crude but deterministic vector from token trigrams
+        for (i, word) in text.split_whitespace().enumerate() {
+            let mut hasher = DefaultHasher::new();
+            word.to_lowercase().hash(&mut hasher);
+            let h = hasher.finish();
+            let idx = (h as usize) % dim;
+            embedding[idx] += 1.0;
+            // Cross-dim spread
+            embedding[(idx + 1) % dim] += 0.5;
+            embedding[(idx.wrapping_sub(1)) % dim] += 0.5;
+        }
+        // L2-normalize
+        let mag: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if mag > 0.0 {
+            for v in &mut embedding { *v /= mag; }
+        }
+        embedding
     }
     
     /// Search for similar code

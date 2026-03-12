@@ -328,3 +328,57 @@ pub async fn send_agent_message(from: String, to: String, message: String) -> Re
     });
     Ok(())
 }
+
+// ==================== Multi-Model Router Commands ====================
+
+use crate::swarm_ai::router::{ModelEndpoint, ModelRouter, RouterConfig, TaskKind};
+
+lazy_static::lazy_static! {
+    static ref ROUTER: Arc<RwLock<ModelRouter>> = Arc::new(RwLock::new(ModelRouter::new()));
+}
+
+#[command]
+pub async fn router_route(task: TaskKind) -> Result<Option<ModelEndpoint>, String> {
+    let router = ROUTER.read().await;
+    Ok(router.route(task).await)
+}
+
+#[command]
+pub async fn router_register_endpoint(endpoint: ModelEndpoint) -> Result<(), String> {
+    let router = ROUTER.read().await;
+    router.register(endpoint).await;
+    Ok(())
+}
+
+#[command]
+pub async fn router_unregister_endpoint(id: String) -> Result<(), String> {
+    let router = ROUTER.read().await;
+    router.unregister(&id).await;
+    Ok(())
+}
+
+#[command]
+pub async fn router_list_endpoints() -> Result<Vec<ModelEndpoint>, String> {
+    let router = ROUTER.read().await;
+    Ok(router.list_endpoints().await)
+}
+
+#[command]
+pub async fn router_refresh_health() -> Result<Vec<ModelEndpoint>, String> {
+    let router = ROUTER.read().await;
+    router.refresh_health().await;
+    Ok(router.list_endpoints().await)
+}
+
+#[command]
+pub async fn router_get_config() -> Result<RouterConfig, String> {
+    let router = ROUTER.read().await;
+    Ok(router.get_config().await)
+}
+
+#[command]
+pub async fn router_set_config(config: RouterConfig) -> Result<(), String> {
+    let router = ROUTER.read().await;
+    router.set_config(config).await;
+    Ok(())
+}

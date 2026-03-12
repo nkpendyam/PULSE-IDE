@@ -1,11 +1,15 @@
 //! MCP Transport Layer for KRO_IDE
 //!
-//! Provides transport implementations for MCP communication
+//! Provides transport implementations for MCP communication.
+//! StdioTransport spawns a subprocess and communicates via
+//! Content-Length framed JSON-RPC over stdin/stdout.
 
 use anyhow::Result;
 use async_trait::async_trait;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::process::{Child, Command};
+use tokio::sync::RwLock;
 use serde_json::Value;
 
 /// Transport trait for MCP communication
@@ -21,20 +25,100 @@ pub trait Transport: Send + Sync {
     async fn close(&self) -> Result<()>;
 }
 
-/// Stdio transport for local MCP servers
+/// Stdio transport for local MCP servers.
+///
+/// Spawns a child process (e.g. `npx @modelcontextprotocol/server-xyz`)
+/// and communicates via Content-Length–framed JSON-RPC on stdin/stdout.
 pub struct StdioTransport {
-    stdin_tx: mpsc::Sender<String>,
-    stdout_rx: mpsc::Receiver<String>,
+    child: Arc<RwLock<Option<Child>>>,
+    stdin_tx: tokio::sync::mpsc::Sender<String>,
+    stdout_rx: Arc<tokio::sync::Mutex<tokio::sync::mpsc::Receiver<String>>>,
 }
 
 impl StdioTransport {
-    pub fn new() -> Self {
-        let (stdin_tx, _stdin_rx) = mpsc::channel(100);
-        let (_stdout_tx, stdout_rx) = mpsc::channel(100);
+    /// Spawn a new MCP server process.
+    /// `command` is the executable, `args` are its arguments.
+    pub fn spawn(command: &str, args: &[&str]) -> Result<Self> {
+        let mut child = Command::new(command)
+            .args(args)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .kill_on_drop(true)
+            .spawn()?;
 
-        Self {
+        let stdin = child.stdin.take().ok_or_else(|| anyhow::anyhow!("No stdin"))?;
+        let stdout = child.stdout.take().ok_or_else(|| anyhow::anyhow!("No stdout"))?;
+
+        let (stdin_tx, mut stdin_rx) = tokio::sync::mpsc::channel::<String>(64);
+        let (stdout_tx, stdout_rx) = tokio::sync::mpsc::channel::<String>(64);
+
+        // Writer task: reads from channel, writes Content-Length framed messages to stdin
+        tokio::spawn(async move {
+            let mut stdin = stdin;
+            while let Some(msg) = stdin_rx.recv().await {
+                let header = format!("Content-Length: {}\r\n\r\n", msg.len());
+                if stdin.write_all(header.as_bytes()).await.is_err() { break; }
+                if stdin.write_all(msg.as_bytes()).await.is_err() { break; }
+                if stdin.flush().await.is_err() { break; }
+            }
+        });
+
+        // Reader task: reads Content-Length framed messages from stdout
+        tokio::spawn(async move {
+            let mut reader = BufReader::new(stdout);
+            loop {
+                // Read headers until empty line
+                let mut content_length: Option<usize> = None;
+                loop {
+                    let mut header_line = String::new();
+                    match reader.read_line(&mut header_line).await {
+                        Ok(0) => return, // EOF
+                        Err(_) => return,
+                        Ok(_) => {}
+                    }
+                    let trimmed = header_line.trim();
+                    if trimmed.is_empty() {
+                        break; // end of headers
+                    }
+                    if let Some(val) = trimmed.strip_prefix("Content-Length:") {
+                        if let Ok(len) = val.trim().parse::<usize>() {
+                            content_length = Some(len);
+                        }
+                    }
+                }
+                let len = match content_length {
+                    Some(l) => l,
+                    None => continue,
+                };
+                // Read exactly `len` bytes of body
+                let mut body = vec![0u8; len];
+                if tokio::io::AsyncReadExt::read_exact(&mut reader, &mut body).await.is_err() {
+                    return;
+                }
+                if let Ok(s) = String::from_utf8(body) {
+                    if stdout_tx.send(s).await.is_err() {
+                        return;
+                    }
+                }
+            }
+        });
+
+        Ok(Self {
+            child: Arc::new(RwLock::new(Some(child))),
             stdin_tx,
-            stdout_rx,
+            stdout_rx: Arc::new(tokio::sync::Mutex::new(stdout_rx)),
+        })
+    }
+
+    /// Create a no-op transport (for testing)
+    pub fn new() -> Self {
+        let (stdin_tx, _) = tokio::sync::mpsc::channel(1);
+        let (_, stdout_rx) = tokio::sync::mpsc::channel(1);
+        Self {
+            child: Arc::new(RwLock::new(None)),
+            stdin_tx,
+            stdout_rx: Arc::new(tokio::sync::Mutex::new(stdout_rx)),
         }
     }
 }
@@ -42,17 +126,27 @@ impl StdioTransport {
 #[async_trait]
 impl Transport for StdioTransport {
     async fn send(&self, message: &Value) -> Result<()> {
-        let line = serde_json::to_string(message)?;
-        self.stdin_tx.send(line).await?;
-        Ok(())
+        let json = serde_json::to_string(message)?;
+        self.stdin_tx.send(json).await
+            .map_err(|e| anyhow::anyhow!("Failed to send to stdin: {}", e))
     }
 
     async fn recv(&self) -> Result<Option<Value>> {
-        // In production, this would read from stdout
-        Ok(None)
+        let mut rx = self.stdout_rx.lock().await;
+        match rx.recv().await {
+            Some(s) => {
+                let val: Value = serde_json::from_str(&s)?;
+                Ok(Some(val))
+            }
+            None => Ok(None),
+        }
     }
 
     async fn close(&self) -> Result<()> {
+        let mut child_opt = self.child.write().await;
+        if let Some(mut child) = child_opt.take() {
+            let _ = child.kill().await;
+        }
         Ok(())
     }
 }
@@ -89,7 +183,7 @@ impl Transport for SseTransport {
     }
 
     async fn recv(&self) -> Result<Option<Value>> {
-        // SSE receives via event stream
+        // SSE receives via event stream — not implemented yet
         Ok(None)
     }
 
@@ -113,7 +207,6 @@ impl WebSocketTransport {
     }
 
     pub async fn connect(&self) -> Result<()> {
-        // In production, would establish WebSocket connection
         let mut connected = self.connected.write().await;
         *connected = true;
         Ok(())
@@ -126,8 +219,6 @@ impl Transport for WebSocketTransport {
         if !*self.connected.read().await {
             anyhow::bail!("WebSocket not connected");
         }
-
-        // In production, would send via WebSocket
         let _ = message;
         Ok(())
     }
@@ -136,8 +227,6 @@ impl Transport for WebSocketTransport {
         if !*self.connected.read().await {
             return Ok(None);
         }
-
-        // In production, would receive via WebSocket
         Ok(None)
     }
 

@@ -78,6 +78,9 @@ pub use crate::aot::commands as aot_commands;
 // ============ Orchestrator (Mission Control) ============
 pub mod orchestrator;
 
+// ============ Feedback / Learning Flywheel ============
+pub mod feedback;
+
 // ============ Search Operations ============
 pub mod search;
 

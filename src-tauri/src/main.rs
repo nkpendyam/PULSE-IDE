@@ -99,6 +99,9 @@ mod aot;
 // ============ Orchestrator (Mission Control) ============
 mod orchestrator;
 
+// ============ Learning Flywheel (Feedback DB) ============
+mod feedback;
+
 // ============ Extension System (Open VSX) ============
 mod extensions;
 
@@ -534,6 +537,15 @@ fn main() {
             commands::swarm::delete_swarm_agent,
             commands::swarm::send_agent_message,
             
+            // ============ Multi-Model Router ============
+            commands::swarm::router_route,
+            commands::swarm::router_register_endpoint,
+            commands::swarm::router_unregister_endpoint,
+            commands::swarm::router_list_endpoints,
+            commands::swarm::router_refresh_health,
+            commands::swarm::router_get_config,
+            commands::swarm::router_set_config,
+            
             // ============ Plugin Operations ============
             commands::plugin::list_plugins,
             commands::plugin::install_plugin,
@@ -627,6 +639,17 @@ fn main() {
             commands::orchestrator::orchestrator_list_missions,
             commands::orchestrator::orchestrator_update_mission_phase,
             commands::orchestrator::orchestrator_get_config,
+            commands::orchestrator::quest_start,
+            commands::orchestrator::quest_execute,
+            commands::orchestrator::quest_get_status,
+            
+            // ============ Feedback / Learning Flywheel ============
+            commands::feedback::feedback_log_suggestion,
+            commands::feedback::feedback_accept,
+            commands::feedback::feedback_reject,
+            commands::feedback::feedback_correct,
+            commands::feedback::feedback_stats,
+            commands::feedback::feedback_recent,
             
             // ============ AoT Reasoning Operations ============
             commands::aot::aot_decompose,
