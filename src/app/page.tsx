@@ -131,8 +131,11 @@ export default function Home() {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
 
   const {
+    projectPath,
+    fileTree,
     openFiles,
     activeFileIndex,
+    setProjectPath,
     setFileTree,
     openFile,
     setEditorContent,
@@ -150,10 +153,12 @@ export default function Home() {
   // Initialize: try Tauri file tree, fall back to mock data
   React.useEffect(() => {
     async function loadInitialTree() {
+      setProjectPath('.');
       if (typeof window !== 'undefined' && window.__TAURI__) {
         try {
           const tree = await window.__TAURI__.core.invoke<FileNode>('get_file_tree', { path: '.', maxDepth: 5 });
           setFileTree(tree);
+          setProjectPath(tree.path || '.');
           return;
         } catch {
           // Tauri not available, use mock
@@ -187,9 +192,10 @@ export default function Home() {
     return () => {
       cleanupWatcher?.();
     };
-  }, [setFileTree, setGitStatus]);
+  }, [setFileTree, setGitStatus, setProjectPath]);
 
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+  const activeTree = fileTree || fallbackFileTree;
 
   const handleSaveFile = useCallback(async () => {
     if (!currentFile) return;
@@ -504,7 +510,7 @@ export default function Home() {
           <span className="text-sm font-semibold bg-linear-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
             Kyro IDE
           </span>
-          <span className="text-xs text-[#8b949e]">/ kyro-project</span>
+          <span className="text-xs text-[#8b949e]">{projectPath || '/ kyro-project'}</span>
         </div>
 
         <div className="flex items-center gap-2 bg-[#0d1117] rounded-lg p-1">
@@ -630,9 +636,9 @@ export default function Home() {
                   <div className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#8b949e]">
                     <ChevronDown size={12} />
                     <Folder size={12} className="text-[#54aeff]" />
-                    <span>KYRO-PROJECT</span>
+                    <span>{activeTree.name?.toUpperCase() || 'PROJECT'}</span>
                   </div>
-                  {fallbackFileTree.children?.map((child) => (
+                  {activeTree.children?.map((child) => (
                     <FileTree 
                       key={`${child.path}-${fileTreeKey}`} 
                       node={child} 
@@ -647,7 +653,7 @@ export default function Home() {
                 <GlobalSearch isOpen={true} onClose={() => setActivePanel('explorer')} />
               )}
               {activePanel === 'git' && (
-                <GitStagingPanel projectPath="/kyro-project" onFileSelect={handleFileClick} />
+                <GitStagingPanel projectPath={projectPath || '.'} onFileSelect={handleFileClick} />
               )}
               {activePanel === 'debug' && (
                 <DebugPanel />
@@ -689,7 +695,7 @@ export default function Home() {
                 <BrowserPreview />
               )}
               {activePanel === 'rules' && (
-                <ProjectRules projectPath={useKyroStore.getState().projectPath} />
+                <ProjectRules projectPath={projectPath} />
               )}
               {activePanel === 'autopilot' && (
                 <AgentAutopilotPanel
@@ -700,7 +706,7 @@ export default function Home() {
                 />
               )}
               {activePanel === 'remote' && (
-                <RemoteDevContainers projectPath={useKyroStore.getState().projectPath || '.'} />
+                <RemoteDevContainers projectPath={projectPath || '.'} />
               )}
             </div>
           </div>
