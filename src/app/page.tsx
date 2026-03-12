@@ -39,6 +39,7 @@ import { AgentAutopilotPanel } from '@/components/agents/AgentAutopilotPanel';
 import { ConversationCheckpoints, Checkpoint } from '@/components/chat/ConversationCheckpoints';
 import { RemoteDevContainers } from '@/components/remote/RemoteDevContainers';
 import { KeybindingManager } from '@/lib/keybindings';
+import { registerLspProviders, setupFileWatcher } from '@/lib/lspBridge';
 import {
   Files,
   Search,
@@ -167,10 +168,23 @@ export default function Home() {
         .catch(() => { /* Tauri not available */ });
     }
 
+    // Setup file watcher for auto-refresh
+    let cleanupWatcher: (() => void) | null = null;
+    if (typeof window !== 'undefined' && window.__TAURI__) {
+      setupFileWatcher('.', () => {
+        // Debounced reload of file tree on any file change
+        loadInitialTree();
+      }).then(cleanup => { cleanupWatcher = cleanup; }).catch(() => {});
+    }
+
     // Check first run
     if (typeof window !== 'undefined' && !localStorage.getItem('kyro-first-run-done')) {
       setShowFirstRun(true);
     }
+
+    return () => {
+      cleanupWatcher?.();
+    };
   }, [setFileTree, setGitStatus]);
 
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
@@ -306,16 +320,88 @@ export default function Home() {
     }
   }, [setEditorContent]);
 
+  const lspCleanupRef = useRef<(() => void) | null>(null);
+
   const handleEditorMount = useCallback((editor: unknown, monaco: unknown) => {
     editorRef.current = editor;
-    monacoRef.current = monaco as typeof import('monaco-editor');
-    const monacoEditor = editor as {
-      onDidChangeCursorPosition: (callback: (e: { position: { lineNumber: number; column: number } }) => void) => void;
-    };
+    const monacoModule = monaco as typeof import('monaco-editor');
+    monacoRef.current = monacoModule;
+    const monacoEditor = editor as import('monaco-editor').editor.IStandaloneCodeEditor;
+
+    // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {
       setCursorPosition(e.position.lineNumber, e.position.column);
     });
-  }, [setCursorPosition]);
+
+    // Define and apply Kyro theme
+    monacoModule.editor.defineTheme('kyro-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '569CD6', fontStyle: 'bold' },
+        { token: 'keyword.control', foreground: 'C586C0' },
+        { token: 'string', foreground: 'CE9178' },
+        { token: 'number', foreground: 'B5CEA8' },
+        { token: 'type', foreground: '4EC9B0' },
+        { token: 'function', foreground: 'DCDCAA' },
+        { token: 'variable', foreground: '9CDCFE' },
+        { token: 'constant', foreground: '4FC1FF' },
+        { token: 'tag', foreground: '569CD6' },
+        { token: 'attribute.name', foreground: '9CDCFE' },
+        { token: 'attribute.value', foreground: 'CE9178' },
+      ],
+      colors: {
+        'editor.background': '#0D1117',
+        'editor.foreground': '#C9D1D9',
+        'editor.lineHighlightBackground': '#161B22',
+        'editor.selectionBackground': '#264F78',
+        'editorCursor.foreground': '#58A6FF',
+        'editorLineNumber.foreground': '#484F58',
+        'editorLineNumber.activeForeground': '#C9D1D9',
+        'editorIndentGuide.background': '#21262D',
+        'editorIndentGuide.activeBackground': '#30363D',
+      }
+    });
+    monacoModule.editor.setTheme('kyro-dark');
+
+    // Save keybinding
+    monacoEditor.addCommand(monacoModule.KeyMod.CtrlCmd | monacoModule.KeyCode.KeyS, () => {
+      handleSaveFile();
+      // Also update symbol table for AI completions
+      const model = monacoEditor.getModel();
+      if (model && typeof window !== 'undefined' && window.__TAURI__) {
+        const state = useKyroStore.getState();
+        const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
+        if (file) {
+          window.__TAURI__.core.invoke('update_file_symbols', {
+            file_path: file.path,
+            code: model.getValue(),
+            language: file.language,
+          }).catch(() => {});
+        }
+      }
+    });
+
+    // Register LSP providers (completions, diagnostics, goto-definition, format)
+    if (lspCleanupRef.current) lspCleanupRef.current();
+    lspCleanupRef.current = registerLspProviders(
+      monacoModule,
+      monacoEditor,
+      () => {
+        const state = useKyroStore.getState();
+        const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
+        return file?.path || '';
+      },
+      () => {
+        const state = useKyroStore.getState();
+        const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
+        return file?.language || 'plaintext';
+      }
+    );
+
+    monacoEditor.focus();
+  }, [setCursorPosition, handleSaveFile]);
 
   // Edit Prediction hook — predicts next edit location and provides Tab-to-accept
   const { acceptPrediction } = useEditPrediction(
@@ -580,20 +666,40 @@ export default function Home() {
                     height="100%"
                     language={currentFile.language}
                     value={currentFile.content}
-                    theme="vs-dark"
+                    theme="kyro-dark"
                     onChange={handleEditorChange}
                     onMount={(editor, monaco) => {
                       handleEditorMount(editor, monaco);
                     }}
                     options={{
                       fontSize: 14,
-                      fontFamily: 'JetBrains Mono, Fira Code, monospace',
-                      minimap: { enabled: true },
+                      fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
+                      minimap: { enabled: true, showSlider: 'mouseover' },
                       scrollBeyondLastLine: false,
                       wordWrap: 'on',
                       automaticLayout: true,
                       tabSize: 2,
+                      insertSpaces: true,
                       lineNumbers: 'on',
+                      renderWhitespace: 'selection',
+                      bracketPairColorization: { enabled: true },
+                      guides: { bracketPairs: true, indentation: true },
+                      stickyScroll: { enabled: true },
+                      inlineSuggest: { enabled: true },
+                      quickSuggestions: { other: true, comments: false, strings: true },
+                      suggestOnTriggerCharacters: true,
+                      parameterHints: { enabled: true },
+                      formatOnPaste: true,
+                      folding: true,
+                      matchBrackets: 'always',
+                      renderLineHighlight: 'all',
+                      cursorBlinking: 'smooth',
+                      cursorSmoothCaretAnimation: 'on',
+                      smoothScrolling: true,
+                      mouseWheelZoom: true,
+                      links: true,
+                      colorDecorators: true,
+                      padding: { top: 16, bottom: 16 },
                     }}
                   />
                 ) : (
