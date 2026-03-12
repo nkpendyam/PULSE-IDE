@@ -1,6 +1,6 @@
 //! Git commands for KYRO IDE — uses types from git module
 
-use crate::git::{BlameLine, FileDiff, GitBranch, GitCommit, GitManager, GitStatus, StashEntry};
+use crate::git::{BlameLine, DiffHunk, FileDiff, GitBranch, GitCommit, GitManager, GitStatus, StashEntry};
 use tauri::command;
 
 #[command]
@@ -101,4 +101,28 @@ pub async fn git_stage_hunk(
 ) -> Result<(), String> {
     let mgr = GitManager::new();
     mgr.stage_hunk(&project_path, &file_path, hunk_index)
+}
+
+/// Get diff hunks for a single file (used by DiffViewer and GitStagingPanel)
+#[command]
+pub async fn git_diff_file(path: String) -> Result<Vec<DiffHunk>, String> {
+    let mgr = GitManager::new();
+    // Get the directory containing the file for git repo discovery
+    let file_path = std::path::Path::new(&path);
+    let repo_path = file_path
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| ".".to_string());
+    let rel_path = file_path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.clone());
+
+    // Get all diffs and filter to the requested file
+    let diffs = mgr.diff(&repo_path, false)?;
+    let file_diff = diffs.into_iter().find(|d| d.file == rel_path || d.file == path || path.ends_with(&d.file));
+    match file_diff {
+        Some(diff) => Ok(diff.hunks),
+        None => Ok(vec![]), // No changes for this file
+    }
 }

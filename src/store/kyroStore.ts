@@ -156,6 +156,7 @@ export interface DebugBreakpoint {
 interface KyroState {
   projectPath: string | null; fileTree: FileNode | null; openFiles: OpenFile[]; activeFileIndex: number;
   editorContent: string; cursorPosition: { line: number; column: number }; selectedText: string;
+  diagnosticCounts: { errors: number; warnings: number };
   isOllamaRunning: boolean; models: ModelInfo[]; selectedModel: string; chatMessages: ChatMessage[]; isAiLoading: boolean;
   terminalOutput: string; gitStatus: GitStatus | null; supportedLanguages: string[];
   sidebarWidth: number; chatWidth: number; showChat: boolean; showTerminal: boolean; terminalHeight: number;
@@ -227,8 +228,9 @@ interface KyroState {
   isGhostTextProcessing: boolean;
   
   setProjectPath: (path: string | null) => void; setFileTree: (tree: FileNode | null) => void;
-  openFile: (file: OpenFile) => void; closeFile: (path: string) => void; setActiveFile: (index: number) => void; updateFileContent: (path: string, content: string) => void;
+  openFile: (file: OpenFile) => void; closeFile: (path: string) => void; closeAllFiles: () => void; closeOtherFiles: (path: string) => void; setActiveFile: (index: number) => void; updateFileContent: (path: string, content: string) => void;
   setEditorContent: (content: string) => void; setCursorPosition: (line: number, column: number) => void; setSelectedText: (text: string) => void;
+  setDiagnosticCounts: (errors: number, warnings: number) => void;
   setOllamaStatus: (running: boolean) => void; setModels: (models: ModelInfo[]) => void; setSelectedModel: (model: string) => void;
   addChatMessage: (message: ChatMessage) => void; clearChatMessages: () => void; setAiLoading: (loading: boolean) => void;
   setTerminalOutput: (output: string) => void; appendTerminalOutput: (output: string) => void; setGitStatus: (status: GitStatus | null) => void;
@@ -309,6 +311,7 @@ interface KyroState {
 
 export const useKyroStore = create<KyroState>((set, get) => ({
   projectPath: null, fileTree: null, openFiles: [], activeFileIndex: -1, editorContent: '', cursorPosition: { line: 1, column: 1 }, selectedText: '',
+  diagnosticCounts: { errors: 0, warnings: 0 },
   isOllamaRunning: false, models: [], selectedModel: 'codellama:7b', chatMessages: [], isAiLoading: false, terminalOutput: '', gitStatus: null, supportedLanguages: [],
   sidebarWidth: 260, chatWidth: 400, showChat: true, showTerminal: true, terminalHeight: 200,
   
@@ -407,9 +410,18 @@ export const useKyroStore = create<KyroState>((set, get) => ({
     else if (activeFileIndex >= newFiles.length) newIndex = newFiles.length - 1;
     set({ openFiles: newFiles, activeFileIndex: newIndex, editorContent: newIndex >= 0 ? newFiles[newIndex].content : '' });
   },
+  closeAllFiles: () => {
+    set({ openFiles: [], activeFileIndex: -1, editorContent: '' });
+  },
+  closeOtherFiles: (path) => {
+    const { openFiles } = get();
+    const kept = openFiles.filter(f => f.path === path);
+    set({ openFiles: kept, activeFileIndex: kept.length > 0 ? 0 : -1, editorContent: kept.length > 0 ? kept[0].content : '' });
+  },
   setActiveFile: (index) => { const { openFiles } = get(); if (index >= 0 && index < openFiles.length) set({ activeFileIndex: index, editorContent: openFiles[index].content }); },
   updateFileContent: (path, content) => { const { openFiles, activeFileIndex } = get(); const newFiles = openFiles.map(f => f.path === path ? { ...f, content, isDirty: true } : f); set({ openFiles: newFiles }); if (activeFileIndex >= 0 && newFiles[activeFileIndex]?.path === path) set({ editorContent: content }); },
   setEditorContent: (content) => set({ editorContent: content }), setCursorPosition: (line, column) => set({ cursorPosition: { line, column } }), setSelectedText: (text) => set({ selectedText: text }),
+  setDiagnosticCounts: (errors, warnings) => set({ diagnosticCounts: { errors, warnings } }),
   setOllamaStatus: (running) => set({ isOllamaRunning: running }), setModels: (models) => set({ models }), setSelectedModel: (model) => set({ selectedModel: model }),
   addChatMessage: (message) => set(state => ({ chatMessages: [...state.chatMessages, message] })), clearChatMessages: () => set({ chatMessages: [] }), setAiLoading: (loading) => set({ isAiLoading: loading }),
   setTerminalOutput: (output) => set({ terminalOutput: output }), appendTerminalOutput: (output) => set(state => ({ terminalOutput: state.terminalOutput + output })), setGitStatus: (status) => set({ gitStatus: status }),

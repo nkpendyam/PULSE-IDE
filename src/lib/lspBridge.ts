@@ -6,6 +6,7 @@
  */
 
 import type * as monaco from 'monaco-editor';
+import { useKyroStore } from '@/store/kyroStore';
 
 // ── Tauri LSP response types (match Rust structs) ──
 
@@ -266,6 +267,11 @@ export function registerLspProviders(
     }));
 
     monacoModule.editor.setModelMarkers(model, 'kyro-lsp', markers);
+
+    // Update diagnostic counts in store
+    const errors = markers.filter((m) => m.severity === monacoModule.MarkerSeverity.Error).length;
+    const warnings = markers.filter((m) => m.severity === monacoModule.MarkerSeverity.Warning).length;
+    useKyroStore.getState().setDiagnosticCounts(errors, warnings);
   };
 
   const contentChangeDisposable = editor.onDidChangeModelContent(() => {

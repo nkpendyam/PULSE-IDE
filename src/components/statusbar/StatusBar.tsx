@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useKyroStore } from '@/store/kyroStore';
-import { GitBranch, Terminal, Sparkles, Cpu, Zap, CheckCircle, XCircle } from 'lucide-react';
+import { GitBranch, Terminal, Sparkles, Cpu, Zap, CheckCircle, XCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 export function StatusBar() {
   const { 
@@ -16,6 +16,7 @@ export function StatusBar() {
     showChat, 
     toggleTerminal, 
     toggleChat,
+    diagnosticCounts,
     // Embedded LLM state
     hardwareInfo,
     isEmbeddedLLMReady,
@@ -66,6 +67,18 @@ export function StatusBar() {
             <span>{gitStatus.branch}</span>
           </div>
         )}
+
+        {/* Error & Warning counts */}
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-0.5 ${diagnosticCounts.errors > 0 ? 'text-red-400' : 'text-[#8b949e]'}`}>
+            <AlertCircle size={12} />
+            {diagnosticCounts.errors}
+          </span>
+          <span className={`flex items-center gap-0.5 ${diagnosticCounts.warnings > 0 ? 'text-yellow-400' : 'text-[#8b949e]'}`}>
+            <AlertTriangle size={12} />
+            {diagnosticCounts.warnings}
+          </span>
+        </div>
         
         {/* Hardware Info */}
         {hardwareInfo && (

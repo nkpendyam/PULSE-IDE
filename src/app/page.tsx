@@ -138,11 +138,13 @@ export default function Home() {
     setEditorContent,
     setCursorPosition,
     setGitStatus,
+    updateFileContent,
     autopilotMode,
     setAutopilotMode,
     isAgentRunning,
     setAgentRunning,
     chatMessages,
+    settings,
   } = useKyroStore();
 
   // Initialize: try Tauri file tree, fall back to mock data
@@ -199,10 +201,35 @@ export default function Home() {
           content: currentFile.content
         });
       }
+      // Mark file as clean after successful save
+      const { openFiles: files } = useKyroStore.getState();
+      const newFiles = files.map(f => f.path === currentFile.path ? { ...f, isDirty: false } : f);
+      useKyroStore.setState({ openFiles: newFiles });
     } catch (error) {
       console.error('Failed to save file:', error);
     }
   }, [currentFile]);
+
+  // Auto-save: save dirty files after 1 second of inactivity
+  React.useEffect(() => {
+    if (!settings?.editorOptions?.autoSave || settings.editorOptions.autoSave === 'off') return;
+
+    const timer = setTimeout(() => {
+      const state = useKyroStore.getState();
+      const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
+      if (file?.isDirty && typeof window !== 'undefined' && window.__TAURI__) {
+        window.__TAURI__.core.invoke('write_file', { path: file.path, content: file.content })
+          .then(() => {
+            const { openFiles: files } = useKyroStore.getState();
+            const newFiles = files.map(f => f.path === file.path ? { ...f, isDirty: false } : f);
+            useKyroStore.setState({ openFiles: newFiles });
+          })
+          .catch(() => {});
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [openFiles, activeFileIndex, settings?.editorOptions?.autoSave]);
 
   // Setup global keyboard shortcuts via KeybindingManager
   React.useEffect(() => {
@@ -315,10 +342,10 @@ export default function Home() {
   }, [openFile]);
 
   const handleEditorChange = useCallback((value: string | undefined) => {
-    if (value !== undefined) {
-      setEditorContent(value);
+    if (value !== undefined && currentFile) {
+      updateFileContent(currentFile.path, value);
     }
-  }, [setEditorContent]);
+  }, [currentFile, updateFileContent]);
 
   const lspCleanupRef = useRef<(() => void) | null>(null);
 
@@ -443,8 +470,31 @@ export default function Home() {
     setCheckpoints(prev => prev.filter(c => c.id !== id));
   }, []);
 
+  // Drag-and-drop file support
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0 && typeof window !== 'undefined' && window.__TAURI__) {
+      Array.from(files).forEach(file => {
+        const path = (file as File & { path?: string }).path || file.name;
+        if (path) {
+          handleFileClick(path);
+        }
+      });
+    }
+  }, [handleFileClick]);
+
   return (
-    <div className="h-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {/* Command Palette (Ctrl+Shift+P) */}
       <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
 

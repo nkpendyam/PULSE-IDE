@@ -76,8 +76,15 @@ export function Breadcrumbs({ className = '' }: BreadcrumbsProps) {
 
   // Handle click on breadcrumb
   const handleClick = (item: BreadcrumbItem) => {
-    // Could open folder in file tree or navigate
-    console.log('Navigate to:', item.path);
+    if (item.type === 'folder') {
+      // Navigate sidebar to the folder in explorer
+      window.dispatchEvent(new CustomEvent('kyro:navigate', { detail: { panel: 'explorer' } }));
+    } else if (item.type === 'file') {
+      // File is already open — just ensure it's focused
+    } else if (item.type === 'symbol') {
+      // Scroll editor to the symbol location
+      window.dispatchEvent(new CustomEvent('kyro:navigate', { detail: { panel: 'symbols' } }));
+    }
   };
 
   return (

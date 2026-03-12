@@ -447,6 +447,7 @@ fn main() {
             commands::git::git_status,
             commands::git::git_commit,
             commands::git::git_diff,
+            commands::git::git_diff_file,
             commands::git::git_log,
             commands::git::git_branch,
             commands::git::git_blame,
