@@ -6,6 +6,11 @@ import Editor, { OnMount, OnChange, Monaco } from '@monaco-editor/react';
 import { useKyroStore, EditorGroup as EditorGroupType, EditorTab, SplitDirection } from '@/store/kyroStore';
 import { X, Pin, GripVertical, SplitSquareHorizontal, SplitSquareVertical, ChevronDown } from 'lucide-react';
 
+// Conditional Tauri import for auto-save (only in desktop mode)
+let tauriInvoke: ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null = null;
+if (typeof window !== 'undefined' && '__TAURI__' in window) {
+  import('@tauri-apps/api/core').then(mod => { tauriInvoke = mod.invoke; }).catch(() => {});
+}
 // Generate unique ID
 const generateId = () => `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -197,6 +202,21 @@ function EditorPane({ groupId, isActive, onFocus }: EditorPaneProps) {
       updateFileContent(activeTab.path, value);
     }
   };
+  
+  // Auto-save: debounce 1s after last edit, persist to disk via Tauri
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!activeTab?.isDirty || !tauriInvoke) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      const file = useKyroStore.getState().openFiles.find(f => f.path === activeTab.path);
+      if (file?.content !== undefined && tauriInvoke) {
+        tauriInvoke('write_file', { path: activeTab.path, content: file.content })
+          .catch(() => { /* silent — user can still Ctrl+S manually */ });
+      }
+    }, 1000);
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [activeTab?.path, activeTab?.isDirty]);
   
   // Tab drag handlers
   const handleTabDragStart = (e: React.DragEvent, tabIndex: number) => {

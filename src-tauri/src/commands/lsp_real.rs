@@ -1,9 +1,12 @@
-// Enhanced LSP Commands — Tree-sitter powered code intelligence
+// Enhanced LSP Commands — Tree-sitter powered + real LSP server subprocess
 use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use crate::lsp_transport::transport::{LspTransport, get_language_server_config};
+use serde_json::json;
+use log::{info, warn};
 
 lazy_static::lazy_static! {
     static ref LSP_STATE: Arc<RwLock<LspState>> = Arc::new(RwLock::new(LspState::default()));
@@ -99,12 +102,14 @@ pub struct CodeAction {
     pub is_preferred: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct LspState {
     servers: HashMap<String, LspServerStatus>,
     diagnostics: HashMap<String, Vec<Diagnostic>>,
     /// Cache of parsed file contents for tree-sitter queries
     file_cache: HashMap<String, String>,
+    /// Real LSP transport handles — key is language name
+    transports: HashMap<String, Arc<RwLock<LspTransport>>>,
 }
 
 /// Get the tree-sitter language for a file extension
@@ -124,6 +129,52 @@ fn get_ts_language(ext: &str) -> Option<tree_sitter::Language> {
 
 fn detect_extension(uri: &str) -> &str {
     uri.rsplit('.').next().unwrap_or("")
+}
+
+/// Map file extension to language name used by transport config
+fn ext_to_language(ext: &str) -> &str {
+    match ext {
+        "rs" => "rust",
+        "ts" | "tsx" | "js" | "jsx" | "mjs" => "typescript",
+        "py" => "python",
+        "go" => "go",
+        "c" | "h" => "c",
+        "cpp" | "hpp" | "cc" | "cxx" => "cpp",
+        "java" => "java",
+        "rb" => "ruby",
+        "php" => "php",
+        _ => ext,
+    }
+}
+
+/// Convert LSP CompletionItemKind number to string
+fn completion_kind_to_str(kind: u64) -> String {
+    match kind {
+        1 => "text", 2 => "method", 3 => "function", 4 => "constructor",
+        5 => "field", 6 => "variable", 7 => "class", 8 => "interface",
+        9 => "module", 10 => "property", 11 => "unit", 12 => "value",
+        13 => "enum", 14 => "keyword", 15 => "snippet", 16 => "color",
+        17 => "file", 18 => "reference", 19 => "folder", 20 => "enum_member",
+        21 => "constant", 22 => "struct", 23 => "event", 24 => "operator",
+        25 => "type_parameter", _ => "text",
+    }.to_string()
+}
+
+/// Parse LSP Range JSON into our Range type
+fn parse_lsp_range(range: &serde_json::Value) -> Range {
+    let default_pos = json!({"line": 0, "character": 0});
+    let start = range.get("start").unwrap_or(&default_pos);
+    let end = range.get("end").unwrap_or(&default_pos);
+    Range {
+        start: Position {
+            line: start.get("line").and_then(|l| l.as_u64()).unwrap_or(0) as u32,
+            character: start.get("character").and_then(|c| c.as_u64()).unwrap_or(0) as u32,
+        },
+        end: Position {
+            line: end.get("line").and_then(|l| l.as_u64()).unwrap_or(0) as u32,
+            character: end.get("character").and_then(|c| c.as_u64()).unwrap_or(0) as u32,
+        },
+    }
 }
 
 /// Parse a file with tree-sitter and return the tree
@@ -325,12 +376,63 @@ async fn read_file_content(uri: &str) -> Result<String, String> {
 #[command]
 pub async fn lsp_start_server(language: String, root_uri: String) -> Result<LspServerStatus, String> {
     let mut state = LSP_STATE.write().await;
+    
+    // Try to spawn a real language server via LspTransport
+    if let Some(config) = get_language_server_config(&language) {
+        let server_cmd = config.command.clone();
+        match LspTransport::new(config) {
+            Ok(mut transport) => {
+                // Send LSP initialize handshake
+                let init_caps = json!({
+                    "textDocument": {
+                        "completion": { "completionItem": { "snippetSupport": true } },
+                        "hover": { "contentFormat": ["markdown", "plaintext"] },
+                        "definition": {},
+                        "references": {},
+                        "formatting": {},
+                        "codeAction": {},
+                        "publishDiagnostics": { "relatedInformation": true }
+                    },
+                    "workspace": {
+                        "workspaceFolders": true,
+                        "didChangeConfiguration": { "dynamicRegistration": true }
+                    }
+                });
+                
+                match transport.initialize(&root_uri, init_caps).await {
+                    Ok(_result) => {
+                        info!("Real LSP server started: {} for {}", server_cmd, language);
+                        let transport_handle = Arc::new(RwLock::new(transport));
+                        state.transports.insert(language.clone(), transport_handle);
+                        
+                        let status = LspServerStatus {
+                            language: language.clone(),
+                            running: true,
+                            server_name: server_cmd,
+                            capabilities: LspCapabilities::default(),
+                            pid: None, // real server PID managed by transport
+                        };
+                        state.servers.insert(language, status.clone());
+                        return Ok(status);
+                    }
+                    Err(e) => {
+                        warn!("LSP {} init failed, falling back to tree-sitter: {}", server_cmd, e);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Cannot spawn {}: {} — falling back to tree-sitter", server_cmd, e);
+            }
+        }
+    }
+    
+    // Fallback: register tree-sitter-only server
     let status = LspServerStatus {
         language: language.clone(),
         running: true,
         server_name: format!("kyro-{}-ts", language),
         capabilities: LspCapabilities::default(),
-        pid: Some(std::process::id()),
+        pid: None,
     };
     state.servers.insert(language, status.clone());
     Ok(status)
@@ -339,6 +441,13 @@ pub async fn lsp_start_server(language: String, root_uri: String) -> Result<LspS
 #[command]
 pub async fn lsp_stop_server(language: String) -> Result<(), String> {
     let mut state = LSP_STATE.write().await;
+    // Shutdown real transport if it exists
+    if let Some(transport) = state.transports.remove(&language) {
+        let mut t = transport.write().await;
+        if let Err(e) = t.shutdown().await {
+            warn!("LSP shutdown error for {}: {}", language, e);
+        }
+    }
     state.servers.remove(&language);
     Ok(())
 }
@@ -352,6 +461,48 @@ pub async fn lsp_get_servers() -> Result<Vec<LspServerStatus>, String> {
 #[command]
 pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Result<Vec<CompletionItem>, String> {
     let ext = detect_extension(&uri);
+    
+    // Try real LSP server first
+    {
+        let state = LSP_STATE.read().await;
+        let lang = ext_to_language(ext);
+        if let Some(transport) = state.transports.get(lang) {
+            let mut t = transport.write().await;
+            let params = json!({
+                "textDocument": { "uri": uri },
+                "position": { "line": line, "character": character }
+            });
+            if let Ok(result) = t.send_request("textDocument/completion", Some(params)).await {
+                // Parse LSP CompletionList or CompletionItem[]
+                let items = if let Some(items) = result.get("items") {
+                    items.as_array().cloned().unwrap_or_default()
+                } else if result.is_array() {
+                    result.as_array().cloned().unwrap_or_default()
+                } else {
+                    vec![]
+                };
+                
+                if !items.is_empty() {
+                    return Ok(items.into_iter().filter_map(|item| {
+                        Some(CompletionItem {
+                            label: item.get("label")?.as_str()?.to_string(),
+                            kind: completion_kind_to_str(item.get("kind").and_then(|k| k.as_u64()).unwrap_or(1)),
+                            detail: item.get("detail").and_then(|d| d.as_str()).map(|s| s.to_string()),
+                            documentation: item.get("documentation").and_then(|d| {
+                                d.as_str().map(|s| s.to_string())
+                                    .or_else(|| d.get("value").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                            }),
+                            insert_text: item.get("insertText").and_then(|t| t.as_str()).map(|s| s.to_string())
+                                .or_else(|| item.get("label").and_then(|l| l.as_str()).map(|s| s.to_string())),
+                            sort_text: item.get("sortText").and_then(|s| s.as_str()).map(|s| s.to_string()),
+                        })
+                    }).collect());
+                }
+            }
+        }
+    }
+    
+    // Fallback: tree-sitter + keyword completions
     let mut completions = Vec::new();
 
     // Add keyword completions for the language
@@ -402,6 +553,39 @@ pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Resu
 #[command]
 pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Result<Option<Location>, String> {
     let ext = detect_extension(&uri);
+    
+    // Try real LSP server first
+    {
+        let state = LSP_STATE.read().await;
+        let lang = ext_to_language(ext);
+        if let Some(transport) = state.transports.get(lang) {
+            let mut t = transport.write().await;
+            let params = json!({
+                "textDocument": { "uri": uri },
+                "position": { "line": line, "character": character }
+            });
+            if let Ok(result) = t.send_request("textDocument/definition", Some(params)).await {
+                // Parse Location or Location[]
+                let loc = if result.is_array() {
+                    result.as_array().and_then(|a| a.first()).cloned()
+                } else if result.get("uri").is_some() {
+                    Some(result)
+                } else {
+                    None
+                };
+                if let Some(l) = loc {
+                    if let (Some(loc_uri), Some(range)) = (l.get("uri").and_then(|u| u.as_str()), l.get("range")) {
+                        return Ok(Some(Location {
+                            uri: loc_uri.to_string(),
+                            range: parse_lsp_range(range),
+                        }));
+                    }
+                }
+            }
+        }
+    }
+    
+    // Fallback: tree-sitter definition search
     let content = read_file_content(&uri).await?;
 
     let tree = parse_source(&content, ext)
@@ -436,6 +620,38 @@ pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Resu
 #[command]
 pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<HoverResult>, String> {
     let ext = detect_extension(&uri);
+    
+    // Try real LSP server first
+    {
+        let state = LSP_STATE.read().await;
+        let lang = ext_to_language(ext);
+        if let Some(transport) = state.transports.get(lang) {
+            let mut t = transport.write().await;
+            let params = json!({
+                "textDocument": { "uri": uri },
+                "position": { "line": line, "character": character }
+            });
+            if let Ok(result) = t.send_request("textDocument/hover", Some(params)).await {
+                if !result.is_null() {
+                    let contents = if let Some(c) = result.get("contents") {
+                        if let Some(s) = c.as_str() {
+                            s.to_string()
+                        } else if let Some(v) = c.get("value").and_then(|v| v.as_str()) {
+                            v.to_string()
+                        } else {
+                            c.to_string()
+                        }
+                    } else {
+                        result.to_string()
+                    };
+                    let range = result.get("range").map(|r| parse_lsp_range(r));
+                    return Ok(Some(HoverResult { contents, range }));
+                }
+            }
+        }
+    }
+    
+    // Fallback: tree-sitter hover
     let content = read_file_content(&uri).await?;
 
     let tree = parse_source(&content, ext)

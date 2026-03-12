@@ -425,6 +425,11 @@ fn main() {
             commands::git::git_diff,
             commands::git::git_log,
             commands::git::git_branch,
+            commands::git::git_blame,
+            commands::git::git_stash,
+            commands::git::git_stash_pop,
+            commands::git::git_stash_list,
+            commands::git::git_merge,
             
             // ============ LSP Operations ============
             commands::lsp::detect_language,

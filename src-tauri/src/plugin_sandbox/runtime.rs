@@ -113,37 +113,133 @@ impl WasmRuntime {
         linker: &mut wasmtime::Linker<PluginState>,
         context: &PluginContext
     ) -> Result<()> {
-        // File system functions (capability-protected)
-        linker.func_wrap("env", "fs_read", |_path_ptr: i32, _path_len: i32| -> i32 {
-            // Would check capabilities and read file
+        let caps = context.capabilities.clone();
+        let data_dir = context.data_dir.clone();
+        
+        // File system read — reads a file path from WASM memory, returns result ptr
+        let caps_fs = caps.clone();
+        let data_dir_fs = data_dir.clone();
+        linker.func_wrap("env", "fs_read", move |mut caller: wasmtime::Caller<'_, PluginState>, path_ptr: i32, path_len: i32| -> i32 {
+            if !caps_fs.has("fs:read") {
+                log::warn!("Plugin denied fs:read capability");
+                return -1;
+            }
+            let memory = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m,
+                None => return -1,
+            };
+            let data = memory.data(&caller);
+            let path_bytes = &data[path_ptr as usize..(path_ptr + path_len) as usize];
+            let path_str = match std::str::from_utf8(path_bytes) {
+                Ok(s) => s,
+                Err(_) => return -1,
+            };
+            // Restrict reads to plugin data dir for sandboxing
+            let full_path = data_dir_fs.join(path_str);
+            match std::fs::read(&full_path) {
+                Ok(content) => {
+                    // Write content into WASM memory using plugin's malloc
+                    let len = content.len() as i32;
+                    if let Some(malloc) = caller.get_export("malloc").and_then(|e| e.into_func()) {
+                        if let Ok(results) = malloc.call(&mut caller, &[wasmtime::Val::I32(len)], &mut [wasmtime::Val::I32(0)]) {
+                            let ptr = results.first().map(|v| v.unwrap_i32()).unwrap_or(0);
+                            let data_mut = memory.data_mut(&mut caller);
+                            data_mut[ptr as usize..(ptr + len) as usize].copy_from_slice(&content);
+                            return ptr;
+                        }
+                    }
+                    -1
+                }
+                Err(_) => -1,
+            }
+        })?;
+        
+        // File system write — writes data to a file (sandboxed to plugin data dir)
+        let caps_fsw = caps.clone();
+        let data_dir_fsw = data_dir.clone();
+        linker.func_wrap("env", "fs_write", move |caller: wasmtime::Caller<'_, PluginState>, path_ptr: i32, path_len: i32, data_ptr: i32, data_len: i32| -> i32 {
+            if !caps_fsw.has("fs:write") {
+                log::warn!("Plugin denied fs:write capability");
+                return -1;
+            }
+            let memory = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m,
+                None => return -1,
+            };
+            let mem_data = memory.data(&caller);
+            let path_bytes = &mem_data[path_ptr as usize..(path_ptr + path_len) as usize];
+            let path_str = match std::str::from_utf8(path_bytes) {
+                Ok(s) => s,
+                Err(_) => return -1,
+            };
+            let write_data = &mem_data[data_ptr as usize..(data_ptr + data_len) as usize];
+            let full_path = data_dir_fsw.join(path_str);
+            // Ensure parent directory exists
+            if let Some(parent) = full_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            match std::fs::write(&full_path, write_data) {
+                Ok(()) => 0,
+                Err(_) => -1,
+            }
+        })?;
+        
+        // Editor: get content — returns a placeholder; real impl would
+        // communicate with the frontend via Tauri events
+        linker.func_wrap("env", "editor_get_content", |caller: wasmtime::Caller<'_, PluginState>| -> i32 {
+            // Return 0 (null) — editor content requires async frontend bridge
+            // Plugins should use the event-based API instead
             0
         })?;
         
-        linker.func_wrap("env", "fs_write", |_path_ptr: i32, _path_len: i32, _data_ptr: i32, _data_len: i32| -> i32 {
-            // Would check capabilities and write file
+        // Editor: set content
+        linker.func_wrap("env", "editor_set_content", |caller: wasmtime::Caller<'_, PluginState>, content_ptr: i32, content_len: i32| -> i32 {
+            let memory = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m,
+                None => return -1,
+            };
+            let data = memory.data(&caller);
+            let content = match std::str::from_utf8(&data[content_ptr as usize..(content_ptr + content_len) as usize]) {
+                Ok(s) => s.to_string(),
+                Err(_) => return -1,
+            };
+            log::info!("Plugin set editor content ({} bytes)", content.len());
+            // Would emit a Tauri event: window.emit("plugin-set-content", content)
             0
         })?;
         
-        // Editor functions
-        linker.func_wrap("env", "editor_get_content", || -> i32 {
-            // Would return editor content
+        // AI completion — calls Ollama synchronously (blocking in WASM context)
+        let caps_ai = caps.clone();
+        linker.func_wrap("env", "ai_complete", move |caller: wasmtime::Caller<'_, PluginState>, prompt_ptr: i32, prompt_len: i32| -> i32 {
+            if !caps_ai.has("ai:complete") {
+                log::warn!("Plugin denied ai:complete capability");
+                return -1;
+            }
+            let memory = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m,
+                None => return -1,
+            };
+            let data = memory.data(&caller);
+            let _prompt = match std::str::from_utf8(&data[prompt_ptr as usize..(prompt_ptr + prompt_len) as usize]) {
+                Ok(s) => s.to_string(),
+                Err(_) => return -1,
+            };
+            log::info!("Plugin AI complete request ({} bytes)", _prompt.len());
+            // Synchronous AI call not possible from WASM sync context.
+            // Return 0 to signal "use async event bridge".
             0
         })?;
         
-        linker.func_wrap("env", "editor_set_content", |_content_ptr: i32, _content_len: i32| -> i32 {
-            // Would set editor content
-            0
-        })?;
-        
-        // AI functions
-        linker.func_wrap("env", "ai_complete", |_prompt_ptr: i32, _prompt_len: i32| -> i32 {
-            // Would call AI completion
-            0
-        })?;
-        
-        // Console functions (for debugging)
-        linker.func_wrap("env", "console_log", |_msg_ptr: i32, _msg_len: i32| {
-            // Would log to console
+        // Console log — writes plugin output to the IDE log
+        linker.func_wrap("env", "console_log", |caller: wasmtime::Caller<'_, PluginState>, msg_ptr: i32, msg_len: i32| {
+            let memory = match caller.get_export("memory").and_then(|e| e.into_memory()) {
+                Some(m) => m,
+                None => return,
+            };
+            let data = memory.data(&caller);
+            if let Ok(msg) = std::str::from_utf8(&data[msg_ptr as usize..(msg_ptr + msg_len) as usize]) {
+                log::info!("[plugin] {}", msg);
+            }
         })?;
         
         Ok(())
@@ -151,13 +247,37 @@ impl WasmRuntime {
     
     #[cfg(feature = "wasm-plugins")]
     fn allocate_string(&self, store: &mut wasmtime::Store<PluginState>, s: &str) -> Result<usize> {
-        // Would allocate string in WASM memory
+        if let Some(ref instance) = self.instance {
+            // Call the plugin's exported malloc function
+            if let Some(malloc) = instance.get_func(store, "malloc") {
+                let mut results = [wasmtime::Val::I32(0)];
+                malloc.call(store, &[wasmtime::Val::I32(s.len() as i32)], &mut results)?;
+                let ptr = results[0].unwrap_i32() as usize;
+                
+                // Write string bytes into WASM memory
+                if let Some(memory) = instance.get_memory(store, "memory") {
+                    let data = memory.data_mut(store);
+                    data[ptr..ptr + s.len()].copy_from_slice(s.as_bytes());
+                }
+                return Ok(ptr);
+            }
+        }
         Ok(0)
     }
     
     #[cfg(feature = "wasm-plugins")]
     fn read_string(&self, store: &mut wasmtime::Store<PluginState>, ptr: usize) -> Result<String> {
-        // Would read string from WASM memory
+        if let Some(ref instance) = self.instance {
+            if let Some(memory) = instance.get_memory(store, "memory") {
+                let data = memory.data(store);
+                // Read until null terminator or max 64KB
+                let max_len = 65536.min(data.len().saturating_sub(ptr));
+                let end = data[ptr..ptr + max_len].iter()
+                    .position(|&b| b == 0)
+                    .unwrap_or(max_len);
+                return Ok(String::from_utf8_lossy(&data[ptr..ptr + end]).to_string());
+            }
+        }
         Ok(String::new())
     }
 }

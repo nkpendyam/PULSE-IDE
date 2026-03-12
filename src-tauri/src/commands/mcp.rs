@@ -156,28 +156,131 @@ pub async fn list_mcp_tools() -> Result<Vec<ToolInfo>, String> {
 
 #[command]
 pub async fn execute_tool(tool_name: String, args: serde_json::Value) -> Result<ToolResult, String> {
-    let (tool, ollama_url) = {
-        let state = MCP_STATE.read().await;
-        let tool = state.tools.get(&tool_name).ok_or("Tool not found")?.clone();
-        (tool, state.ollama_url.clone())
-    };
-    // Execute tool by asking AI to process with the tool's description as context
-    let system = format!(
-        "You are a tool executor. Tool: '{}' - {}. Process the given arguments and return the result as JSON.",
-        tool.name, tool.description
-    );
-    let prompt = format!("Execute with arguments: {}", args);
-    match call_ollama("codellama:7b", &system, &prompt, &ollama_url).await {
-        Ok(response) => Ok(ToolResult {
-            success: true,
-            output: serde_json::Value::String(response),
-            error: None,
-        }),
-        Err(e) => Ok(ToolResult {
-            success: false,
-            output: serde_json::Value::Null,
-            error: Some(e),
-        }),
+    // Built-in tools are dispatched directly — no LLM round-trip needed
+    match tool_name.as_str() {
+        "read_file" => {
+            let path = args["path"].as_str().ok_or("read_file requires 'path' argument")?;
+            match tokio::fs::read_to_string(path).await {
+                Ok(content) => Ok(ToolResult {
+                    success: true,
+                    output: serde_json::json!({ "content": content }),
+                    error: None,
+                }),
+                Err(e) => Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some(e.to_string()) }),
+            }
+        }
+        "write_file" => {
+            let path = args["path"].as_str().ok_or("write_file requires 'path' argument")?;
+            let content = args["content"].as_str().ok_or("write_file requires 'content' argument")?;
+            match tokio::fs::write(path, content).await {
+                Ok(()) => Ok(ToolResult {
+                    success: true,
+                    output: serde_json::json!({ "written": path }),
+                    error: None,
+                }),
+                Err(e) => Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some(e.to_string()) }),
+            }
+        }
+        "search_project" => {
+            let query = args["query"].as_str().ok_or("search_project requires 'query' argument")?;
+            let dir = args["directory"].as_str().unwrap_or(".");
+            let output = tokio::process::Command::new("grep")
+                .args(["-rn", "--include=*.rs", "--include=*.ts", "--include=*.tsx", "--include=*.js", "--include=*.json", query, dir])
+                .output()
+                .await
+                .map_err(|e| format!("search failed: {}", e))?;
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            Ok(ToolResult {
+                success: true,
+                output: serde_json::json!({ "matches": stdout.lines().take(50).collect::<Vec<_>>() }),
+                error: None,
+            })
+        }
+        "run_command" => {
+            let command = args["command"].as_str().ok_or("run_command requires 'command' argument")?;
+            let cwd = args["cwd"].as_str().unwrap_or(".");
+            // Only allow safe commands — reject shell metacharacters
+            if command.contains(';') || command.contains('|') || command.contains('&') || command.contains('`') || command.contains('$') {
+                return Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some("Shell metacharacters not allowed".to_string()) });
+            }
+            let parts: Vec<&str> = command.split_whitespace().collect();
+            if parts.is_empty() {
+                return Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some("Empty command".to_string()) });
+            }
+            let output = tokio::process::Command::new(parts[0])
+                .args(&parts[1..])
+                .current_dir(cwd)
+                .output()
+                .await
+                .map_err(|e| format!("command failed: {}", e))?;
+            Ok(ToolResult {
+                success: output.status.success(),
+                output: serde_json::json!({
+                    "stdout": String::from_utf8_lossy(&output.stdout),
+                    "stderr": String::from_utf8_lossy(&output.stderr),
+                    "exit_code": output.status.code(),
+                }),
+                error: if output.status.success() { None } else { Some("Non-zero exit code".to_string()) },
+            })
+        }
+        "git_status" => {
+            let cwd = args["directory"].as_str().unwrap_or(".");
+            let output = tokio::process::Command::new("git")
+                .args(["status", "--porcelain"])
+                .current_dir(cwd)
+                .output()
+                .await
+                .map_err(|e| format!("git status failed: {}", e))?;
+            Ok(ToolResult {
+                success: true,
+                output: serde_json::json!({
+                    "status": String::from_utf8_lossy(&output.stdout).lines().collect::<Vec<_>>(),
+                }),
+                error: None,
+            })
+        }
+        "list_directory" => {
+            let path = args["path"].as_str().unwrap_or(".");
+            match tokio::fs::read_dir(path).await {
+                Ok(mut entries) => {
+                    let mut files = Vec::new();
+                    while let Ok(Some(entry)) = entries.next_entry().await {
+                        let meta = entry.metadata().await.ok();
+                        files.push(serde_json::json!({
+                            "name": entry.file_name().to_string_lossy(),
+                            "is_dir": meta.as_ref().map(|m| m.is_dir()).unwrap_or(false),
+                        }));
+                    }
+                    Ok(ToolResult { success: true, output: serde_json::json!({ "entries": files }), error: None })
+                }
+                Err(e) => Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some(e.to_string()) }),
+            }
+        }
+        _ => {
+            // For user-registered tools, delegate to Ollama as before
+            let (tool, ollama_url) = {
+                let state = MCP_STATE.read().await;
+                let tool = state.tools.get(&tool_name).ok_or("Tool not found")?.clone();
+                (tool, state.ollama_url.clone())
+            };
+            let system = format!(
+                "You are a tool executor. Tool: '{}' - {}. Process the given arguments and return the result as JSON.",
+                tool.name, tool.description
+            );
+            let prompt = format!("Execute with arguments: {}", args);
+            match call_ollama("codellama:7b", &system, &prompt, &ollama_url).await {
+                Ok(response) => Ok(ToolResult {
+                    success: true,
+                    output: serde_json::Value::String(response),
+                    error: None,
+                }),
+                Err(e) => Ok(ToolResult {
+                    success: false,
+                    output: serde_json::Value::Null,
+                    error: Some(e),
+                }),
+            }
+        }
     }
 }
 

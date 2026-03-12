@@ -9,6 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 use tauri::command;
+use tauri::Emitter;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChatMessage {
@@ -273,28 +274,89 @@ pub async fn ai_code_completion(
     ]).await
 }
 
-/// Streaming AI completion
+/// Real streaming AI completion using Ollama /api/generate with stream=true.
+/// Emits "ai-stream-token" events to the frontend via Tauri window events.
+/// Based on Ollama streaming API: each line is JSON `{"response":"token","done":false}`.
 #[command]
 pub async fn ai_stream_completion(
+    window: tauri::Window,
     code: String,
     language: String,
     max_tokens: Option<u32>,
     temperature: Option<f32>,
 ) -> Result<StreamCompletionResult, String> {
+    use futures_util::StreamExt;
+    
     let max_tokens = max_tokens.unwrap_or(100);
     let temperature = temperature.unwrap_or(0.3);
     
-    // Get completion (streaming would require event-based communication)
-    let text = ai_code_completion(code, language, Some(max_tokens), Some(temperature)).await?;
+    let models = list_models().await?;
+    let model = models.first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| "codellama:7b".to_string());
     
-    // Split into tokens for streaming simulation
-    let tokens: Vec<String> = text
-        .split_whitespace()
-        .map(|w| format!("{} ", w))
-        .collect();
+    let prompt = format!(
+        "Complete this {} code. Respond ONLY with code, no explanations:\n\n{}",
+        language, code
+    );
+    
+    let client = reqwest::Client::new();
+    let body = serde_json::json!({
+        "model": model,
+        "prompt": prompt,
+        "stream": true,
+        "options": {
+            "num_predict": max_tokens,
+            "temperature": temperature,
+        }
+    });
+    
+    let response = client
+        .post("http://localhost:11434/api/generate")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama request failed: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("Ollama returned status {}", response.status()));
+    }
+    
+    let mut stream = response.bytes_stream();
+    let mut full_text = String::new();
+    let mut tokens = Vec::new();
+    let mut buffer = String::new();
+    
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| format!("Stream read error: {}", e))?;
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        
+        // Process complete lines (newline-delimited JSON)
+        while let Some(newline_pos) = buffer.find('\n') {
+            let line = buffer[..newline_pos].to_string();
+            buffer = buffer[newline_pos + 1..].to_string();
+            
+            if line.trim().is_empty() { continue; }
+            
+            if let Ok(obj) = serde_json::from_str::<serde_json::Value>(&line) {
+                if let Some(token) = obj.get("response").and_then(|r| r.as_str()) {
+                    full_text.push_str(token);
+                    tokens.push(token.to_string());
+                    // Emit to frontend in real-time
+                    let _ = window.emit("ai-stream-token", serde_json::json!({
+                        "token": token,
+                        "done": obj.get("done").and_then(|d| d.as_bool()).unwrap_or(false),
+                    }));
+                }
+                if obj.get("done").and_then(|d| d.as_bool()).unwrap_or(false) {
+                    break;
+                }
+            }
+        }
+    }
     
     Ok(StreamCompletionResult {
-        text: text.clone(),
+        text: full_text,
         tokens,
     })
 }
