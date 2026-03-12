@@ -116,3 +116,6 @@ pub mod orchestrator;
 
 // ============ Learning Flywheel (Feedback DB) ============
 pub mod feedback;
+
+// ============ RepoWiki (Auto-Documentation) ============
+pub mod repowiki;

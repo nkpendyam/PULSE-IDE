@@ -102,6 +102,9 @@ mod orchestrator;
 // ============ Learning Flywheel (Feedback DB) ============
 mod feedback;
 
+// ============ RepoWiki (Auto-Documentation) ============
+mod repowiki;
+
 // ============ Extension System (Open VSX) ============
 mod extensions;
 
@@ -707,6 +710,20 @@ fn main() {
             commands::debug::debug_remove_breakpoint,
             commands::debug::debug_set_breakpoint_condition,
             commands::debug::debug_evaluate,
+            
+            // ============ RepoWiki Operations ============
+            commands::repowiki::repowiki_init,
+            commands::repowiki::repowiki_generate,
+            commands::repowiki::repowiki_status,
+            commands::repowiki::repowiki_get_config,
+            commands::repowiki::repowiki_set_config,
+            commands::repowiki::repowiki_start_sync,
+            commands::repowiki::repowiki_stop_sync,
+            commands::repowiki::repowiki_clean,
+            commands::repowiki::repowiki_get_graph,
+            commands::repowiki::repowiki_get_mermaid,
+            commands::repowiki::repowiki_graph_stats,
+            commands::repowiki::repowiki_list_pages,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

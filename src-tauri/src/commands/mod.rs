@@ -86,3 +86,6 @@ pub mod search;
 
 // ============ Debug Operations ============
 pub mod debug;
+
+// ============ RepoWiki Operations ============
+pub mod repowiki;
