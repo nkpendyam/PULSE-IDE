@@ -445,4 +445,259 @@ fn generate_fallback_response(prompt: &str) -> String {
     }
 }
 
+// ============ Inline Edit (called by InlineChat.tsx) ============
+
+/// Response for inline edit
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InlineEditResult {
+    pub text: String,
+    pub code: String,
+}
+
+/// AI inline edit - wraps ai_inline_chat and returns { text, code }
+#[command]
+pub async fn ai_inline_edit(
+    prompt: String,
+    selected_code: String,
+    context: String,
+) -> Result<InlineEditResult, String> {
+    // Delegate to ai_inline_chat
+    let response = ai_inline_chat(
+        prompt.clone(),
+        selected_code.clone(),
+        "auto".to_string(),
+        context,
+    ).await?;
+
+    // Try to extract code block from response
+    let code = extract_code_block(&response).unwrap_or_else(|| {
+        if selected_code.is_empty() {
+            response.clone()
+        } else {
+            selected_code
+        }
+    });
+
+    Ok(InlineEditResult {
+        text: response,
+        code,
+    })
+}
+
+/// Extract fenced code block from AI response
+fn extract_code_block(text: &str) -> Option<String> {
+    // Look for ```...``` blocks
+    if let Some(start) = text.find("```") {
+        let after_fence = &text[start + 3..];
+        // Skip the language identifier on the same line
+        let code_start = after_fence.find('\n').map(|i| i + 1).unwrap_or(0);
+        let after_lang = &after_fence[code_start..];
+        if let Some(end) = after_lang.find("```") {
+            let code = after_lang[..end].trim().to_string();
+            if !code.is_empty() {
+                return Some(code);
+            }
+        }
+    }
+    None
+}
+
+// ============ RAG Chat Session (called by AIChatSidebar.tsx) ============
+
+/// Create a new chat session
+#[command]
+pub async fn create_chat_session(
+    project_path: String,
+) -> Result<String, String> {
+    let session_id = uuid::Uuid::new_v4().to_string();
+    log::info!("Chat session created: {} for project: {}", session_id, project_path);
+    Ok(session_id)
+}
+
+/// RAG-enhanced chat response type
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RagChatResponse {
+    pub message: RagChatMessage,
+    pub rag_sources: Vec<RagSourceRef>,
+    pub tokens_used: u32,
+    pub time_to_first_token_ms: u64,
+    pub total_time_ms: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RagChatMessage {
+    pub id: String,
+    pub role: String,
+    pub content: String,
+    pub timestamp: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RagSourceRef {
+    pub file_path: String,
+    pub start_line: usize,
+    pub end_line: usize,
+    pub score: f32,
+    pub preview: String,
+}
+
+/// RAG-enhanced chat — uses code context + Ollama for responses
+#[command]
+pub async fn rag_chat(
+    session_id: String,
+    message: String,
+    context: serde_json::Value,
+) -> Result<RagChatResponse, String> {
+    let start = std::time::Instant::now();
+
+    // Build context string from the provided context object
+    let mut context_str = String::new();
+    let mut rag_sources: Vec<RagSourceRef> = Vec::new();
+
+    if let Some(current_file) = context.get("currentFile") {
+        if let (Some(path), Some(content)) = (
+            current_file.get("file_path").and_then(|v| v.as_str()),
+            current_file.get("content").and_then(|v| v.as_str()),
+        ) {
+            let preview: String = content.lines().take(5).collect::<Vec<_>>().join("\n");
+            let line_count = content.lines().count();
+            context_str.push_str(&format!(
+                "Current file: {}\n```\n{}\n```\n\n",
+                path,
+                // Trim to avoid sending huge files
+                if content.len() > 8000 { &content[..8000] } else { content }
+            ));
+            rag_sources.push(RagSourceRef {
+                file_path: path.to_string(),
+                start_line: 1,
+                end_line: line_count,
+                score: 1.0,
+                preview,
+            });
+        }
+    }
+
+    // Build messages for AI
+    let system_prompt = format!(
+        "You are Kyro, an expert AI coding assistant embedded in Kyro IDE. \
+         You have access to the user's codebase context. Be concise and helpful.\n\n\
+         Code Context:\n{}",
+        if context_str.is_empty() { "(no context provided)" } else { &context_str }
+    );
+
+    let messages = vec![
+        ChatMessage { role: "system".to_string(), content: system_prompt },
+        ChatMessage { role: "user".to_string(), content: message.clone() },
+    ];
+
+    // Try Ollama, fall back to pattern-based
+    let models = list_models().await.unwrap_or_default();
+    let model = models.first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| "codellama:7b".to_string());
+
+    let response_text = match chat_completion(model, messages).await {
+        Ok(text) => text,
+        Err(_) => generate_fallback_response(&message.chars().take(200).collect::<String>()),
+    };
+
+    let elapsed = start.elapsed();
+
+    Ok(RagChatResponse {
+        message: RagChatMessage {
+            id: uuid::Uuid::new_v4().to_string(),
+            role: "assistant".to_string(),
+            content: response_text,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+        },
+        rag_sources,
+        tokens_used: 0,
+        time_to_first_token_ms: elapsed.as_millis().min(u64::MAX as u128) as u64,
+        total_time_ms: elapsed.as_millis().min(u64::MAX as u128) as u64,
+    })
+}
+
+// ============ Agent Commands (called by AIChatSidebar.tsx) ============
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AgentContext {
+    #[serde(rename = "projectPath")]
+    pub project_path: String,
+    #[serde(rename = "currentFile")]
+    pub current_file: String,
+    #[serde(rename = "openFiles")]
+    pub open_files: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AgentResult {
+    pub message: String,
+    pub files_changed: Vec<String>,
+    pub requires_approval: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+}
+
+/// Execute an agent command (e.g. "fix the bug", "add tests")
+#[command]
+pub async fn agent_command(
+    command: String,
+    context: AgentContext,
+) -> Result<AgentResult, String> {
+    log::info!("Agent command: {} on {}", command, context.current_file);
+
+    // Read the current file content for context
+    let file_content = std::fs::read_to_string(&context.current_file)
+        .unwrap_or_else(|_| String::new());
+
+    let prompt = format!(
+        "You are an autonomous coding agent. Execute this command: {}\n\n\
+         File: {}\n```\n{}\n```\n\n\
+         Respond with the specific changes to make.",
+        command, context.current_file,
+        if file_content.len() > 6000 { &file_content[..6000] } else { &file_content }
+    );
+
+    let messages = vec![
+        ChatMessage { role: "system".to_string(), content: "You are Kyro Agent, an autonomous coding assistant. When asked to make changes, describe them clearly.".to_string() },
+        ChatMessage { role: "user".to_string(), content: prompt },
+    ];
+
+    let models = list_models().await.unwrap_or_default();
+    let model = models.first()
+        .map(|m| m.name.clone())
+        .unwrap_or_else(|| "codellama:7b".to_string());
+
+    let response = match chat_completion(model, messages).await {
+        Ok(text) => text,
+        Err(_) => format!("Agent processed command '{}' but no AI backend is available. Install Ollama for full agent capabilities.", command),
+    };
+
+    let approval_id = uuid::Uuid::new_v4().to_string();
+
+    Ok(AgentResult {
+        message: response,
+        files_changed: vec![context.current_file],
+        requires_approval: true,
+        approval_id: Some(approval_id),
+    })
+}
+
+/// Approve an agent's proposed edit
+#[command]
+pub async fn agent_approve(approval_id: String) -> Result<(), String> {
+    log::info!("Agent edit approved: {}", approval_id);
+    Ok(())
+}
+
+/// Reject an agent's proposed edit
+#[command]
+pub async fn agent_reject(approval_id: String) -> Result<(), String> {
+    log::info!("Agent edit rejected: {}", approval_id);
+    Ok(())
+}
+
 

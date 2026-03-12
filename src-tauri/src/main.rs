@@ -362,6 +362,11 @@ fn main() {
             app.manage(commands::marketplace::MarketplaceState(tokio::sync::Mutex::new(marketplace)));
             log::info!("✓ GitHub marketplace initialized");
             
+            // ============ Initialize Debug State ============
+            let debug_state = commands::debug::DebugState::default();
+            app.manage(Arc::new(Mutex::new(debug_state)));
+            log::info!("✓ Debug state initialized");
+            
             // ============ Startup Complete ============
             
             log::info!("=================================");
@@ -651,6 +656,29 @@ fn main() {
             // ============ Chat Agent Operations ============
             commands::ai::detect_ai_backends,
             commands::ai::smart_ai_completion,
+            commands::ai::ai_inline_edit,
+            commands::ai::create_chat_session,
+            commands::ai::rag_chat,
+            commands::ai::agent_command,
+            commands::ai::agent_approve,
+            commands::ai::agent_reject,
+            
+            // ============ Project Search Operations ============
+            commands::search::search_in_project,
+            commands::search::replace_in_project,
+            
+            // ============ Debug Operations ============
+            commands::debug::debug_start,
+            commands::debug::debug_stop,
+            commands::debug::debug_continue,
+            commands::debug::debug_pause,
+            commands::debug::debug_step_over,
+            commands::debug::debug_step_into,
+            commands::debug::debug_step_out,
+            commands::debug::debug_add_breakpoint,
+            commands::debug::debug_remove_breakpoint,
+            commands::debug::debug_set_breakpoint_condition,
+            commands::debug::debug_evaluate,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

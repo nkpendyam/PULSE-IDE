@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   experimental: {
   },
+  turbopack: {},
   // Optimize for production builds
   compress: true,
   poweredByHeader: false,

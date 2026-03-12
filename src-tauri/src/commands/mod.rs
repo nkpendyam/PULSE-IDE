@@ -77,3 +77,9 @@ pub use crate::aot::commands as aot_commands;
 
 // ============ Orchestrator (Mission Control) ============
 pub mod orchestrator;
+
+// ============ Search Operations ============
+pub mod search;
+
+// ============ Debug Operations ============
+pub mod debug;
