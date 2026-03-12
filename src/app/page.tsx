@@ -34,6 +34,10 @@ import { InlineChat } from '@/components/chat/InlineChat';
 import { ModelSelector } from '@/components/chat/ModelSelector';
 import { TerminalAI } from '@/components/terminal/TerminalAI';
 import { ProjectRules } from '@/components/settings/ProjectRules';
+import { useEditPrediction } from '@/components/editor/EditPredictionProvider';
+import { AgentAutopilotPanel } from '@/components/agents/AgentAutopilotPanel';
+import { ConversationCheckpoints, Checkpoint } from '@/components/chat/ConversationCheckpoints';
+import { RemoteDevContainers } from '@/components/remote/RemoteDevContainers';
 import { KeybindingManager } from '@/lib/keybindings';
 import {
   Files,
@@ -59,6 +63,8 @@ import {
   Globe,
   Zap,
   BookOpen,
+  Shield,
+  Monitor,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -86,7 +92,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote';
 
 // Fallback file tree (used when Tauri is not available)
 const fallbackFileTree: FileNode = {
@@ -120,6 +126,8 @@ export default function Home() {
   const [showDiffViewer, setShowDiffViewer] = useState(false);
   const [diffFile, setDiffFile] = useState<string>('');
   const editorRef = useRef<unknown>(null);
+  const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
 
   const {
     openFiles,
@@ -128,7 +136,12 @@ export default function Home() {
     openFile,
     setEditorContent,
     setCursorPosition,
-    setGitStatus
+    setGitStatus,
+    autopilotMode,
+    setAutopilotMode,
+    isAgentRunning,
+    setAgentRunning,
+    chatMessages,
   } = useKyroStore();
 
   // Initialize: try Tauri file tree, fall back to mock data
@@ -293,7 +306,9 @@ export default function Home() {
     }
   }, [setEditorContent]);
 
-  const handleEditorMount = useCallback((editor: unknown) => {
+  const handleEditorMount = useCallback((editor: unknown, monaco: unknown) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco as typeof import('monaco-editor');
     const monacoEditor = editor as {
       onDidChangeCursorPosition: (callback: (e: { position: { lineNumber: number; column: number } }) => void) => void;
     };
@@ -301,6 +316,46 @@ export default function Home() {
       setCursorPosition(e.position.lineNumber, e.position.column);
     });
   }, [setCursorPosition]);
+
+  // Edit Prediction hook — predicts next edit location and provides Tab-to-accept
+  const { acceptPrediction } = useEditPrediction(
+    editorRef.current as import('monaco-editor').editor.IStandaloneCodeEditor | null,
+    monacoRef.current,
+    currentFile?.path || '',
+    true
+  );
+
+  // Checkpoint management
+  const handleCreateCheckpoint = useCallback((label?: string) => {
+    const snapshot = new Map<string, string>();
+    openFiles.forEach(f => snapshot.set(f.path, f.content));
+    const cp: Checkpoint = {
+      id: `cp-${Date.now()}`,
+      label: label || `Checkpoint ${checkpoints.length + 1}`,
+      timestamp: Date.now(),
+      messageIndex: chatMessages.length,
+      fileSnapshots: snapshot,
+      description: `${openFiles.length} files`,
+      isAutomatic: !label,
+    };
+    setCheckpoints(prev => [...prev, cp]);
+  }, [openFiles, chatMessages.length, checkpoints.length]);
+
+  const handleRestoreCheckpoint = useCallback((id: string) => {
+    const cp = checkpoints.find(c => c.id === id);
+    if (cp) {
+      cp.fileSnapshots.forEach((content, path) => {
+        const existing = openFiles.find(f => f.path === path);
+        if (existing) {
+          setEditorContent(content);
+        }
+      });
+    }
+  }, [checkpoints, openFiles, setEditorContent]);
+
+  const handleDeleteCheckpoint = useCallback((id: string) => {
+    setCheckpoints(prev => prev.filter(c => c.id !== id));
+  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden">
@@ -375,6 +430,8 @@ export default function Home() {
               { id: 'testing' as SidebarPanel, icon: PlayCircle, label: 'Test Runner' },
               { id: 'browser' as SidebarPanel, icon: Globe, label: 'Browser Preview' },
               { id: 'rules' as SidebarPanel, icon: BookOpen, label: 'Project Rules' },
+              { id: 'autopilot' as SidebarPanel, icon: Shield, label: 'Agent Autopilot' },
+              { id: 'remote' as SidebarPanel, icon: Monitor, label: 'Remote / Containers' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -427,6 +484,8 @@ export default function Home() {
                 {activePanel === 'testing' && 'Test Runner'}
                 {activePanel === 'browser' && 'Browser Preview'}
                 {activePanel === 'rules' && 'Project Rules'}
+                {activePanel === 'autopilot' && 'Agent Autopilot'}
+                {activePanel === 'remote' && 'Remote / Containers'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -496,6 +555,17 @@ export default function Home() {
               {activePanel === 'rules' && (
                 <ProjectRules projectPath={useKyroStore.getState().projectPath} />
               )}
+              {activePanel === 'autopilot' && (
+                <AgentAutopilotPanel
+                  permissionLevel={autopilotMode}
+                  onPermissionChange={setAutopilotMode}
+                  isRunning={isAgentRunning}
+                  onToggleRunning={() => setAgentRunning(!isAgentRunning)}
+                />
+              )}
+              {activePanel === 'remote' && (
+                <RemoteDevContainers projectPath={useKyroStore.getState().projectPath || '.'} />
+              )}
             </div>
           </div>
 
@@ -512,9 +582,8 @@ export default function Home() {
                     value={currentFile.content}
                     theme="vs-dark"
                     onChange={handleEditorChange}
-                    onMount={(editor) => {
-                      editorRef.current = editor;
-                      handleEditorMount(editor);
+                    onMount={(editor, monaco) => {
+                      handleEditorMount(editor, monaco);
                     }}
                     options={{
                       fontSize: 14,
@@ -555,6 +624,13 @@ export default function Home() {
                     <span className="text-xs font-medium text-[#8b949e]">AI Chat</span>
                     <ModelSelector />
                   </div>
+                  <ConversationCheckpoints
+                    checkpoints={checkpoints}
+                    onCreateCheckpoint={handleCreateCheckpoint}
+                    onRestoreCheckpoint={handleRestoreCheckpoint}
+                    onDeleteCheckpoint={handleDeleteCheckpoint}
+                    currentMessageIndex={chatMessages.length}
+                  />
                   <AIChatSidebar />
                 </div>
               )}

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore, ChatMessage, RagSource } from '@/store/kyroStore';
+import { MentionAutocomplete, MentionItem } from './MentionAutocomplete';
 import { 
   Send, Trash2, Sparkles, FileCode, Search, Check, X, 
   ChevronDown, ChevronRight, Clock, AlertTriangle, Loader2,
@@ -150,6 +151,8 @@ export function AIChatSidebar() {
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [showMentions, setShowMentions] = useState(false);
+  const [cursorPos, setCursorPos] = useState(0);
   
   const { 
     chatMessages, 
@@ -355,6 +358,27 @@ export function AIChatSidebar() {
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    setCursorPos(e.target.selectionStart || 0);
+    // Show mention autocomplete when @ is typed
+    const textBeforeCursor = value.slice(0, e.target.selectionStart || 0);
+    setShowMentions(/@\w*$/.test(textBeforeCursor));
+  };
+
+  const handleMentionSelect = (mention: MentionItem, filePath?: string) => {
+    const textBeforeCursor = input.slice(0, cursorPos);
+    const textAfterCursor = input.slice(cursorPos);
+    const atMatch = textBeforeCursor.match(/@\w*$/);
+    if (atMatch) {
+      const beforeAt = textBeforeCursor.slice(0, atMatch.index);
+      const mentionText = filePath ? `${mention.value}:${filePath}` : mention.value;
+      setInput(beforeAt + mentionText + ' ' + textAfterCursor);
+    }
+    setShowMentions(false);
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#0d1117]">
       {/* Header */}
@@ -462,12 +486,19 @@ export function AIChatSidebar() {
       )}
 
       {/* Input */}
-      <div className="p-3 border-t border-[#30363d]">
+      <div className="p-3 border-t border-[#30363d] relative">
+        <MentionAutocomplete
+          inputValue={input}
+          cursorPosition={cursorPos}
+          onSelect={handleMentionSelect}
+          onDismiss={() => setShowMentions(false)}
+          visible={showMentions}
+        />
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={isOllamaRunning ? "Ask about your code... (knows your entire project)" : "Loading model..."}
             disabled={!isOllamaRunning || isAiLoading}
