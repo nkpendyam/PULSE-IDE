@@ -90,12 +90,13 @@ pub async fn quest_start(
 /// Execute all pending steps in a quest (coder → reviewer → tester)
 #[tauri::command]
 pub async fn quest_execute(
+    app: tauri::AppHandle,
     state: State<'_, OrchestratorState>,
     mission_id: String,
     project_path: String,
 ) -> Result<QuestState, String> {
     let orchestrator = state.0.write().await;
-    orchestrator.execute_quest(&mission_id, &project_path).await
+    orchestrator.execute_quest(&mission_id, &project_path, Some(&app)).await
 }
 
 /// Get quest state

@@ -446,3 +446,56 @@ pub async fn remove_indexed_path(
     rag.indexed_paths.retain(|p| p != &path);
     Ok(())
 }
+
+/// Graph-enhanced search: BM25 + dependency graph neighbors re-ranked by centrality
+#[tauri::command]
+pub async fn graph_enhanced_semantic_search(
+    request: SearchRequest,
+    rag_state: State<'_, Arc<RwLock<RagState>>>,
+) -> Result<Vec<crate::rag::graph_rag::GraphSearchResult>, String> {
+    use crate::rag::graph_rag::graph_enhanced_search;
+
+    // 1. Run standard BM25 search
+    let rag = rag_state.read().await;
+    if rag.chunks.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let max = request.max_results.unwrap_or(rag.config.max_results) as usize;
+    let min_score = request.min_score.unwrap_or(0.01);
+    let query_tokens = tokenize(&request.query);
+    if query_tokens.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let avg_dl = rag.chunks.iter().map(|c| c.tokens.len() as f32).sum::<f32>()
+        / rag.doc_count.max(1) as f32;
+
+    let mut scored: Vec<(usize, f32)> = rag.chunks.iter().enumerate()
+        .map(|(i, chunk)| {
+            let score = bm25_score(&query_tokens, &rag.inverted_index, rag.doc_count, i, avg_dl, chunk.tokens.len() as f32);
+            (i, score)
+        })
+        .filter(|(_, score)| *score > min_score)
+        .collect();
+
+    scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(max * 2); // get extra for graph re-ranking
+
+    let bm25_results: Vec<(String, f32, String, u32, u32, String)> = scored.into_iter().map(|(i, score)| {
+        let chunk = &rag.chunks[i];
+        (chunk.file_path.clone(), score, chunk.content.clone(), chunk.line_start, chunk.line_end, String::new())
+    }).collect();
+
+    // 2. Enhance with dependency graph from RepoWiki engine
+    let wiki_arc = super::repowiki::get_wiki_engine();
+    let wiki_guard = wiki_arc.lock().await;
+    let graph = match wiki_guard.as_ref() {
+        Some(engine) => engine.graph.clone(),
+        None => crate::repowiki::DependencyGraph::default(),
+    };
+    drop(wiki_guard);
+
+    let results = graph_enhanced_search(bm25_results, &graph, max);
+    Ok(results)
+}

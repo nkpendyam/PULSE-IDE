@@ -14,8 +14,21 @@ pub use missions::{Mission, MissionArtifact, MissionPhase, MissionStatus};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tauri::{AppHandle, Emitter};
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+/// Event payload emitted during quest execution
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuestProgressEvent {
+    pub mission_id: String,
+    pub phase: String,
+    pub step_index: Option<usize>,
+    pub step_total: Option<usize>,
+    pub step_description: Option<String>,
+    pub status: String,
+    pub message: String,
+}
 
 /// Orchestrator configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -201,15 +214,18 @@ impl KyroOrchestrator {
     }
 
     /// Execute all steps of an existing quest (Coder phase)
-    pub async fn execute_quest(&self, mission_id: &str, project_path: &str) -> Result<QuestState, String> {
+    pub async fn execute_quest(&self, mission_id: &str, project_path: &str, app: Option<&AppHandle>) -> Result<QuestState, String> {
         let mut quest = {
             let quests = self.quests.read().await;
             quests.get(mission_id).cloned().ok_or("Quest not found")?
         };
 
+        let total_steps = quest.steps.len();
+
         // Advance to Edit phase
         quest.phase = MissionPhase::Edit;
         self.update_mission_phase(mission_id, MissionPhase::Edit).await;
+        Self::emit_progress(app, &quest.mission_id, "edit", None, Some(total_steps), None, "running", "Coder agent starting");
 
         // Execute each pending step via the Coder agent
         for i in 0..quest.steps.len() {
@@ -218,15 +234,18 @@ impl KyroOrchestrator {
             }
             quest.steps[i].status = QuestStepStatus::Running;
             self.save_quest(&quest).await;
+            Self::emit_progress(app, &quest.mission_id, "edit", Some(i), Some(total_steps), Some(&quest.steps[i].description), "running", "Executing step");
 
             match self.run_coder_step(&quest.steps[i], &quest.spec, project_path).await {
                 Ok(output) => {
                     quest.steps[i].status = QuestStepStatus::Done;
                     quest.steps[i].output = Some(output);
+                    Self::emit_progress(app, &quest.mission_id, "edit", Some(i), Some(total_steps), Some(&quest.steps[i].description), "done", "Step completed");
                 }
                 Err(e) => {
                     quest.steps[i].status = QuestStepStatus::Failed;
-                    quest.steps[i].error = Some(e);
+                    quest.steps[i].error = Some(e.clone());
+                    Self::emit_progress(app, &quest.mission_id, "edit", Some(i), Some(total_steps), Some(&quest.steps[i].description), "failed", &e);
                 }
             }
             self.save_quest(&quest).await;
@@ -235,22 +254,51 @@ impl KyroOrchestrator {
         // Review phase
         quest.phase = MissionPhase::Review;
         self.update_mission_phase(mission_id, MissionPhase::Review).await;
+        Self::emit_progress(app, &quest.mission_id, "review", None, None, None, "running", "Reviewer examining code");
         let review = self.run_reviewer(&quest, project_path).await.unwrap_or_default();
         quest.review_notes = Some(review);
+        Self::emit_progress(app, &quest.mission_id, "review", None, None, None, "done", "Review complete");
 
         // Test phase
         quest.phase = MissionPhase::Test;
         self.update_mission_phase(mission_id, MissionPhase::Test).await;
+        Self::emit_progress(app, &quest.mission_id, "test", None, None, None, "running", "Running tests");
         let test_out = self.run_tester(project_path).await.unwrap_or_default();
         quest.test_output = Some(test_out);
+        Self::emit_progress(app, &quest.mission_id, "test", None, None, None, "done", "Tests complete");
 
         // Done
         quest.phase = MissionPhase::Deploy;
         quest.status = MissionStatus::Completed;
         self.update_mission_phase(mission_id, MissionPhase::Deploy).await;
         self.save_quest(&quest).await;
+        Self::emit_progress(app, &quest.mission_id, "deploy", None, None, None, "done", "Quest complete");
 
         Ok(quest)
+    }
+
+    /// Emit a quest progress event to the frontend
+    fn emit_progress(
+        app: Option<&AppHandle>,
+        mission_id: &str,
+        phase: &str,
+        step_index: Option<usize>,
+        step_total: Option<usize>,
+        step_description: Option<&str>,
+        status: &str,
+        message: &str,
+    ) {
+        if let Some(handle) = app {
+            let _ = handle.emit("quest-progress", QuestProgressEvent {
+                mission_id: mission_id.to_string(),
+                phase: phase.to_string(),
+                step_index,
+                step_total,
+                step_description: step_description.map(String::from),
+                status: status.to_string(),
+                message: message.to_string(),
+            });
+        }
     }
 
     /// Get quest state

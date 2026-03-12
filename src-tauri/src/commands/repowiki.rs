@@ -14,6 +14,11 @@ lazy_static! {
         Arc::new(Mutex::new(None));
 }
 
+/// Expose the wiki engine handle so other commands (e.g. graph-enhanced RAG) can access it
+pub fn get_wiki_engine() -> Arc<Mutex<Option<RepoWikiEngine>>> {
+    WIKI_ENGINE.clone()
+}
+
 /// Initialize the RepoWiki engine with a project path
 #[tauri::command]
 pub async fn repowiki_init(project_path: String) -> Result<String, String> {

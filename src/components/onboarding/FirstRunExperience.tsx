@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import { 
   Sparkles, Download, Check, ChevronRight, ChevronLeft, 
   Cpu, HardDrive, Monitor, Zap, Bot, Code, Users, Puzzle,
@@ -76,33 +77,54 @@ export function FirstRunExperience({ onComplete }: FirstRunExperienceProps) {
     }
   }, [hardwareInfo, models, selectedModel]);
 
-  // Start model download
+  // Start model download with real progress events
   const startDownload = async () => {
     if (!selectedModel) return;
 
     setIsDownloading(true);
     setDownloadProgress(0);
 
+    // Listen for real progress events from backend
+    let unlisten: UnlistenFn | null = null;
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setDownloadProgress(prev => Math.min(prev + 5, 95));
-      }, 500);
+      unlisten = await listen<{ model: string; progress: number; status: string }>('model-download-progress', (event) => {
+        setDownloadProgress(event.payload.progress);
+        if (event.payload.status === 'complete') {
+          setDownloadProgress(100);
+          setTimeout(() => {
+            setCurrentStep(4);
+            setIsComplete(true);
+          }, 500);
+        }
+      });
 
-      await invoke('load_model', { modelName: selectedModel });
-      
-      clearInterval(progressInterval);
+      await invoke('download_model', { modelName: selectedModel });
+
+      // If no events fired (e.g., model already cached), complete immediately
       setDownloadProgress(100);
-      
-      // Move to next step
       setTimeout(() => {
-        setCurrentStep(4); // Ready step
+        setCurrentStep(4);
         setIsComplete(true);
-      }, 1000);
+      }, 500);
     } catch (e) {
       console.error('Failed to download model:', e);
+      // Fallback: try load_model instead
+      try {
+        await invoke('load_model', { modelName: selectedModel });
+        setDownloadProgress(100);
+        setTimeout(() => {
+          setCurrentStep(4);
+          setIsComplete(true);
+        }, 500);
+      } catch {
+        // Still allow completion
+        setDownloadProgress(100);
+        setCurrentStep(4);
+        setIsComplete(true);
+      }
     } finally {
       setIsDownloading(false);
+      unlisten?.();
     }
   };
 

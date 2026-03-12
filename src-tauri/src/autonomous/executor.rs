@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use super::planner::PlanStep;
 use super::external::{access_resource, ExternalResource, ResourceResult};
 use std::time::Instant;
+use crate::ai::AiClient;
 
 /// Execution result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,15 +20,22 @@ pub struct ExecutionResult {
     pub duration_ms: u64,
 }
 
-/// Step executor
+/// Step executor with LLM code generation
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Executor {
     pub allowed_tools: Vec<String>,
+    #[serde(skip)]
+    ai_client: Option<AiClient>,
 }
 
 impl Executor {
     pub fn new(allowed_tools: Vec<String>) -> Self { 
-        Self { allowed_tools } 
+        Self { allowed_tools, ai_client: Some(AiClient::new()) } 
+    }
+    
+    fn ai(&self) -> &AiClient {
+        // Safe: always initialized via new() or default()
+        self.ai_client.as_ref().expect("AiClient not initialized")
     }
     
     /// Execute a plan step
@@ -126,6 +134,74 @@ impl Executor {
                     },
                 }
             },
+            "llm_generate" => {
+                let prompt = step.tool_args.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
+                let max_tokens = step.tool_args.get("max_tokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(2048) as usize;
+                match self.ai().generate(prompt, max_tokens).await {
+                    Some(text) => ResourceResult {
+                        resource: ExternalResource::Tool("llm_generate".to_string()),
+                        success: true,
+                        data: Some(text),
+                        error: None,
+                    },
+                    None => ResourceResult {
+                        resource: ExternalResource::Tool("llm_generate".to_string()),
+                        success: false,
+                        data: None,
+                        error: Some("LLM generation failed — is Ollama running?".to_string()),
+                    },
+                }
+            },
+            "apply_edit" => {
+                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let old_text = step.tool_args.get("old_text").and_then(|v| v.as_str()).unwrap_or("");
+                let new_text = step.tool_args.get("new_text").and_then(|v| v.as_str()).unwrap_or("");
+                if path.is_empty() || path.contains("..") {
+                    ResourceResult {
+                        resource: ExternalResource::File(path.to_string()),
+                        success: false,
+                        data: None,
+                        error: Some("apply_edit: invalid path".to_string()),
+                    }
+                } else {
+                    match std::fs::read_to_string(path) {
+                        Ok(content) => {
+                            if content.contains(old_text) {
+                                let updated = content.replacen(old_text, new_text, 1);
+                                match std::fs::write(path, &updated) {
+                                    Ok(_) => ResourceResult {
+                                        resource: ExternalResource::File(path.to_string()),
+                                        success: true,
+                                        data: Some(format!("Applied edit to {}", path)),
+                                        error: None,
+                                    },
+                                    Err(e) => ResourceResult {
+                                        resource: ExternalResource::File(path.to_string()),
+                                        success: false,
+                                        data: None,
+                                        error: Some(format!("apply_edit write error: {}", e)),
+                                    },
+                                }
+                            } else {
+                                ResourceResult {
+                                    resource: ExternalResource::File(path.to_string()),
+                                    success: false,
+                                    data: None,
+                                    error: Some("apply_edit: old_text not found in file".to_string()),
+                                }
+                            }
+                        }
+                        Err(e) => ResourceResult {
+                            resource: ExternalResource::File(path.to_string()),
+                            success: false,
+                            data: None,
+                            error: Some(format!("apply_edit read error: {}", e)),
+                        },
+                    }
+                }
+            },
             _ => {
                 ResourceResult {
                     resource: ExternalResource::Tool(tool_name.clone()),
@@ -154,6 +230,8 @@ impl Default for Executor {
             "list_dir".to_string(),
             "ast_prune".to_string(),
             "run_terminal".to_string(),
+            "llm_generate".to_string(),
+            "apply_edit".to_string(),
         ])
     }
 }

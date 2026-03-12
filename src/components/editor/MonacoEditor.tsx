@@ -4,6 +4,7 @@ import React, { useRef, useCallback, useEffect } from 'react';
 import type * as monaco from 'monaco-editor';
 import Editor, { OnMount, OnChange, Monaco } from '@monaco-editor/react';
 import { invoke } from '@tauri-apps/api/core';
+import { save } from '@tauri-apps/plugin-dialog';
 import { useKyroStore } from '@/store/kyroStore';
 import { toast } from 'sonner';
 
@@ -69,10 +70,20 @@ export function MonacoEditor({
       handleSave();
     });
 
-    // Cmd+Shift+S - Save As (future implementation)
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS, () => {
-      // TODO: Implement Save As dialog
-      toast.info('Save As not yet implemented');
+    // Cmd+Shift+S - Save As
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS, async () => {
+      try {
+        const filePath = await save({
+          defaultPath: path || 'untitled.txt',
+          filters: [{ name: 'All Files', extensions: ['*'] }],
+        });
+        if (filePath) {
+          await invoke('write_file', { path: filePath, content: value });
+          toast.success(`Saved as ${filePath}`);
+        }
+      } catch (err) {
+        toast.error(`Save As failed: ${err}`);
+      }
     });
 
     // Cmd+W - Close file

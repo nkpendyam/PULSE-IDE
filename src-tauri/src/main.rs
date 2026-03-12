@@ -592,6 +592,7 @@ fn main() {
             commands::rag::set_rag_config,
             commands::rag::get_indexed_paths,
             commands::rag::remove_indexed_path,
+            commands::rag::graph_enhanced_semantic_search,
             
             // ============ WebSocket Operations ============
             commands::websocket::ws_connect,

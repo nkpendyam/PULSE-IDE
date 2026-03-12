@@ -25,6 +25,9 @@ import { RagPanel } from '@/components/rag/RagPanel';
 import { LspPanel } from '@/components/lsp/LspPanel';
 import { HardwareInfoPanel } from '@/components/llm/HardwareInfoPanel';
 import { SymbolOutline } from '@/components/sidebar/SymbolOutline';
+import { AgentStreamPanel } from '@/components/agents/AgentStreamPanel';
+import { TestRunnerPanel } from '@/components/testing/TestRunnerPanel';
+import { BrowserPreview } from '@/components/browser/BrowserPreview';
 import { SymbolSearch } from '@/components/search/SymbolSearch';
 import { DiffViewer } from '@/components/git/DiffViewer';
 import { InlineChat } from '@/components/chat/InlineChat';
@@ -49,6 +52,9 @@ import {
   Download,
   FileCode,
   User,
+  PlayCircle,
+  Globe,
+  Zap,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -76,7 +82,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser';
 
 // Fallback file tree (used when Tauri is not available)
 const fallbackFileTree: FileNode = {
@@ -361,6 +367,9 @@ export default function Home() {
               { id: 'llm' as SidebarPanel, icon: Cpu, label: 'LLM / Hardware' },
               { id: 'update' as SidebarPanel, icon: Download, label: 'Updates' },
               { id: 'symbols' as SidebarPanel, icon: Code2, label: 'Symbol Outline' },
+              { id: 'agent-stream' as SidebarPanel, icon: Zap, label: 'Agent Stream' },
+              { id: 'testing' as SidebarPanel, icon: PlayCircle, label: 'Test Runner' },
+              { id: 'browser' as SidebarPanel, icon: Globe, label: 'Browser Preview' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -409,6 +418,9 @@ export default function Home() {
                 {activePanel === 'llm' && 'LLM / Hardware'}
                 {activePanel === 'update' && 'Updates'}
                 {activePanel === 'symbols' && 'Symbol Outline'}
+                {activePanel === 'agent-stream' && 'Agent Stream'}
+                {activePanel === 'testing' && 'Test Runner'}
+                {activePanel === 'browser' && 'Browser Preview'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -465,6 +477,15 @@ export default function Home() {
               )}
               {activePanel === 'symbols' && (
                 <SymbolOutline />
+              )}
+              {activePanel === 'agent-stream' && (
+                <AgentStreamPanel />
+              )}
+              {activePanel === 'testing' && (
+                <TestRunnerPanel />
+              )}
+              {activePanel === 'browser' && (
+                <BrowserPreview />
               )}
             </div>
           </div>

@@ -20,6 +20,12 @@ pub struct AiClient {
     pub base_url: String,
 }
 
+impl std::fmt::Debug for AiClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AiClient").field("base_url", &self.base_url).finish()
+    }
+}
+
 impl AiClient {
     pub fn new() -> Self {
         Self { client: Client::new(), base_url: "http://localhost:11434".to_string() }

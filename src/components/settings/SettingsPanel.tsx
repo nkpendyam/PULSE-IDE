@@ -11,8 +11,15 @@ export function SettingsPanel() {
 
   const handleSave = async () => {
     setSaving(true);
-    // Save settings to backend
-    localStorage.setItem('kro-settings', JSON.stringify(settings));
+    try {
+      // Persist each setting to the backend
+      for (const [key, value] of Object.entries(settings)) {
+        await invoke('set_setting', { key, value: JSON.stringify(value) });
+      }
+    } catch {
+      // Fallback: save to localStorage if backend unavailable
+      localStorage.setItem('kro-settings', JSON.stringify(settings));
+    }
     setSaving(false);
   };
 
