@@ -13,6 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure frontendDist for Tauri
+        run: |
+          mkdir -p out
+          if [ ! -f out/index.html ]; then
+            echo '<!doctype html><html><body>Kyro IDE CI placeholder</body></html>' > out/index.html
+          fi
+
       - name: Install System Dependencies
         run: |
           sudo apt-get update
