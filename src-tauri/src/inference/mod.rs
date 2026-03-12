@@ -10,8 +10,8 @@
 //! - Quantized GGUF models
 
 pub mod model;
-pub mod tokenizer;
 pub mod sampler;
+pub mod tokenizer;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -123,89 +123,101 @@ impl InferenceEngine {
             tokenizer: None,
         }
     }
-    
+
     /// Load a model
     pub async fn load_model(&mut self) -> Result<()> {
         log::info!("Loading model from {:?}", self.config.model_path);
-        
+
         let model_info = ModelInfo {
-            name: self.config.model_path
+            name: self
+                .config
+                .model_path
                 .file_stem()
                 .map(|s| s.to_string_lossy().to_string())
                 .unwrap_or_else(|| "unknown".to_string()),
             path: self.config.model_path.clone(),
             context_length: self.config.max_context_length,
             parameter_count: None,
-            quantization: self.config.model_path
+            quantization: self
+                .config
+                .model_path
                 .extension()
                 .map(|e| e.to_string_lossy().to_string()),
             vocab_size: 32000, // Default vocab size
         };
-        
+
         let model = LoadedModel {
             info: model_info,
             context: Vec::new(),
         };
-        
+
         let tokenizer = LoadedTokenizer {
             vocab_size: model.info.vocab_size,
         };
-        
+
         self.model = Some(Arc::new(RwLock::new(model)));
         self.tokenizer = Some(Arc::new(RwLock::new(tokenizer)));
-        
+
         log::info!("Model loaded successfully");
         Ok(())
     }
-    
+
     /// Unload the model
     pub async fn unload_model(&mut self) {
         self.model = None;
         self.tokenizer = None;
         log::info!("Model unloaded");
     }
-    
+
     /// Check if model is loaded
     pub fn is_loaded(&self) -> bool {
         self.model.is_some()
     }
-    
+
     /// Generate text using available inference backends
     pub async fn generate(&self, params: GenerationParams) -> Result<GenerationResult> {
         let start = std::time::Instant::now();
-        
-        let model = self.model.as_ref()
+
+        let model = self
+            .model
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Model not loaded"))?;
-        
-        let model = model.read().await;
-        
+
+        let _model = model.read().await;
+
         let max_tokens = params.max_tokens.unwrap_or(self.config.max_tokens);
         let temperature = params.temperature.unwrap_or(self.config.temperature);
-        
+
         log::info!("Generating {} tokens with temp {}", max_tokens, temperature);
-        
+
         // Try Ollama API first for real inference
-        match self.generate_via_ollama(&params, max_tokens, temperature).await {
+        match self
+            .generate_via_ollama(&params, max_tokens, temperature)
+            .await
+        {
             Ok(result) => return Ok(result),
             Err(e) => log::debug!("Ollama not available: {}", e),
         }
-        
+
         // Try OpenAI-compatible endpoints
-        match self.generate_via_openai_compatible(&params, max_tokens, temperature).await {
+        match self
+            .generate_via_openai_compatible(&params, max_tokens, temperature)
+            .await
+        {
             Ok(result) => return Ok(result),
             Err(e) => log::debug!("OpenAI-compatible API not available: {}", e),
         }
-        
+
         // Fallback to local computation using tokenization and pattern matching
         let generated_text = self.local_generate(&params, max_tokens, temperature);
-        
+
         let elapsed = start.elapsed();
         let tokens_per_second = if elapsed.as_millis() > 0 {
             max_tokens as f32 / (elapsed.as_millis() as f32 / 1000.0)
         } else {
             0.0
         };
-        
+
         Ok(GenerationResult {
             text: generated_text,
             tokens_generated: max_tokens,
@@ -213,7 +225,7 @@ impl InferenceEngine {
             tokens_per_second,
         })
     }
-    
+
     /// Generate via Ollama API
     async fn generate_via_ollama(
         &self,
@@ -228,7 +240,7 @@ impl InferenceEngine {
         } else {
             "phi3".to_string()
         };
-        
+
         let body = serde_json::json!({
             "model": model_name,
             "prompt": params.prompt,
@@ -239,7 +251,7 @@ impl InferenceEngine {
                 "stop": params.stop_tokens,
             }
         });
-        
+
         let start = std::time::Instant::now();
         let response = client
             .post("http://localhost:11434/api/generate")
@@ -247,20 +259,21 @@ impl InferenceEngine {
             .timeout(std::time::Duration::from_secs(120))
             .send()
             .await?;
-        
+
         if !response.status().is_success() {
             anyhow::bail!("Ollama returned status: {}", response.status());
         }
-        
+
         let json: serde_json::Value = response.json().await?;
-        let text = json.get("response")
+        let text = json
+            .get("response")
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
-        
+
         let tokens = text.split_whitespace().count();
         let elapsed = start.elapsed();
-        
+
         Ok(GenerationResult {
             text,
             tokens_generated: tokens,
@@ -272,7 +285,7 @@ impl InferenceEngine {
             },
         })
     }
-    
+
     /// Generate via OpenAI-compatible API
     async fn generate_via_openai_compatible(
         &self,
@@ -287,19 +300,19 @@ impl InferenceEngine {
         } else {
             "local-model".to_string()
         };
-        
+
         let body = serde_json::json!({
             "model": model_name,
             "messages": [{"role": "user", "content": params.prompt}],
             "temperature": temperature,
             "max_tokens": max_tokens,
         });
-        
+
         let endpoints = [
             "http://localhost:1234/v1/chat/completions",
             "http://localhost:8000/v1/chat/completions",
         ];
-        
+
         for endpoint in &endpoints {
             let start = std::time::Instant::now();
             match client
@@ -311,17 +324,18 @@ impl InferenceEngine {
             {
                 Ok(response) if response.status().is_success() => {
                     let json: serde_json::Value = response.json().await?;
-                    let text = json.get("choices")
+                    let text = json
+                        .get("choices")
                         .and_then(|c| c.get(0))
                         .and_then(|c| c.get("message"))
                         .and_then(|m| m.get("content"))
                         .and_then(|c| c.as_str())
                         .unwrap_or("")
                         .to_string();
-                    
+
                     let tokens = text.split_whitespace().count();
                     let elapsed = start.elapsed();
-                    
+
                     return Ok(GenerationResult {
                         text,
                         tokens_generated: tokens,
@@ -336,15 +350,20 @@ impl InferenceEngine {
                 _ => continue,
             }
         }
-        
+
         anyhow::bail!("No OpenAI-compatible endpoint available")
     }
-    
+
     /// Local generation using code-aware pattern matching
-    fn local_generate(&self, params: &GenerationParams, _max_tokens: usize, _temperature: f32) -> String {
+    fn local_generate(
+        &self,
+        params: &GenerationParams,
+        _max_tokens: usize,
+        _temperature: f32,
+    ) -> String {
         let prompt = &params.prompt;
         let prompt_lower = prompt.to_lowercase();
-        
+
         // Code-aware response generation based on prompt content
         if prompt_lower.contains("fix") || prompt_lower.contains("bug") {
             self.generate_fix_response(prompt)
@@ -354,56 +373,68 @@ impl InferenceEngine {
             self.generate_refactor_response(prompt)
         } else if prompt_lower.contains("test") {
             self.generate_test_response(prompt)
-        } else if prompt.contains("fn ") || prompt.contains("def ") || prompt.contains("function ") {
+        } else if prompt.contains("fn ") || prompt.contains("def ") || prompt.contains("function ")
+        {
             self.analyze_code_structure(prompt)
         } else {
             format!("Based on your request about: \"{}\"\n\nI can help with code analysis, debugging, refactoring, and test generation. Please specify what you'd like me to do.", 
                 prompt.chars().take(80).collect::<String>())
         }
     }
-    
+
     fn generate_fix_response(&self, prompt: &str) -> String {
         let mut response = String::from("🔧 **Bug Analysis**\n\n");
-        
+
         let patterns = [
-            ("unwrap()", "Consider using `?` operator or proper error handling"),
+            (
+                "unwrap()",
+                "Consider using `?` operator or proper error handling",
+            ),
             ("expect(", "Add more specific error messages"),
             ("panic!", "Replace with Result-based error handling"),
             ("clone()", "Check if borrowing is possible"),
         ];
-        
+
         let mut found = Vec::new();
         for (pattern, suggestion) in &patterns {
             if prompt.contains(pattern) {
                 found.push(format!("- Found `{}`: {}", pattern, suggestion));
             }
         }
-        
+
         if !found.is_empty() {
             response.push_str("**Potential issues:**\n");
-            for f in found { response.push_str(&f); response.push('\n'); }
+            for f in found {
+                response.push_str(&f);
+                response.push('\n');
+            }
         }
-        
+
         response.push_str("\n**Fix approach:**\n1. Identify the root cause\n2. Add error handling\n3. Test the fix\n");
         response
     }
-    
+
     fn generate_explanation_response(&self, prompt: &str) -> String {
-        let language = if prompt.contains("fn ") { "Rust" }
-        else if prompt.contains("def ") { "Python" }
-        else if prompt.contains("function ") { "JavaScript" }
-        else { "code" };
-        
+        let language = if prompt.contains("fn ") {
+            "Rust"
+        } else if prompt.contains("def ") {
+            "Python"
+        } else if prompt.contains("function ") {
+            "JavaScript"
+        } else {
+            "code"
+        };
+
         format!("📚 **Code Explanation**\n\nThis appears to be {} code.\n\n**Structure:**\n- Functions: {}\n- Loops: {}\n- Conditionals: {}\n\nThe code processes data and handles control flow. What specific part would you like explained?",
             language,
             prompt.matches("fn ").count() + prompt.matches("def ").count(),
             prompt.matches("for ").count() + prompt.matches("while ").count(),
             prompt.matches("if ").count())
     }
-    
+
     fn generate_refactor_response(&self, prompt: &str) -> String {
         let mut suggestions = Vec::new();
-        
+
         if prompt.matches("clone()").count() > 1 {
             suggestions.push("Reduce clone() calls - use references");
         }
@@ -413,16 +444,18 @@ impl InferenceEngine {
         if prompt.len() > 500 {
             suggestions.push("Consider breaking into smaller functions");
         }
-        
+
         let mut response = String::from("♻️ **Refactoring Suggestions**\n\n");
         if !suggestions.is_empty() {
-            for s in suggestions { response.push_str(&format!("- {}\n", s)); }
+            for s in suggestions {
+                response.push_str(&format!("- {}\n", s));
+            }
         } else {
             response.push_str("Code looks well-structured!\n");
         }
         response
     }
-    
+
     fn generate_test_response(&self, prompt: &str) -> String {
         if prompt.contains("fn ") || prompt.contains("#[test]") {
             r#"🧪 **Rust Test Template**
@@ -451,7 +484,8 @@ mod tests {
     }
 }
 ```
-"#.to_string()
+"#
+            .to_string()
         } else {
             r#"🧪 **Test Template**
 
@@ -460,24 +494,44 @@ Generate unit tests covering:
 2. Edge cases (empty, null, max)
 3. Error conditions
 4. Boundary conditions
-"#.to_string()
+"#
+            .to_string()
         }
     }
-    
+
     fn analyze_code_structure(&self, prompt: &str) -> String {
         let lines = prompt.lines().count();
         let elements: Vec<&str> = [
-            if prompt.contains("async ") { Some("async functions") } else { None },
-            if prompt.contains("struct ") { Some("structs") } else { None },
-            if prompt.contains("impl ") { Some("implementations") } else { None },
-            if prompt.contains("enum ") { Some("enums") } else { None },
-        ].into_iter().flatten().collect();
-        
+            if prompt.contains("async ") {
+                Some("async functions")
+            } else {
+                None
+            },
+            if prompt.contains("struct ") {
+                Some("structs")
+            } else {
+                None
+            },
+            if prompt.contains("impl ") {
+                Some("implementations")
+            } else {
+                None
+            },
+            if prompt.contains("enum ") {
+                Some("enums")
+            } else {
+                None
+            },
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
         format!("🔍 **Code Analysis**\n\n**Metrics:**\n- Lines: {}\n- Elements: {}\n\nUse 'explain', 'refactor', or 'test' for specific assistance.",
             lines,
             elements.join(", "))
     }
-    
+
     /// Stream generation via Ollama or fallback
     pub async fn generate_stream(
         &self,
@@ -561,14 +615,14 @@ Generate unit tests covering:
             total_text.push_str(&chunk);
             token_count += 1;
         }
-        
+
         let elapsed = start.elapsed();
         let tokens_per_second = if elapsed.as_secs_f32() > 0.0 {
             token_count as f32 / elapsed.as_secs_f32()
         } else {
             0.0
         };
-        
+
         Ok(GenerationResult {
             text: total_text,
             tokens_generated: token_count,
@@ -576,15 +630,15 @@ Generate unit tests covering:
             tokens_per_second,
         })
     }
-    
+
     /// Get model info
     pub fn get_model_info(&self) -> Option<ModelInfo> {
-        self.model.as_ref().map(|m| {
+        self.model.as_ref().and_then(|m| {
             let model = m.try_read();
             model.map(|m| m.info.clone()).ok()
-        }).flatten()
+        })
     }
-    
+
     /// Count tokens
     pub fn count_tokens(&self, text: &str) -> usize {
         // Simple approximation: ~4 chars per token
@@ -597,11 +651,14 @@ impl InferenceEngine {
     /// Generate code completion
     pub async fn complete_code(&self, prefix: &str, suffix: Option<&str>) -> Result<String> {
         let prompt = if let Some(suffix) = suffix {
-            format!("<|fim_prefix|>{}<|fim_suffix|>{}<|fim_middle|>", prefix, suffix)
+            format!(
+                "<|fim_prefix|>{}<|fim_suffix|>{}<|fim_middle|>",
+                prefix, suffix
+            )
         } else {
             format!("```python\n{}\n```", prefix)
         };
-        
+
         let params = GenerationParams {
             prompt,
             max_tokens: Some(256),
@@ -609,18 +666,18 @@ impl InferenceEngine {
             top_p: Some(0.95),
             stop_tokens: vec!["```".to_string(), "\n\n".to_string()],
         };
-        
+
         let result = self.generate(params).await?;
         Ok(result.text)
     }
-    
+
     /// Generate code review
     pub async fn review_code(&self, code: &str) -> Result<String> {
         let prompt = format!(
             "Review this code and provide feedback:\n\n```\n{}\n```\n\nReview:",
             code
         );
-        
+
         let params = GenerationParams {
             prompt,
             max_tokens: Some(512),
@@ -628,18 +685,18 @@ impl InferenceEngine {
             top_p: Some(0.9),
             stop_tokens: vec![],
         };
-        
+
         let result = self.generate(params).await?;
         Ok(result.text)
     }
-    
+
     /// Generate tests for code
     pub async fn generate_tests(&self, code: &str, language: &str) -> Result<String> {
         let prompt = format!(
             "Generate unit tests for this {} code:\n\n```\n{}\n```\n\nTests:",
             language, code
         );
-        
+
         let params = GenerationParams {
             prompt,
             max_tokens: Some(1024),
@@ -647,18 +704,18 @@ impl InferenceEngine {
             top_p: Some(0.9),
             stop_tokens: vec![],
         };
-        
+
         let result = self.generate(params).await?;
         Ok(result.text)
     }
-    
+
     /// Explain code
     pub async fn explain_code(&self, code: &str) -> Result<String> {
         let prompt = format!(
             "Explain what this code does:\n\n```\n{}\n```\n\nExplanation:",
             code
         );
-        
+
         let params = GenerationParams {
             prompt,
             max_tokens: Some(512),
@@ -666,7 +723,7 @@ impl InferenceEngine {
             top_p: Some(0.9),
             stop_tokens: vec![],
         };
-        
+
         let result = self.generate(params).await?;
         Ok(result.text)
     }
@@ -675,7 +732,7 @@ impl InferenceEngine {
 /// Embedding generation
 impl InferenceEngine {
     /// Generate embeddings for text
-    pub async fn embed(&self, text: &str) -> Result<Vec<f32>> {
+    pub async fn embed(&self, _text: &str) -> Result<Vec<f32>> {
         // Placeholder: would use embedding model
         Ok(vec![0.0; 768])
     }

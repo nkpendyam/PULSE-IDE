@@ -3,9 +3,9 @@
 //! Users see exactly what the agent changed, character by character.
 //! Allows reverting chunks instantly.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Change chunk for review
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -78,18 +78,23 @@ impl DiffViewer {
             undo_stack: Vec::new(),
         }
     }
-    
+
     /// Add a change chunk for review
     pub fn add_chunk(&mut self, chunk: ChangeChunk) -> String {
         let id = chunk.id.clone();
         self.pending_chunks.insert(id.clone(), chunk);
         id
     }
-    
+
     /// Create a change group
-    pub fn create_group(&mut self, agent_id: &str, description: &str, chunk_ids: Vec<String>) -> String {
+    pub fn create_group(
+        &mut self,
+        agent_id: &str,
+        description: &str,
+        chunk_ids: Vec<String>,
+    ) -> String {
         let group_id = uuid::Uuid::new_v4().to_string();
-        
+
         let group = ChangeGroup {
             id: group_id.clone(),
             agent_id: agent_id.to_string(),
@@ -98,25 +103,26 @@ impl DiffViewer {
             timestamp: Utc::now(),
             status: GroupStatus::Pending,
         };
-        
+
         self.groups.insert(group_id.clone(), group);
         group_id
     }
-    
+
     /// Preview a chunk (unified diff format)
     pub fn preview_chunk(&self, chunk_id: &str) -> Option<String> {
         let chunk = self.pending_chunks.get(chunk_id)?;
-        
+
         let mut diff = String::new();
         diff.push_str(&format!("--- {}\n", chunk.file_path));
         diff.push_str(&format!("+++ {}\n", chunk.file_path));
-        diff.push_str(&format!("@@ -{},{} +{},{} @@\n", 
-            chunk.start_line, 
+        diff.push_str(&format!(
+            "@@ -{},{} +{},{} @@\n",
+            chunk.start_line,
             chunk.end_line - chunk.start_line + 1,
             chunk.start_line,
             chunk.end_line - chunk.start_line + 1
         ));
-        
+
         match &chunk.change_type {
             ChangeType::Delete => {
                 if let Some(old) = &chunk.old_content {
@@ -145,75 +151,86 @@ impl DiffViewer {
                 }
             }
             ChangeType::Move { from_line, to_line } => {
-                diff.push_str(&format!("@@ moved from line {} to {} @@\n", from_line, to_line));
+                diff.push_str(&format!(
+                    "@@ moved from line {} to {} @@\n",
+                    from_line, to_line
+                ));
             }
         }
-        
+
         Some(diff)
     }
-    
+
     /// Apply a single chunk
     pub fn apply_chunk(&mut self, chunk_id: &str) -> Result<(), String> {
-        let chunk = self.pending_chunks.remove(chunk_id)
+        let chunk = self
+            .pending_chunks
+            .remove(chunk_id)
             .ok_or_else(|| format!("Chunk not found: {}", chunk_id))?;
-        
+
         let mut chunk = chunk;
         chunk.status = ChunkStatus::Applied;
-        
+
         self.applied_chunks.insert(chunk_id.to_string(), chunk);
         self.undo_stack.push(chunk_id.to_string());
-        
+
         // Trim undo stack if too large
         if self.undo_stack.len() > self.max_undo_depth {
             let removed = self.undo_stack.remove(0);
             self.applied_chunks.remove(&removed);
         }
-        
+
         Ok(())
     }
-    
+
     /// Reject a chunk
     pub fn reject_chunk(&mut self, chunk_id: &str) -> Result<(), String> {
-        let chunk = self.pending_chunks.remove(chunk_id)
+        let chunk = self
+            .pending_chunks
+            .remove(chunk_id)
             .ok_or_else(|| format!("Chunk not found: {}", chunk_id))?;
-        
+
         let mut chunk = chunk;
         chunk.status = ChunkStatus::Rejected;
-        
+
         // Don't store rejected chunks
         Ok(())
     }
-    
+
     /// Revert an applied chunk
     pub fn revert_chunk(&mut self, chunk_id: &str) -> Result<ChangeChunk, String> {
-        let chunk = self.applied_chunks.remove(chunk_id)
+        let chunk = self
+            .applied_chunks
+            .remove(chunk_id)
             .ok_or_else(|| format!("Applied chunk not found: {}", chunk_id))?;
-        
+
         let mut chunk = chunk;
         chunk.status = ChunkStatus::Reverted;
-        
+
         // Remove from undo stack
         self.undo_stack.retain(|id| id != chunk_id);
-        
+
         Ok(chunk)
     }
-    
+
     /// Apply all pending chunks from a group
     pub fn apply_group(&mut self, group_id: &str) -> Result<Vec<String>, String> {
-        let group = self.groups.get(group_id)
+        let group = self
+            .groups
+            .get(group_id)
             .ok_or_else(|| format!("Group not found: {}", group_id))?
             .clone();
-        
+
         let mut applied = Vec::new();
         let mut failed = Vec::new();
-        
+
         for chunk_id in &group.chunks {
             match self.apply_chunk(chunk_id) {
                 Ok(()) => applied.push(chunk_id.clone()),
                 Err(e) => failed.push(format!("{}: {}", chunk_id, e)),
             }
         }
-        
+
         // Update group status
         if let Some(g) = self.groups.get_mut(group_id) {
             if failed.is_empty() {
@@ -224,22 +241,27 @@ impl DiffViewer {
                 g.status = GroupStatus::PartiallyApplied;
             }
         }
-        
+
         if failed.is_empty() {
             Ok(applied)
         } else {
-            Err(format!("Failed to apply some chunks: {}", failed.join(", ")))
+            Err(format!(
+                "Failed to apply some chunks: {}",
+                failed.join(", ")
+            ))
         }
     }
-    
+
     /// Revert all chunks in a group
     pub fn revert_group(&mut self, group_id: &str) -> Result<Vec<String>, String> {
-        let group = self.groups.get(group_id)
+        let group = self
+            .groups
+            .get(group_id)
             .ok_or_else(|| format!("Group not found: {}", group_id))?
             .clone();
-        
+
         let mut reverted = Vec::new();
-        
+
         for chunk_id in &group.chunks {
             if self.applied_chunks.contains_key(chunk_id) {
                 match self.revert_chunk(chunk_id) {
@@ -248,47 +270,53 @@ impl DiffViewer {
                 }
             }
         }
-        
+
         // Update group status
         if let Some(g) = self.groups.get_mut(group_id) {
             g.status = GroupStatus::FullyReverted;
         }
-        
+
         Ok(reverted)
     }
-    
+
     /// Get all pending chunks
     pub fn get_pending(&self) -> Vec<&ChangeChunk> {
         self.pending_chunks.values().collect()
     }
-    
+
     /// Get chunks for a file
     pub fn get_chunks_for_file(&self, file_path: &str) -> (Vec<&ChangeChunk>, Vec<&ChangeChunk>) {
-        let pending: Vec<_> = self.pending_chunks.values()
+        let pending: Vec<_> = self
+            .pending_chunks
+            .values()
             .filter(|c| c.file_path == file_path)
             .collect();
-        
-        let applied: Vec<_> = self.applied_chunks.values()
+
+        let applied: Vec<_> = self
+            .applied_chunks
+            .values()
             .filter(|c| c.file_path == file_path)
             .collect();
-        
+
         (pending, applied)
     }
-    
+
     /// Get undo history
     pub fn get_undo_history(&self, limit: usize) -> Vec<&ChangeChunk> {
-        self.undo_stack.iter().rev()
+        self.undo_stack
+            .iter()
+            .rev()
             .take(limit)
             .filter_map(|id| self.applied_chunks.get(id))
             .collect()
     }
-    
+
     /// Undo last applied chunk
     pub fn undo_last(&mut self) -> Option<ChangeChunk> {
         let chunk_id = self.undo_stack.pop()?;
         self.revert_chunk(&chunk_id).ok()
     }
-    
+
     /// Get statistics
     pub fn stats(&self) -> DiffStats {
         DiffStats {

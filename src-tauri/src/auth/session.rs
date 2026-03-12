@@ -1,12 +1,11 @@
 //! Session Management
-//! 
+//!
 //! Handles user sessions for authentication persistence
 
-use crate::auth::{User, Claims};
 use chrono::{DateTime, Utc};
-use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 /// Session store for managing active sessions
 pub struct SessionStore {
@@ -67,11 +66,11 @@ impl SessionStore {
         };
 
         self.sessions.insert(session_id, session);
-        
+
         // Track user's sessions
         self.user_sessions
             .entry(user_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(session_id);
 
         session_id
@@ -86,11 +85,7 @@ impl SessionStore {
     pub fn get_user_sessions(&self, user_id: Uuid) -> Vec<&UserSession> {
         self.user_sessions
             .get(&user_id)
-            .map(|ids| {
-                ids.iter()
-                    .filter_map(|id| self.sessions.get(id))
-                    .collect()
-            })
+            .map(|ids| ids.iter().filter_map(|id| self.sessions.get(id)).collect())
             .unwrap_or_default()
     }
 
@@ -122,7 +117,8 @@ impl SessionStore {
     /// Clean up expired sessions
     pub fn cleanup_expired(&mut self) -> usize {
         let now = Utc::now();
-        let expired: Vec<Uuid> = self.sessions
+        let expired: Vec<Uuid> = self
+            .sessions
             .iter()
             .filter(|(_, session)| session.expires_at < now)
             .map(|(id, _)| *id)
@@ -156,14 +152,8 @@ mod tests {
     fn test_session_creation() {
         let mut store = SessionStore::new();
         let user_id = Uuid::new_v4();
-        
-        let session_id = store.create_session(
-            user_id,
-            "hash123".to_string(),
-            None,
-            None,
-            3600,
-        );
+
+        let session_id = store.create_session(user_id, "hash123".to_string(), None, None, 3600);
 
         assert!(store.get_session(session_id).is_some());
         assert_eq!(store.active_count(), 1);
@@ -173,14 +163,8 @@ mod tests {
     fn test_session_invalidation() {
         let mut store = SessionStore::new();
         let user_id = Uuid::new_v4();
-        
-        let session_id = store.create_session(
-            user_id,
-            "hash123".to_string(),
-            None,
-            None,
-            3600,
-        );
+
+        let session_id = store.create_session(user_id, "hash123".to_string(), None, None, 3600);
 
         store.invalidate_session(session_id);
         assert!(store.get_session(session_id).is_none());

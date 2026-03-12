@@ -5,7 +5,7 @@
 //! 1-hop neighbors (files that import A, or files A imports) and re-rank by
 //! a combined score: (BM25_score × 0.7) + (graph_centrality × 0.3).
 
-use crate::repowiki::{DependencyGraph, GraphEdge};
+use crate::repowiki::DependencyGraph;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -50,7 +50,8 @@ pub fn graph_enhanced_search(
 
     // 1. Add direct BM25 hits with combined scoring
     for (file_path, bm25_score, content, start, end, context) in &bm25_results {
-        let norm_centrality = centrality.get(file_path.as_str()).copied().unwrap_or(0.0) / max_centrality;
+        let norm_centrality =
+            centrality.get(file_path.as_str()).copied().unwrap_or(0.0) / max_centrality;
         let combined = bm25_score * 0.7 + norm_centrality * 0.3;
         seen_files.insert(file_path.clone());
         results.push(GraphSearchResult {
@@ -80,7 +81,11 @@ pub fn graph_enhanced_search(
         if let Some(neighbor_path) = neighbor {
             if !seen_files.contains(neighbor_path) {
                 seen_files.insert(neighbor_path.clone());
-                let norm_centrality = centrality.get(neighbor_path.as_str()).copied().unwrap_or(0.0) / max_centrality;
+                let norm_centrality = centrality
+                    .get(neighbor_path.as_str())
+                    .copied()
+                    .unwrap_or(0.0)
+                    / max_centrality;
                 // Graph neighbors get a base BM25 score of 0 but centrality boost
                 results.push(GraphSearchResult {
                     file_path: neighbor_path.clone(),
@@ -90,7 +95,7 @@ pub fn graph_enhanced_search(
                     combined_score: norm_centrality * 0.3,
                     line_start: 0,
                     line_end: 0,
-                    context: format!("Graph neighbor via dependency edge"),
+                    context: "Graph neighbor via dependency edge".to_string(),
                     source: ResultSource::GraphNeighbor,
                 });
             }
@@ -98,7 +103,11 @@ pub fn graph_enhanced_search(
     }
 
     // 3. Sort by combined score descending, truncate
-    results.sort_by(|a, b| b.combined_score.partial_cmp(&a.combined_score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.combined_score
+            .partial_cmp(&a.combined_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     results.truncate(max_results);
     results
 }

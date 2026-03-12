@@ -1,10 +1,10 @@
 //! AI Orchestrator - Mission control for AI agents
 
-use kyro_core::{KyroError, KyroResult, Service};
 use async_trait::async_trait;
 use dashmap::DashMap;
-use uuid::Uuid;
+use kyro_core::{KyroError, KyroResult, Service};
 use std::sync::Arc;
+use uuid::Uuid;
 
 /// Mission ID
 pub type MissionId = Uuid;
@@ -54,7 +54,7 @@ impl Orchestrator {
 
         self.missions.insert(id, mission);
         log::info!("Started mission: {}", id);
-        
+
         Ok(id)
     }
 
@@ -113,8 +113,11 @@ mod tests {
     #[tokio::test]
     async fn test_orchestrator() {
         let orchestrator = Orchestrator::new();
-        let id = orchestrator.start_mission("Test mission".to_string()).await.unwrap();
-        
+        let id = orchestrator
+            .start_mission("Test mission".to_string())
+            .await
+            .unwrap();
+
         let mission = orchestrator.get_mission(id).unwrap();
         assert_eq!(mission.prompt, "Test mission");
     }

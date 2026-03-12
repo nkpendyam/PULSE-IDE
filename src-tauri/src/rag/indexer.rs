@@ -1,5 +1,5 @@
 //! RAG Indexer Module
-//! 
+//!
 //! Indexes code files for Retrieval-Augmented Generation
 
 use serde::{Deserialize, Serialize};

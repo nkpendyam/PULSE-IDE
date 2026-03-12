@@ -25,15 +25,18 @@ impl SimpleTokenizer {
         // Build simple vocabulary
         let mut vocab = HashMap::new();
         let mut reverse_vocab = HashMap::new();
-        
+
         // Add basic tokens
         for i in 0..32000 {
             let token = format!("token_{}", i);
             vocab.insert(token.clone(), i);
             reverse_vocab.insert(i, token);
         }
-        
-        Self { vocab, reverse_vocab }
+
+        Self {
+            vocab,
+            reverse_vocab,
+        }
     }
 }
 
@@ -50,27 +53,27 @@ impl Tokenizer for SimpleTokenizer {
                 word_tokens
             })
             .collect();
-        
+
         Ok(tokens)
     }
-    
+
     fn decode(&self, tokens: &[u32]) -> Result<String> {
         let words: Vec<String> = tokens
             .iter()
             .filter_map(|&id| self.reverse_vocab.get(&id).cloned())
             .collect();
-        
+
         Ok(words.join(" "))
     }
-    
+
     fn vocab_size(&self) -> usize {
         32000
     }
-    
+
     fn token_to_id(&self, token: &str) -> Option<u32> {
         self.vocab.get(token).copied()
     }
-    
+
     fn id_to_token(&self, id: u32) -> Option<String> {
         self.reverse_vocab.get(&id).cloned()
     }

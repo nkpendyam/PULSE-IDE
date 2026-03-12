@@ -2,7 +2,9 @@
 //!
 //! Exposes mission control, model listing, agent control, and Quest mode to the frontend.
 
-use crate::orchestrator::{KyroOrchestrator, Mission, MissionPhase, OrchestratorConfig, QuestState};
+use crate::orchestrator::{
+    KyroOrchestrator, Mission, MissionPhase, OrchestratorConfig, QuestState,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
@@ -69,7 +71,9 @@ pub async fn orchestrator_update_mission_phase(
 
 /// Get orchestrator config
 #[tauri::command]
-pub async fn orchestrator_get_config(state: State<'_, OrchestratorState>) -> Result<OrchestratorConfig, String> {
+pub async fn orchestrator_get_config(
+    state: State<'_, OrchestratorState>,
+) -> Result<OrchestratorConfig, String> {
     let orchestrator = state.0.read().await;
     Ok(orchestrator.config().clone())
 }
@@ -96,7 +100,9 @@ pub async fn quest_execute(
     project_path: String,
 ) -> Result<QuestState, String> {
     let orchestrator = state.0.write().await;
-    orchestrator.execute_quest(&mission_id, &project_path, Some(&app)).await
+    orchestrator
+        .execute_quest(&mission_id, &project_path, Some(&app))
+        .await
 }
 
 /// Get quest state

@@ -1,5 +1,5 @@
 //! Rate Limiter Module
-//! 
+//!
 //! Implements rate limiting to prevent brute-force attacks
 
 use std::collections::HashMap;
@@ -27,8 +27,7 @@ impl RateLimiter {
         let minute_ago = now - std::time::Duration::from_secs(60);
 
         // Get or create entry for this client
-        let timestamps = self.requests.entry(client_id.to_string())
-            .or_insert_with(Vec::new);
+        let timestamps = self.requests.entry(client_id.to_string()).or_default();
 
         // Remove timestamps older than 1 minute
         timestamps.retain(|&t| t > minute_ago);
@@ -110,7 +109,9 @@ impl SlidingWindowRateLimiter {
         let now = Instant::now();
         let window_start = now - std::time::Duration::from_secs(self.window_secs);
 
-        let window = self.requests.entry(client_id.to_string())
+        let window = self
+            .requests
+            .entry(client_id.to_string())
             .or_insert_with(|| SlidingWindow {
                 timestamps: Vec::new(),
                 burst_used: 0,
@@ -171,7 +172,7 @@ mod tests {
     #[test]
     fn test_rate_limiter_allows_under_limit() {
         let mut limiter = RateLimiter::new(5);
-        
+
         for _ in 0..5 {
             assert!(limiter.check("client1"));
         }
@@ -180,7 +181,7 @@ mod tests {
     #[test]
     fn test_rate_limiter_denies_over_limit() {
         let mut limiter = RateLimiter::new(3);
-        
+
         assert!(limiter.check("client1"));
         assert!(limiter.check("client1"));
         assert!(limiter.check("client1"));
@@ -190,11 +191,11 @@ mod tests {
     #[test]
     fn test_rate_limiter_independent_per_client() {
         let mut limiter = RateLimiter::new(2);
-        
+
         assert!(limiter.check("client1"));
         assert!(limiter.check("client1"));
         assert!(!limiter.check("client1"));
-        
+
         assert!(limiter.check("client2"));
         assert!(limiter.check("client2"));
     }
@@ -202,7 +203,7 @@ mod tests {
     #[test]
     fn test_rate_limiter_remaining() {
         let mut limiter = RateLimiter::new(5);
-        
+
         assert_eq!(limiter.remaining("client1"), 5);
         limiter.check("client1");
         assert_eq!(limiter.remaining("client1"), 4);
@@ -211,16 +212,16 @@ mod tests {
     #[test]
     fn test_sliding_window_rate_limiter() {
         let mut limiter = SlidingWindowRateLimiter::new(3, 60, 2);
-        
+
         // Regular requests
         assert!(limiter.check("client1").is_allowed());
         assert!(limiter.check("client1").is_allowed());
         assert!(limiter.check("client1").is_allowed());
-        
+
         // Burst requests
         assert!(limiter.check("client1").is_allowed());
         assert!(limiter.check("client1").is_allowed());
-        
+
         // Should be denied now
         assert!(!limiter.check("client1").is_allowed());
     }

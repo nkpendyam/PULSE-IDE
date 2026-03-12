@@ -5,21 +5,15 @@
 //!
 //! This addresses the critical gap: "If an AI agent runs rm -rf, the IDE is dead on arrival"
 
+pub mod audit;
 pub mod permissions;
 pub mod requests;
-pub mod audit;
 pub mod sandbox;
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
-use chrono::{DateTime, Utc};
-
-pub use permissions::*;
-pub use requests::*;
-pub use audit::*;
-pub use sandbox::*;
 
 /// Agent identity
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,9 +28,10 @@ pub struct AgentIdentity {
 }
 
 /// Trust levels for agents
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum TrustLevel {
     /// Untrusted - requires approval for every action
+    #[default]
     Untrusted,
     /// Limited - can read files, requires approval for writes
     Limited,
@@ -44,12 +39,6 @@ pub enum TrustLevel {
     Trusted,
     /// System - full access (only for built-in agents)
     System,
-}
-
-impl Default for TrustLevel {
-    fn default() -> Self {
-        Self::Untrusted
-    }
 }
 
 /// Permission types
@@ -60,33 +49,33 @@ pub enum Permission {
     WriteFile(PathPattern),
     DeleteFile(PathPattern),
     CreateFile(PathPattern),
-    
+
     // Directory operations
     ListDirectory(PathPattern),
     CreateDirectory(PathPattern),
     DeleteDirectory(PathPattern),
-    
+
     // Code operations
     EditCode(PathPattern),
     RunTests,
     ExecuteCommand(CommandPattern),
-    
+
     // Git operations
     GitStatus,
     GitCommit,
     GitPush,
     GitPull,
     GitBranch,
-    
+
     // Network operations
     NetworkRequest(UrlPattern),
     WebSocketConnection(UrlPattern),
-    
+
     // AI operations
     GenerateCode,
     ModifyCode(PathPattern),
     ExecuteTerminal,
-    
+
     // System operations
     AccessClipboard,
     AccessEnvironment,
@@ -105,7 +94,7 @@ impl PathPattern {
         if self.pattern == "*" {
             return true;
         }
-        
+
         if self.recursive {
             path.starts_with(&self.pattern) || glob_match::glob_match(&self.pattern, path)
         } else {
@@ -194,7 +183,7 @@ impl PermissionManager {
         require_approval_for.insert(RiskLevel::Medium);
         require_approval_for.insert(RiskLevel::High);
         require_approval_for.insert(RiskLevel::Critical);
-        
+
         Self {
             agents: HashMap::new(),
             pending_requests: HashMap::new(),
@@ -204,13 +193,13 @@ impl PermissionManager {
             require_approval_for,
         }
     }
-    
+
     /// Register a new agent
     pub fn register_agent(&mut self, identity: AgentIdentity) {
         let agent_id = identity.id.clone();
         let agent_name = identity.name.clone();
         self.agents.insert(identity.id.clone(), identity);
-        
+
         self.audit_log.push(AuditEntry {
             timestamp: Utc::now(),
             event: AuditEvent::AgentRegistered {
@@ -219,7 +208,7 @@ impl PermissionManager {
             },
         });
     }
-    
+
     /// Request permission for an operation
     pub fn request_permission(
         &mut self,
@@ -227,19 +216,21 @@ impl PermissionManager {
         permission: Permission,
         context: &str,
     ) -> Result<PermissionResult> {
-        let agent = self.agents.get(agent_id)
+        let agent = self
+            .agents
+            .get(agent_id)
             .ok_or_else(|| anyhow::anyhow!("Agent not registered: {}", agent_id))?;
-        
+
         // Check if already granted
         if agent.granted_permissions.contains(&permission) {
             return Ok(PermissionResult::Granted {
                 reason: "Permission already granted".to_string(),
             });
         }
-        
+
         // Calculate risk level
         let risk_level = self.calculate_risk(&permission);
-        
+
         // Auto-approve safe operations if configured
         if self.auto_approve_safe && risk_level == RiskLevel::Safe {
             self.audit_log.push(AuditEntry {
@@ -249,12 +240,12 @@ impl PermissionManager {
                     permission: format!("{:?}", permission),
                 },
             });
-            
+
             return Ok(PermissionResult::Granted {
                 reason: "Safe operation auto-approved".to_string(),
             });
         }
-        
+
         // Check trust level
         match agent.trust_level {
             TrustLevel::System => {
@@ -274,7 +265,7 @@ impl PermissionManager {
             }
             _ => {}
         }
-        
+
         // Create permission request
         let request = PermissionRequest {
             id: uuid::Uuid::new_v4().to_string(),
@@ -285,13 +276,14 @@ impl PermissionManager {
             expires_at: Some(Utc::now() + chrono::Duration::minutes(5)),
             created_at: Utc::now(),
         };
-        
+
         let request_id = request.id.clone();
-        self.pending_requests.insert(request_id.clone(), request.clone());
-        
+        self.pending_requests
+            .insert(request_id.clone(), request.clone());
+
         Ok(PermissionResult::PendingApproval { request })
     }
-    
+
     /// Grant a permission request
     pub fn grant_request(
         &mut self,
@@ -299,9 +291,11 @@ impl PermissionManager {
         scope: PermissionScope,
         reason: Option<String>,
     ) -> anyhow::Result<()> {
-        let request = self.pending_requests.remove(request_id)
+        let request = self
+            .pending_requests
+            .remove(request_id)
             .ok_or_else(|| anyhow::anyhow!("Request not found: {}", request_id))?;
-        
+
         let decision = PermissionDecision {
             request_id: request_id.to_string(),
             granted: true,
@@ -310,14 +304,15 @@ impl PermissionManager {
             decided_at: Utc::now(),
             reason,
         };
-        
+
         // Add permission to agent
         if let Some(agent) = self.agents.get_mut(&request.agent_id) {
             agent.granted_permissions.insert(request.permission.clone());
         }
-        
-        self.decisions.insert(request_id.to_string(), decision.clone());
-        
+
+        self.decisions
+            .insert(request_id.to_string(), decision.clone());
+
         self.audit_log.push(AuditEntry {
             timestamp: Utc::now(),
             event: AuditEvent::PermissionGranted {
@@ -325,15 +320,17 @@ impl PermissionManager {
                 permission: format!("{:?}", request.permission),
             },
         });
-        
+
         Ok(())
     }
-    
+
     /// Deny a permission request
     pub fn deny_request(&mut self, request_id: &str, reason: &str) -> anyhow::Result<()> {
-        let request = self.pending_requests.remove(request_id)
+        let request = self
+            .pending_requests
+            .remove(request_id)
             .ok_or_else(|| anyhow::anyhow!("Request not found: {}", request_id))?;
-        
+
         let decision = PermissionDecision {
             request_id: request_id.to_string(),
             granted: false,
@@ -342,9 +339,9 @@ impl PermissionManager {
             decided_at: Utc::now(),
             reason: Some(reason.to_string()),
         };
-        
+
         self.decisions.insert(request_id.to_string(), decision);
-        
+
         self.audit_log.push(AuditEntry {
             timestamp: Utc::now(),
             event: AuditEvent::PermissionDenied {
@@ -353,17 +350,17 @@ impl PermissionManager {
                 reason: reason.to_string(),
             },
         });
-        
+
         Ok(())
     }
-    
+
     /// Check if an operation is allowed
     pub fn is_allowed(&self, agent_id: &str, permission: &Permission) -> bool {
         if let Some(agent) = self.agents.get(agent_id) {
             if agent.granted_permissions.contains(permission) {
                 return true;
             }
-            
+
             // Check trust level for safe operations
             let risk = self.calculate_risk(permission);
             match agent.trust_level {
@@ -376,48 +373,48 @@ impl PermissionManager {
             false
         }
     }
-    
+
     /// Calculate risk level for a permission
     fn calculate_risk(&self, permission: &Permission) -> RiskLevel {
         match permission {
-            Permission::ReadFile(_) |
-            Permission::ListDirectory(_) |
-            Permission::GitStatus => RiskLevel::Safe,
-            
-            Permission::CreateFile(_) |
-            Permission::CreateDirectory(_) |
-            Permission::EditCode(_) |
-            Permission::GenerateCode |
-            Permission::GitPull |
-            Permission::GitBranch => RiskLevel::Low,
-            
-            Permission::WriteFile(_) |
-            Permission::ModifyCode(_) |
-            Permission::RunTests |
-            Permission::GitCommit => RiskLevel::Medium,
-            
-            Permission::DeleteFile(_) |
-            Permission::DeleteDirectory(_) |
-            Permission::ExecuteCommand(_) |
-            Permission::ExecuteTerminal |
-            Permission::GitPush => RiskLevel::High,
-            
-            Permission::NetworkRequest(_) |
-            Permission::WebSocketConnection(_) |
-            Permission::SpawnProcess |
-            Permission::AccessEnvironment => RiskLevel::Critical,
-            
+            Permission::ReadFile(_) | Permission::ListDirectory(_) | Permission::GitStatus => {
+                RiskLevel::Safe
+            }
+
+            Permission::CreateFile(_)
+            | Permission::CreateDirectory(_)
+            | Permission::EditCode(_)
+            | Permission::GenerateCode
+            | Permission::GitPull
+            | Permission::GitBranch => RiskLevel::Low,
+
+            Permission::WriteFile(_)
+            | Permission::ModifyCode(_)
+            | Permission::RunTests
+            | Permission::GitCommit => RiskLevel::Medium,
+
+            Permission::DeleteFile(_)
+            | Permission::DeleteDirectory(_)
+            | Permission::ExecuteCommand(_)
+            | Permission::ExecuteTerminal
+            | Permission::GitPush => RiskLevel::High,
+
+            Permission::NetworkRequest(_)
+            | Permission::WebSocketConnection(_)
+            | Permission::SpawnProcess
+            | Permission::AccessEnvironment => RiskLevel::Critical,
+
             Permission::AccessClipboard => RiskLevel::Low,
         }
     }
-    
+
     /// Revoke all permissions for an agent
     pub fn revoke_all(&mut self, agent_id: &str) {
         if let Some(agent) = self.agents.get_mut(agent_id) {
             agent.granted_permissions.clear();
             agent.trust_level = TrustLevel::Untrusted;
         }
-        
+
         self.audit_log.push(AuditEntry {
             timestamp: Utc::now(),
             event: AuditEvent::PermissionsRevoked {
@@ -425,12 +422,12 @@ impl PermissionManager {
             },
         });
     }
-    
+
     /// Get pending requests for UI
     pub fn get_pending_requests(&self) -> Vec<&PermissionRequest> {
         self.pending_requests.values().collect()
     }
-    
+
     /// Get audit log
     pub fn get_audit_log(&self, limit: usize) -> Vec<&AuditEntry> {
         self.audit_log.iter().rev().take(limit).collect()
@@ -455,13 +452,35 @@ pub struct AuditEntry {
 /// Audit events
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuditEvent {
-    AgentRegistered { agent_id: String, name: String },
-    PermissionRequested { agent_id: String, permission: String },
-    PermissionGranted { agent_id: String, permission: String },
-    PermissionDenied { agent_id: String, permission: String, reason: String },
-    PermissionAutoApproved { agent_id: String, permission: String },
-    PermissionsRevoked { agent_id: String },
-    OperationBlocked { agent_id: String, permission: String, reason: String },
+    AgentRegistered {
+        agent_id: String,
+        name: String,
+    },
+    PermissionRequested {
+        agent_id: String,
+        permission: String,
+    },
+    PermissionGranted {
+        agent_id: String,
+        permission: String,
+    },
+    PermissionDenied {
+        agent_id: String,
+        permission: String,
+        reason: String,
+    },
+    PermissionAutoApproved {
+        agent_id: String,
+        permission: String,
+    },
+    PermissionsRevoked {
+        agent_id: String,
+    },
+    OperationBlocked {
+        agent_id: String,
+        permission: String,
+        reason: String,
+    },
 }
 
 impl Default for PermissionManager {
@@ -473,11 +492,11 @@ impl Default for PermissionManager {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_permission_flow() {
         let mut manager = PermissionManager::new();
-        
+
         // Register agent
         let agent = AgentIdentity {
             id: "test-agent".to_string(),
@@ -488,9 +507,9 @@ mod tests {
             granted_permissions: HashSet::new(),
             created_at: Utc::now(),
         };
-        
+
         manager.register_agent(agent);
-        
+
         // Request read permission (safe, auto-approved)
         let result = manager.request_permission(
             "test-agent",
@@ -500,12 +519,12 @@ mod tests {
             }),
             "Reading source files",
         );
-        
+
         match result {
             PermissionResult::Granted { .. } => {}
             _ => panic!("Expected granted for safe operation"),
         }
-        
+
         // Request write permission (needs approval)
         let result = manager.request_permission(
             "test-agent",
@@ -515,11 +534,10 @@ mod tests {
             }),
             "Modifying main.rs",
         );
-        
+
         match result {
             PermissionResult::PendingApproval { .. } => {}
             _ => panic!("Expected pending approval"),
         }
     }
 }
-

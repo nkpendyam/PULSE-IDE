@@ -10,15 +10,10 @@
 //! - Streaming responses for real-time feedback
 //! - Code suggestions with diffs
 
-pub mod rag_chat;
-pub mod context_builder;
 pub mod code_aware;
+pub mod context_builder;
+pub mod rag_chat;
 pub mod streaming;
-
-pub use rag_chat::RAGChatEngine;
-pub use context_builder::ContextBuilder;
-pub use code_aware::CodeAwareChat;
-pub use streaming::StreamingResponder;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

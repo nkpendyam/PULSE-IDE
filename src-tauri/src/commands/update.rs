@@ -1,7 +1,7 @@
 // Update Tauri Commands — Real update checking via GitHub Releases API
-use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
 
 lazy_static::lazy_static! {
@@ -19,6 +19,12 @@ pub struct UpdateState {
     history: Vec<UpdateRecord>,
     skipped_versions: Vec<String>,
     download_progress: f32,
+}
+
+impl Default for UpdateState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl UpdateState {
@@ -86,7 +92,8 @@ pub async fn check_for_updates() -> Result<Option<UpdateInfo>, String> {
 
     let url = format!("https://api.github.com/repos/{}/releases", GITHUB_REPO);
     let client = reqwest::Client::new();
-    let resp = client.get(&url)
+    let resp = client
+        .get(&url)
         .header("User-Agent", "Kyro-IDE-Updater")
         .header("Accept", "application/vnd.github.v3+json")
         .timeout(std::time::Duration::from_secs(15))
@@ -98,7 +105,9 @@ pub async fn check_for_updates() -> Result<Option<UpdateInfo>, String> {
         return Ok(None);
     }
 
-    let releases: Vec<GitHubRelease> = resp.json().await
+    let releases: Vec<GitHubRelease> = resp
+        .json()
+        .await
         .map_err(|e| format!("Parse error: {}", e))?;
 
     // Filter by channel
@@ -119,9 +128,13 @@ pub async fn check_for_updates() -> Result<Option<UpdateInfo>, String> {
         Some(release) => {
             let platform_asset = release.assets.iter().find(|a| {
                 let name = a.name.to_lowercase();
-                if cfg!(target_os = "windows") { name.contains("windows") || name.ends_with(".msi") || name.ends_with(".exe") }
-                else if cfg!(target_os = "macos") { name.contains("macos") || name.ends_with(".dmg") }
-                else { name.contains("linux") || name.ends_with(".appimage") || name.ends_with(".deb") }
+                if cfg!(target_os = "windows") {
+                    name.contains("windows") || name.ends_with(".msi") || name.ends_with(".exe")
+                } else if cfg!(target_os = "macos") {
+                    name.contains("macos") || name.ends_with(".dmg")
+                } else {
+                    name.contains("linux") || name.ends_with(".appimage") || name.ends_with(".deb")
+                }
             });
             let (url, size) = platform_asset
                 .map(|a| (a.browser_download_url.clone(), a.size as f32 / 1_048_576.0))
@@ -132,7 +145,14 @@ pub async fn check_for_updates() -> Result<Option<UpdateInfo>, String> {
                 release_notes: release.body.clone().unwrap_or_default(),
                 download_url: url,
                 size_mb: size,
-                is_critical: release.body.as_ref().map(|b| b.to_lowercase().contains("critical") || b.to_lowercase().contains("security")).unwrap_or(false),
+                is_critical: release
+                    .body
+                    .as_ref()
+                    .map(|b| {
+                        b.to_lowercase().contains("critical")
+                            || b.to_lowercase().contains("security")
+                    })
+                    .unwrap_or(false),
             }))
         }
         None => Ok(None),

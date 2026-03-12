@@ -12,19 +12,23 @@
 //! - Hierarchical Memory: True codebase understanding
 //! - Autonomous Coding: "Describe feature → get code in 30s"
 
+// Early-stage project: many modules are stubs/scaffolding.
+// These allows will be incrementally removed as modules mature.
+#![allow(dead_code, unused_variables, unused_imports, unused_mut)]
+
 // ============ Core Modules ============
-pub mod commands;
 pub mod ai;
-pub mod terminal;
+pub mod commands;
 pub mod files;
 pub mod git;
 pub mod lsp;
+pub mod terminal;
 
 // ============ AI Modules ============
-pub mod swarm_ai;
 pub mod embedded_llm;
 pub mod mcp;
 pub mod rag;
+pub mod swarm_ai;
 
 // ============ Collaboration Modules ============
 pub mod git_crdt;
@@ -39,11 +43,11 @@ pub mod telegram;
 pub mod agents;
 
 // ============ Infrastructure Modules ============
-pub mod update;
-pub mod plugin_sandbox;
-pub mod telemetry;
 pub mod accessibility;
 pub mod benchmark;
+pub mod plugin_sandbox;
+pub mod telemetry;
+pub mod update;
 
 // ============ VS Code Compatibility ============
 pub mod vscode_compat;

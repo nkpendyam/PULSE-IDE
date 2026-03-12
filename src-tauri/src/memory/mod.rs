@@ -9,36 +9,33 @@
 //! L4: Dependency graph (symbol graph)
 //! L5: External knowledge (docs, crates.io)
 
-pub mod hierarchy;
 pub mod compression;
+pub mod hierarchy;
 pub mod symbol_graph;
 
-use std::collections::{HashMap, VecDeque, HashSet};
-use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
 
-pub use hierarchy::*;
-pub use compression::*;
 pub use symbol_graph::*;
 
 /// Hierarchical memory system
 pub struct HierarchicalMemory {
     /// L1: Current file context (8K tokens)
     l1_immediate: ImmediateContext,
-    
+
     /// L2: Recently accessed files (10 files, ~50K tokens)
     l2_recent: LRUCache<String, FileContext>,
-    
+
     /// L3: Project summary (compressed, ~20K tokens)
     l3_project: ProjectSummary,
-    
+
     /// L4: Symbol dependency graph
     l4_symbols: SymbolGraph,
-    
+
     /// L5: External knowledge index
     l5_external: ExternalIndex,
-    
+
     /// Configuration
     config: MemoryConfig,
 }
@@ -122,7 +119,7 @@ impl<K: std::hash::Hash + Eq + Clone, V> LRUCache<K, V> {
             order: VecDeque::new(),
         }
     }
-    
+
     pub fn get(&mut self, key: &K) -> Option<&V> {
         if self.cache.contains_key(key) {
             // Move to front
@@ -133,7 +130,7 @@ impl<K: std::hash::Hash + Eq + Clone, V> LRUCache<K, V> {
             None
         }
     }
-    
+
     pub fn put(&mut self, key: K, value: V) {
         if self.cache.contains_key(&key) {
             self.order.retain(|k| k != &key);
@@ -142,11 +139,11 @@ impl<K: std::hash::Hash + Eq + Clone, V> LRUCache<K, V> {
                 self.cache.remove(&old_key);
             }
         }
-        
+
         self.order.push_front(key.clone());
         self.cache.insert(key, value);
     }
-    
+
     pub fn values(&self) -> impl Iterator<Item = &V> {
         self.cache.values()
     }
@@ -182,7 +179,6 @@ pub struct DependencyInfo {
     pub version: String,
     pub purpose: String,
 }
-
 
 /// L5: External knowledge
 #[derive(Debug, Clone, Default)]
@@ -245,13 +241,13 @@ impl HierarchicalMemory {
             config,
         }
     }
-    
+
     /// Set current file context (L1)
     pub fn set_current_file(&mut self, path: &str, content: &str) {
         self.l1_immediate.file_path = Some(path.to_string());
         self.l1_immediate.content = content.to_string();
         self.l1_immediate.tokens = self.count_tokens(content);
-        
+
         // Also add to L2
         let file_context = FileContext {
             path: path.to_string(),
@@ -264,15 +260,15 @@ impl HierarchicalMemory {
             access_count: 1,
             token_count: self.count_tokens(content),
         };
-        
+
         self.l2_recent.put(path.to_string(), file_context);
     }
-    
+
     /// Update cursor position
     pub fn set_cursor(&mut self, line: usize, column: usize) {
         self.l1_immediate.cursor_position = (line, column);
     }
-    
+
     /// Resolve a symbol across all levels
     pub fn resolve_symbol(&self, name: &str) -> Option<SymbolContext> {
         // L1: Check current file
@@ -284,10 +280,10 @@ impl HierarchicalMemory {
                 });
             }
         }
-        
+
         // L2: Check recent files
         // (In real impl, would iterate L2 cache)
-        
+
         // L4: Check symbol graph
         if let Some(node) = self.l4_symbols.nodes.get(name) {
             return Some(SymbolContext {
@@ -295,7 +291,7 @@ impl HierarchicalMemory {
                 source: ContextSource::L4Graph,
             });
         }
-        
+
         // L5: Check external docs
         if let Some(entry) = self.l5_external.doc_index.get(name) {
             return Some(SymbolContext {
@@ -303,15 +299,15 @@ impl HierarchicalMemory {
                 source: ContextSource::L5External,
             });
         }
-        
+
         None
     }
-    
+
     /// Get context for AI prompt
     pub fn build_context(&self, max_tokens: usize) -> String {
         let mut context = String::new();
         let mut tokens_used = 0;
-        
+
         // L1: Current file (highest priority)
         if self.l1_immediate.tokens > 0 {
             context.push_str("=== CURRENT FILE ===\n");
@@ -320,7 +316,7 @@ impl HierarchicalMemory {
             context.push_str("\n\n");
             tokens_used += self.l1_immediate.tokens;
         }
-        
+
         // L3: Project summary
         if tokens_used < max_tokens {
             let summary = self.format_project_summary();
@@ -332,7 +328,7 @@ impl HierarchicalMemory {
                 tokens_used += summary_tokens;
             }
         }
-        
+
         // L4: Relevant symbols
         if tokens_used < max_tokens {
             let symbols = self.format_relevant_symbols();
@@ -340,18 +336,18 @@ impl HierarchicalMemory {
             if tokens_used + symbol_tokens < max_tokens {
                 context.push_str("=== RELEVANT SYMBOLS ===\n");
                 context.push_str(&symbols);
-                context.push_str("\n");
+                context.push('\n');
             }
         }
-        
+
         context
     }
-    
+
     /// Add symbol to graph
     pub fn add_symbol(&mut self, node: SymbolNode) {
         self.l4_symbols.nodes.insert(node.id.clone(), node);
     }
-    
+
     /// Add symbol relationship
     pub fn add_relationship(&mut self, from: &str, to: &str, edge_type: EdgeType) {
         self.l4_symbols.edges.push(SymbolEdge {
@@ -359,56 +355,92 @@ impl HierarchicalMemory {
             to: to.to_string(),
             edge_type,
         });
-        
+
         // Update reverse index
-        self.l4_symbols.reverse_index
+        self.l4_symbols
+            .reverse_index
             .entry(to.to_string())
             .or_default()
             .insert(from.to_string());
     }
-    
+
     /// Find references to a symbol
     pub fn find_references(&self, symbol_id: &str) -> Vec<&SymbolNode> {
-        self.l4_symbols.reverse_index
+        self.l4_symbols
+            .reverse_index
             .get(symbol_id)
-            .map(|ids| ids.iter()
-                .filter_map(|id| self.l4_symbols.nodes.get(id))
-                .collect())
+            .map(|ids| {
+                ids.iter()
+                    .filter_map(|id| self.l4_symbols.nodes.get(id))
+                    .collect()
+            })
             .unwrap_or_default()
     }
-    
+
     // Helper methods
     fn count_tokens(&self, text: &str) -> usize {
         // Rough approximation: ~4 chars per token
         text.len() / 4
     }
-    
+
     fn summarize_file(&self, content: &str) -> String {
         // Simple summary: first few non-empty lines
-        content.lines()
+        content
+            .lines()
             .filter(|l| !l.trim().is_empty())
             .take(5)
             .collect::<Vec<_>>()
             .join("\n")
     }
-    
+
     fn extract_symbols(&self, content: &str) -> Vec<SymbolInfo> {
         // Try each language parser — fall back gracefully
         let languages: &[(&tree_sitter::Language, &[&str])] = &[
-            (&tree_sitter_rust::LANGUAGE.into(), &["function_item", "struct_item", "enum_item", "impl_item", "trait_item", "const_item", "static_item", "type_item"]),
-            (&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(), &["function_declaration", "class_declaration", "interface_declaration", "enum_declaration", "type_alias_declaration"]),
-            (&tree_sitter_python::LANGUAGE.into(), &["function_definition", "class_definition"]),
+            (
+                &tree_sitter_rust::LANGUAGE.into(),
+                &[
+                    "function_item",
+                    "struct_item",
+                    "enum_item",
+                    "impl_item",
+                    "trait_item",
+                    "const_item",
+                    "static_item",
+                    "type_item",
+                ],
+            ),
+            (
+                &tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+                &[
+                    "function_declaration",
+                    "class_declaration",
+                    "interface_declaration",
+                    "enum_declaration",
+                    "type_alias_declaration",
+                ],
+            ),
+            (
+                &tree_sitter_python::LANGUAGE.into(),
+                &["function_definition", "class_definition"],
+            ),
         ];
 
         for (lang, symbol_kinds) in languages {
             let mut parser = tree_sitter::Parser::new();
-            if parser.set_language(lang).is_err() { continue; }
+            if parser.set_language(lang).is_err() {
+                continue;
+            }
             let tree = match parser.parse(content, None) {
-                Some(t) if t.root_node().has_error() == false || t.root_node().child_count() > 2 => t,
+                Some(t) if !t.root_node().has_error() || t.root_node().child_count() > 2 => t,
                 _ => continue,
             };
             let mut symbols = Vec::new();
-            Self::walk_for_symbols(tree.root_node(), content.as_bytes(), symbol_kinds, &mut symbols);
+            Self::walk_for_symbols(
+                tree.root_node(),
+                content.as_bytes(),
+                symbol_kinds,
+                &mut symbols,
+            );
             if !symbols.is_empty() {
                 return symbols;
             }
@@ -423,7 +455,8 @@ impl HierarchicalMemory {
         out: &mut Vec<SymbolInfo>,
     ) {
         if kinds.contains(&node.kind()) {
-            let name = node.child_by_field_name("name")
+            let name = node
+                .child_by_field_name("name")
                 .map(|n| n.utf8_text(source).unwrap_or("").to_string())
                 .unwrap_or_default();
             if !name.is_empty() {
@@ -450,7 +483,9 @@ impl HierarchicalMemory {
 
     fn map_ts_kind(kind: &str) -> SymbolKind {
         match kind {
-            "function_item" | "function_declaration" | "function_definition" => SymbolKind::Function,
+            "function_item" | "function_declaration" | "function_definition" => {
+                SymbolKind::Function
+            }
             "struct_item" | "class_declaration" | "class_definition" => SymbolKind::Struct,
             "enum_item" | "enum_declaration" => SymbolKind::Enum,
             "trait_item" | "interface_declaration" => SymbolKind::Interface,
@@ -464,28 +499,38 @@ impl HierarchicalMemory {
         let mut result = Vec::new();
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("use ") || trimmed.starts_with("import ") || trimmed.starts_with("from ") || trimmed.starts_with("#include") {
+            if trimmed.starts_with("use ")
+                || trimmed.starts_with("import ")
+                || trimmed.starts_with("from ")
+                || trimmed.starts_with("#include")
+            {
                 result.push(trimmed.to_string());
             }
         }
         result
     }
-    
+
     fn extract_exports(&self, content: &str) -> Vec<String> {
         let mut result = Vec::new();
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed.starts_with("pub fn ") || trimmed.starts_with("pub struct ")
-                || trimmed.starts_with("pub enum ") || trimmed.starts_with("pub trait ")
-                || trimmed.starts_with("export ") {
+            if trimmed.starts_with("pub fn ")
+                || trimmed.starts_with("pub struct ")
+                || trimmed.starts_with("pub enum ")
+                || trimmed.starts_with("pub trait ")
+                || trimmed.starts_with("export ")
+            {
                 if let Some(name) = trimmed.split_whitespace().nth(2) {
-                    result.push(name.trim_end_matches(|c: char| !c.is_alphanumeric() && c != '_').to_string());
+                    result.push(
+                        name.trim_end_matches(|c: char| !c.is_alphanumeric() && c != '_')
+                            .to_string(),
+                    );
                 }
             }
         }
         result
     }
-    
+
     fn find_in_content(&self, content: &str, name: &str) -> Option<SymbolInfo> {
         // Simple search - would use tree-sitter in real impl
         for (i, line) in content.lines().enumerate() {
@@ -501,7 +546,7 @@ impl HierarchicalMemory {
         }
         None
     }
-    
+
     fn format_project_summary(&self) -> String {
         format!(
             "Project: {} ({})\nFramework: {:?}\n{}\nModules: {}",
@@ -512,11 +557,20 @@ impl HierarchicalMemory {
             self.l3_project.key_modules.len()
         )
     }
-    
+
     fn format_relevant_symbols(&self) -> String {
-        self.l4_symbols.nodes.values()
+        self.l4_symbols
+            .nodes
+            .values()
             .take(20)
-            .map(|n| format!("{}: {} ({:?})", n.qualified_name, n.signature.as_deref().unwrap_or(""), n.kind))
+            .map(|n| {
+                format!(
+                    "{}: {} ({:?})",
+                    n.qualified_name,
+                    n.signature.as_deref().unwrap_or(""),
+                    n.kind
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n")
     }

@@ -1,5 +1,5 @@
 //! KYRO IDE Agent System
-//! 
+//!
 //! This module provides controlled, safe agent execution with:
 //! - Resource limits (memory, CPU, time)
 //! - Context persistence (SQLite-backed memory)
@@ -10,7 +10,7 @@
 //! - Parallel agent execution (Antigravity-style)
 //!
 //! ## Critical Rules (STRICT MODE)
-//! 
+//!
 //! 1. ONE agent runs at a time - enforced by AgentLock (can be overridden for parallel)
 //! 2. MAX 2GB memory - enforced by AgentGuardrails
 //! 3. MAX 30 minutes per task - enforced by scheduler
@@ -19,23 +19,14 @@
 //! 6. Commit every 5 changes or 15 minutes
 //! 7. Merge to main every 10 commits or 2 hours
 
+pub mod agent_lock;
+pub mod branch_manager;
+pub mod file_guard;
 pub mod guardrails;
 pub mod memory;
-pub mod file_guard;
-pub mod branch_manager;
-pub mod sync_enforcer;
-pub mod scheduler;
-pub mod agent_lock;
 pub mod parallel_agents;
-
-pub use guardrails::AgentGuardrails;
-pub use memory::AgentMemory;
-pub use file_guard::{FileGuard, FileAccess, DEFAULT_ALLOWED_PATHS, FORBIDDEN_PATHS};
-pub use branch_manager::BranchManager;
-pub use sync_enforcer::SyncEnforcer;
-pub use scheduler::{AgentScheduler, AgentExecutionGuard, TaskPriority};
-pub use agent_lock::{AgentLock, AgentGuard, LOCK_FILE, MEMORY_DIR};
-pub use parallel_agents::{ParallelAgentsOrchestrator, OrchestratorConfig, AgentType, AgentTask, AgentResult};
+pub mod scheduler;
+pub mod sync_enforcer;
 
 use serde::{Deserialize, Serialize};
 
@@ -57,13 +48,10 @@ impl Default for AgentConfig {
     fn default() -> Self {
         Self {
             id: AgentId("default".to_string()),
-            max_memory_mb: 2048,      // 2GB
-            max_cpu_percent: 50.0,    // 50%
-            max_runtime_secs: 600,    // 10 minutes
-            allowed_paths: vec![
-                "src/".to_string(),
-                "src-tauri/src/".to_string(),
-            ],
+            max_memory_mb: 2048,   // 2GB
+            max_cpu_percent: 50.0, // 50%
+            max_runtime_secs: 600, // 10 minutes
+            allowed_paths: vec!["src/".to_string(), "src-tauri/src/".to_string()],
         }
     }
 }
@@ -82,28 +70,31 @@ pub struct WorkInProgress {
 pub enum AgentError {
     #[error("Memory limit exceeded: used {used} bytes, limit {limit} bytes")]
     MemoryLimitExceeded { used: usize, limit: usize },
-    
+
     #[error("CPU limit exceeded: {used}% > {limit}%")]
     CpuLimitExceeded { used: f32, limit: f32 },
-    
+
     #[error("Runtime exceeded: {elapsed:?} > {limit:?}")]
-    RuntimeExceeded { elapsed: std::time::Duration, limit: std::time::Duration },
-    
+    RuntimeExceeded {
+        elapsed: std::time::Duration,
+        limit: std::time::Duration,
+    },
+
     #[error("File access denied: {0}")]
     FileAccessDenied(String),
-    
+
     #[error("Branch error: {0}")]
     BranchError(String),
-    
+
     #[error("Sync error: {0}")]
     SyncError(String),
-    
+
     #[error("Database error: {0}")]
     DatabaseError(String),
-    
+
     #[error("Process error: {0}")]
     ProcessError(String),
-    
+
     #[error("Scheduler busy: {0} agents queued")]
     SchedulerBusy(usize),
 }

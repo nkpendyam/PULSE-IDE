@@ -2,9 +2,9 @@
 //!
 //! Measures Language Server Protocol performance
 
+use super::{BenchmarkCategory, BenchmarkModule, BenchmarkRunner};
 use anyhow::Result;
 use std::time::Duration;
-use super::{BenchmarkRunner, BenchmarkModule, BenchmarkCategory};
 
 pub struct LSPPerfBenchmark {
     test_code: String,
@@ -35,39 +35,41 @@ impl User {
         format!("Hello, I'm {}!", self.name)
     }
 }
-"#.to_string(),
+"#
+            .to_string(),
         }
     }
 
     fn measure_symbol_extraction(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Simulate symbol extraction
         // In production, would use tree-sitter
-        let _symbols: Vec<&str> = self.test_code
+        let _symbols: Vec<&str> = self
+            .test_code
             .lines()
             .filter(|l| l.contains("fn ") || l.contains("struct "))
             .collect();
-        
+
         std::thread::sleep(Duration::from_micros(100)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_keyword_completion(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Keyword completion is fast (in-memory lookup)
-        let _keywords = vec!["fn", "let", "mut", "if", "else", "match", "for", "while"];
-        
+        let _keywords = ["fn", "let", "mut", "if", "else", "match", "for", "while"];
+
         std::thread::sleep(Duration::from_micros(50)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_bracket_diagnostics(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Bracket matching check
         let mut stack = 0;
         for c in self.test_code.chars() {
@@ -77,64 +79,64 @@ impl User {
                 _ => {}
             }
         }
-        
+
         std::thread::sleep(Duration::from_micros(100)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_language_detection(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // File extension to language mapping
         let extensions = ["rs", "py", "js", "ts", "go", "java"];
         let _lang = extensions.iter().find(|&&e| e == "rs");
-        
+
         std::thread::sleep(Duration::from_micros(10)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_full_completion(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Full completion with all sources:
         // - Keywords (1ms)
         // - Symbols (5ms)
         // - Snippets (5ms)
         // - AI hints (50ms)
-        
+
         std::thread::sleep(Duration::from_millis(61)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_hover_info(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Hover information retrieval
         // Type lookup, documentation fetch
         std::thread::sleep(Duration::from_millis(5)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_go_to_definition(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Go to definition lookup
         // Symbol table lookup + file location
         std::thread::sleep(Duration::from_millis(10)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 
     fn measure_document_symbols(&self) -> Result<Duration> {
         let start = std::time::Instant::now();
-        
+
         // Extract all symbols from document
         std::thread::sleep(Duration::from_millis(20)); // Simulated work
-        
+
         Ok(start.elapsed())
     }
 }
@@ -177,11 +179,9 @@ impl BenchmarkModule for LSPPerfBenchmark {
         )?;
 
         // Hover info
-        runner.run_benchmark(
-            "lsp_hover_info",
-            BenchmarkCategory::LSPCompletion,
-            || self.measure_hover_info(),
-        )?;
+        runner.run_benchmark("lsp_hover_info", BenchmarkCategory::LSPCompletion, || {
+            self.measure_hover_info()
+        })?;
 
         // Go to definition
         runner.run_benchmark(

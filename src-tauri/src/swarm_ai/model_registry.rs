@@ -262,7 +262,7 @@ impl ModelRegistry {
     /// List all available models
     pub async fn list_models(&self) -> Result<Vec<ModelMetadata>> {
         let mut models: Vec<ModelMetadata> = self.registered_models.values().cloned().collect();
-        
+
         // Check which models are downloaded
         for model in &mut models {
             let local_path = self.models_dir.join(format!("{}.gguf", model.name));
@@ -274,9 +274,19 @@ impl ModelRegistry {
 
         // Sort by quality score
         models.sort_by(|a, b| {
-            let score_a = a.benchmark_results.as_ref().map(|b| b.quality_score).unwrap_or(0.0);
-            let score_b = b.benchmark_results.as_ref().map(|b| b.quality_score).unwrap_or(0.0);
-            score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+            let score_a = a
+                .benchmark_results
+                .as_ref()
+                .map(|b| b.quality_score)
+                .unwrap_or(0.0);
+            let score_b = b
+                .benchmark_results
+                .as_ref()
+                .map(|b| b.quality_score)
+                .unwrap_or(0.0);
+            score_b
+                .partial_cmp(&score_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(models)
@@ -292,7 +302,11 @@ impl ModelRegistry {
     }
 
     /// Get recommended models for system specs
-    pub fn get_recommended_for_specs(&self, available_ram_gb: f32, has_gpu: bool) -> Vec<&ModelMetadata> {
+    pub fn get_recommended_for_specs(
+        &self,
+        available_ram_gb: f32,
+        has_gpu: bool,
+    ) -> Vec<&ModelMetadata> {
         self.recommended_models
             .iter()
             .filter(|r| {

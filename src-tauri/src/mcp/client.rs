@@ -72,19 +72,20 @@ impl MCPClient {
         match self.transport.recv().await? {
             Some(value) => {
                 let response: MCPResponse<serde_json::Value> = serde_json::from_value(value)
-                    .unwrap_or(MCPResponse { result: None, error: None });
+                    .unwrap_or(MCPResponse {
+                        result: None,
+                        error: None,
+                    });
                 Ok(response)
             }
-            None => {
-                Ok(MCPResponse {
-                    result: None,
-                    error: Some(MCPError {
-                        code: -1,
-                        message: "No response from server".to_string(),
-                        data: None,
-                    }),
-                })
-            }
+            None => Ok(MCPResponse {
+                result: None,
+                error: Some(MCPError {
+                    code: -1,
+                    message: "No response from server".to_string(),
+                    data: None,
+                }),
+            }),
         }
     }
 

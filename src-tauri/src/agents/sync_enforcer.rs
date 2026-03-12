@@ -4,7 +4,7 @@
 //! Prevents work loss and maintains sync with remote.
 
 use std::process::Command;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use crate::agents::AgentError;
 
@@ -97,10 +97,7 @@ impl SyncEnforcer {
     /// Create a commit
     pub fn commit(&mut self, message: &str, commit_type: &str) -> Result<String, AgentError> {
         // Format commit message
-        let formatted_msg = format!(
-            "[agent-{}] {}: {}",
-            self.agent_name, commit_type, message
-        );
+        let formatted_msg = format!("[agent-{}] {}: {}", self.agent_name, commit_type, message);
 
         let output = Command::new("git")
             .args(["commit", "-m", &formatted_msg])
@@ -111,7 +108,7 @@ impl SyncEnforcer {
         if output.status.success() {
             // Get commit hash
             let hash = self.get_head_hash()?;
-            
+
             // Update tracking
             self.changes_since_commit = 0;
             self.last_commit_time = Instant::now();
@@ -222,7 +219,9 @@ impl SyncEnforcer {
         if output.status.success() {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
         } else {
-            Err(AgentError::SyncError("Failed to get current branch".to_string()))
+            Err(AgentError::SyncError(
+                "Failed to get current branch".to_string(),
+            ))
         }
     }
 
@@ -235,9 +234,7 @@ impl SyncEnforcer {
             .map_err(|e| AgentError::SyncError(format!("Failed to get status: {}", e)))?;
 
         if output.status.success() {
-            let count = String::from_utf8_lossy(&output.stdout)
-                .lines()
-                .count();
+            let count = String::from_utf8_lossy(&output.stdout).lines().count();
             Ok(count)
         } else {
             Ok(0)
@@ -280,11 +277,7 @@ impl SyncEnforcer {
     /// Get recent commits
     pub fn recent_commits(&self, count: usize) -> Result<Vec<CommitInfo>, AgentError> {
         let output = Command::new("git")
-            .args([
-                "log",
-                &format!("-{}", count),
-                "--format=%H|%s|%an|%ct",
-            ])
+            .args(["log", &format!("-{}", count), "--format=%H|%s|%an|%ct"])
             .current_dir(&self.repo_path)
             .output()
             .map_err(|e| AgentError::SyncError(format!("Failed to get commits: {}", e)))?;

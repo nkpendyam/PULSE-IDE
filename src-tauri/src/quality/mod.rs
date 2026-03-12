@@ -3,11 +3,9 @@
 //! Ensures users reach "wow moment" in <30 seconds.
 //! Graceful degradation for constrained hardware.
 
-use std::sync::Arc;
-use std::path::PathBuf;
-use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// Onboarding state machine
 pub struct OnboardingManager {
@@ -71,35 +69,35 @@ impl OnboardingManager {
             milestones: Vec::new(),
         }
     }
-    
+
     /// Start onboarding
     pub async fn start(&mut self) -> HardwareProfile {
         self.state = OnboardingState::DetectingHardware;
         self.start_time = Utc::now();
-        
+
         let profile = self.detect_hardware().await;
         self.experience_tier = profile.tier.clone();
-        
+
         profile
     }
-    
+
     /// Detect hardware capabilities
     async fn detect_hardware(&self) -> HardwareProfile {
         let mut sys = sysinfo::System::new_all();
         sys.refresh_all();
-        
+
         let ram_mb = sys.total_memory() / 1024;
         let cpu_cores = sys.cpus().len();
-        
+
         // Check CPU features
         let has_avx2 = is_x86_feature_detected!("avx2");
-        
+
         // Detect GPU
         let (gpu_name, vram_mb, has_metal, has_cuda) = self.detect_gpu().await;
-        
+
         // Determine tier
         let tier = self.determine_tier(ram_mb, vram_mb, has_cuda, has_metal);
-        
+
         HardwareProfile {
             gpu_name,
             vram_mb,
@@ -111,7 +109,7 @@ impl OnboardingManager {
             tier,
         }
     }
-    
+
     async fn detect_gpu(&self) -> (Option<String>, u64, bool, bool) {
         // Platform-specific GPU detection
         #[cfg(target_os = "macos")]
@@ -126,75 +124,82 @@ impl OnboardingManager {
                 return (Some("Apple Silicon".to_string()), vram, true, false);
             }
         }
-        
+
         #[cfg(target_os = "windows")]
         {
             // Would query DXGI for NVIDIA/AMD
             // Placeholder
         }
-        
+
         #[cfg(target_os = "linux")]
         {
             // Would check /sys/class/drm for GPU info
         }
-        
+
         (None, 0, false, false)
     }
-    
-    fn determine_tier(&self, ram_mb: u64, vram_mb: u64, has_cuda: bool, has_metal: bool) -> ExperienceTier {
+
+    fn determine_tier(
+        &self,
+        ram_mb: u64,
+        vram_mb: u64,
+        _has_cuda: bool,
+        has_metal: bool,
+    ) -> ExperienceTier {
         // Full experience: 8GB+ VRAM or Apple Silicon
         if vram_mb >= 8192 || has_metal {
             return ExperienceTier::Full;
         }
-        
+
         // CPU-optimized: 16GB+ RAM
         if ram_mb >= 16384 {
             return ExperienceTier::CpuOptimized;
         }
-        
+
         // Cloud fallback: 8GB+ RAM
         if ram_mb >= 8192 {
             return ExperienceTier::CloudFallback;
         }
-        
+
         // Minimal: No AI features
         ExperienceTier::Minimal
     }
-    
+
     /// Record milestone
     pub fn record_milestone(&mut self, name: &str) {
         let now = Utc::now();
         let duration_ms = (now - self.start_time).num_milliseconds() as u64;
-        
+
         self.milestones.push(Milestone {
             name: name.to_string(),
             achieved_at: now,
             duration_ms,
         });
-        
+
         // Check for wow moment
         if name == "first_ai_completion" && duration_ms < 30_000 {
             self.wow_moment_achieved = true;
         }
     }
-    
+
     /// Transition state
     pub fn transition(&mut self, new_state: OnboardingState) {
         self.state = new_state.clone();
     }
-    
+
     /// Get time-to-first-AI
     pub fn time_to_first_ai(&self) -> Option<u64> {
-        self.milestones.iter()
+        self.milestones
+            .iter()
             .find(|m| m.name == "first_ai_completion")
             .map(|m| m.duration_ms)
     }
-    
+
     /// Check if onboarding is complete
     pub fn is_complete(&self) -> bool {
         self.state == OnboardingState::Completed
     }
-    
+
     /// Get recommended settings based on tier
     pub fn get_recommended_settings(&self) -> RecommendedSettings {
         match self.experience_tier {
@@ -261,25 +266,25 @@ impl ZeroConfig {
         let config_path = dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
             .join("kro_ide");
-        
+
         let first_run = !config_path.exists();
-        
+
         Self {
             config_path,
             first_run,
         }
     }
-    
+
     /// Check if first run
     pub fn is_first_run(&self) -> bool {
         self.first_run
     }
-    
+
     /// Initialize with sensible defaults
     pub fn initialize(&self) -> anyhow::Result<()> {
         if self.first_run {
             std::fs::create_dir_all(&self.config_path)?;
-            
+
             // Create default config
             let config = serde_json::json!({
                 "version": 1,
@@ -302,13 +307,13 @@ impl ZeroConfig {
                     "format_on_save": true
                 }
             });
-            
+
             std::fs::write(
                 self.config_path.join("config.json"),
-                serde_json::to_string_pretty(&config)?
+                serde_json::to_string_pretty(&config)?,
             )?;
         }
-        
+
         Ok(())
     }
 }

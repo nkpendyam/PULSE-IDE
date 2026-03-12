@@ -6,15 +6,15 @@
 //!
 //! Living sync keeps the wiki up-to-date whenever source files change.
 
-pub mod scanner;
-pub mod graph;
 pub mod generator;
-pub mod writer;
+pub mod graph;
+pub mod scanner;
 pub mod sync;
+pub mod writer;
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 // ─── Configuration ──────────────────────────────────────────────────────
 
@@ -55,8 +55,16 @@ impl Default for RepoWikiConfig {
             .map(String::from)
             .collect(),
             ignore_dirs: vec![
-                "node_modules", "target", ".git", "dist", "build", "__pycache__",
-                ".next", ".ide", "vendor", ".venv",
+                "node_modules",
+                "target",
+                ".git",
+                "dist",
+                "build",
+                "__pycache__",
+                ".next",
+                ".ide",
+                "vendor",
+                ".venv",
             ]
             .into_iter()
             .map(String::from)
@@ -285,8 +293,8 @@ impl RepoWikiEngine {
     pub async fn generate_wiki(&mut self) -> Result<WikiStatus, String> {
         // Phase 1: Scan & extract
         self.status.phase = WikiPhase::Scanning;
-        self.files = scanner::scan_project(&self.config)
-            .map_err(|e| format!("Scan failed: {}", e))?;
+        self.files =
+            scanner::scan_project(&self.config).map_err(|e| format!("Scan failed: {}", e))?;
         self.status.files_scanned = self.files.len();
         self.status.symbols_extracted = self.files.iter().map(|f| f.symbols.len()).sum();
 
@@ -297,14 +305,7 @@ impl RepoWikiEngine {
 
         // Phase 3: Generate wiki pages via LLM
         self.status.phase = WikiPhase::Generating;
-        match generator::generate_pages(
-            &self.files,
-            &self.graph,
-            &self.config,
-            &self.http,
-        )
-        .await
-        {
+        match generator::generate_pages(&self.files, &self.graph, &self.config, &self.http).await {
             Ok(pages) => {
                 self.status.pages_generated = pages.len();
                 self.pages = pages;
@@ -339,7 +340,11 @@ impl RepoWikiEngine {
 
         // Merge into existing file list
         for updated in &updated_files {
-            if let Some(existing) = self.files.iter_mut().find(|f| f.rel_path == updated.rel_path) {
+            if let Some(existing) = self
+                .files
+                .iter_mut()
+                .find(|f| f.rel_path == updated.rel_path)
+            {
                 *existing = updated.clone();
             } else {
                 self.files.push(updated.clone());
@@ -347,7 +352,8 @@ impl RepoWikiEngine {
         }
 
         // Remove files that no longer exist
-        self.files.retain(|f| self.config.project_path.join(&f.rel_path).exists());
+        self.files
+            .retain(|f| self.config.project_path.join(&f.rel_path).exists());
 
         // Rebuild graph
         self.graph = graph::build_graph(&self.files, &self.config);

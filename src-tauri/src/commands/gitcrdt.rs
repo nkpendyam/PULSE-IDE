@@ -1,9 +1,9 @@
 //! Git CRDT Commands
-//! 
+//!
 //! Real git operations via the git2 crate for version-controlled collaboration
 
-use tauri::State;
 use std::sync::Arc;
+use tauri::State;
 use tokio::sync::RwLock;
 
 /// Git CRDT status
@@ -82,9 +82,7 @@ fn current_branch(repo: &git2::Repository) -> String {
 
 /// Helper: count uncommitted changes
 fn count_uncommitted(repo: &git2::Repository) -> u32 {
-    repo.statuses(None)
-        .map(|s| s.len() as u32)
-        .unwrap_or(0)
+    repo.statuses(None).map(|s| s.len() as u32).unwrap_or(0)
 }
 
 // ============ Tauri Commands ============
@@ -97,7 +95,7 @@ pub async fn git_crdt_status(
     let repo = open_repo(&gs)?;
     let branch = current_branch(&repo);
     let uncommitted = count_uncommitted(&repo);
-    
+
     Ok(GitCrdtStatus {
         branch,
         ahead: 0,
@@ -115,7 +113,7 @@ pub async fn git_crdt_sync(
     let gs = state.read().await;
     let repo = open_repo(&gs)?;
     let start = std::time::Instant::now();
-    
+
     // Attempt to fetch from origin
     let mut pulled = 0u32;
     if let Ok(mut remote) = repo.find_remote("origin") {
@@ -135,9 +133,9 @@ pub async fn git_crdt_sync(
             }
         }
     }
-    
+
     let duration = start.elapsed().as_millis() as u64;
-    
+
     Ok(SyncResult {
         commits_pulled: pulled,
         commits_pushed: 0,
@@ -153,33 +151,46 @@ pub async fn git_crdt_commit(
 ) -> Result<CommitInfo, String> {
     let gs = state.read().await;
     let repo = open_repo(&gs)?;
-    
+
     // Stage all changes
     let mut index = repo.index().map_err(|e| format!("Index error: {}", e))?;
-    index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
+    index
+        .add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None)
         .map_err(|e| format!("Failed to stage: {}", e))?;
-    index.write().map_err(|e| format!("Index write error: {}", e))?;
-    let tree_oid = index.write_tree().map_err(|e| format!("Write tree error: {}", e))?;
-    let tree = repo.find_tree(tree_oid).map_err(|e| format!("Find tree error: {}", e))?;
-    
+    index
+        .write()
+        .map_err(|e| format!("Index write error: {}", e))?;
+    let tree_oid = index
+        .write_tree()
+        .map_err(|e| format!("Write tree error: {}", e))?;
+    let tree = repo
+        .find_tree(tree_oid)
+        .map_err(|e| format!("Find tree error: {}", e))?;
+
     // Get signature from git config or use fallback
-    let sig = repo.signature().unwrap_or_else(|_| {
-        git2::Signature::now("Kyro IDE", "kyro@ide.local").unwrap()
-    });
-    
+    let sig = repo
+        .signature()
+        .unwrap_or_else(|_| git2::Signature::now("Kyro IDE", "kyro@ide.local").unwrap());
+
     // Find parent commit
     let parent = repo.head().ok().and_then(|h| h.peel_to_commit().ok());
     let parents: Vec<&git2::Commit> = parent.iter().collect();
-    
+
     // Create commit
-    let oid = repo.commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)
+    let oid = repo
+        .commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)
         .map_err(|e| format!("Commit failed: {}", e))?;
-    
+
     // Collect changed files
-    let files_changed: Vec<String> = repo.statuses(None)
-        .map(|s| s.iter().filter_map(|e| e.path().map(|p| p.to_string())).collect())
+    let files_changed: Vec<String> = repo
+        .statuses(None)
+        .map(|s| {
+            s.iter()
+                .filter_map(|e| e.path().map(|p| p.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
-    
+
     Ok(CommitInfo {
         hash: oid.to_string(),
         message,
@@ -217,19 +228,19 @@ pub async fn git_crdt_resolve_conflict(
 ) -> Result<(), String> {
     let gs = state.read().await;
     let repo = open_repo(&gs)?;
-    
+
     // Write the resolution content to the file
-    let full_path = repo.workdir()
-        .ok_or("No workdir")?
-        .join(&file_path);
+    let full_path = repo.workdir().ok_or("No workdir")?.join(&file_path);
     std::fs::write(&full_path, &resolution)
         .map_err(|e| format!("Failed to write resolution: {}", e))?;
-    
+
     // Stage the resolved file
     let mut index = repo.index().map_err(|e| e.to_string())?;
-    index.add_path(std::path::Path::new(&file_path)).map_err(|e| e.to_string())?;
+    index
+        .add_path(std::path::Path::new(&file_path))
+        .map_err(|e| e.to_string())?;
     index.write().map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 
@@ -240,30 +251,38 @@ pub async fn git_crdt_get_history(
 ) -> Result<Vec<CommitInfo>, String> {
     let gs = state.read().await;
     let repo = open_repo(&gs)?;
-    
+
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
     revwalk.push_head().map_err(|e| format!("No HEAD: {}", e))?;
-    revwalk.set_sorting(git2::Sort::TIME).map_err(|e| e.to_string())?;
-    
+    revwalk
+        .set_sorting(git2::Sort::TIME)
+        .map_err(|e| e.to_string())?;
+
     let mut history = Vec::new();
     for oid_result in revwalk.take(limit as usize) {
         let oid = oid_result.map_err(|e| e.to_string())?;
         let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
-        
+
         // Diff to get changed files
         let mut files_changed = Vec::new();
         if let Ok(tree) = commit.tree() {
             let parent_tree = commit.parent(0).ok().and_then(|p| p.tree().ok());
             if let Ok(diff) = repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None) {
-                diff.foreach(&mut |delta, _| {
-                    if let Some(path) = delta.new_file().path() {
-                        files_changed.push(path.to_string_lossy().to_string());
-                    }
-                    true
-                }, None, None, None).ok();
+                diff.foreach(
+                    &mut |delta, _| {
+                        if let Some(path) = delta.new_file().path() {
+                            files_changed.push(path.to_string_lossy().to_string());
+                        }
+                        true
+                    },
+                    None,
+                    None,
+                    None,
+                )
+                .ok();
             }
         }
-        
+
         let author = commit.author();
         history.push(CommitInfo {
             hash: oid.to_string(),
@@ -275,7 +294,7 @@ pub async fn git_crdt_get_history(
             files_changed,
         });
     }
-    
+
     Ok(history)
 }
 
@@ -286,12 +305,12 @@ pub async fn git_crdt_create_branch(
 ) -> Result<(), String> {
     let gs = state.read().await;
     let repo = open_repo(&gs)?;
-    
+
     let head = repo.head().map_err(|e| format!("No HEAD: {}", e))?;
     let commit = head.peel_to_commit().map_err(|e| e.to_string())?;
     repo.branch(&branch_name, &commit, false)
         .map_err(|e| format!("Failed to create branch: {}", e))?;
-    
+
     Ok(())
 }
 
@@ -302,11 +321,15 @@ pub async fn git_crdt_switch_branch(
 ) -> Result<(), String> {
     let gs = state.read().await;
     let repo = open_repo(&gs)?;
-    
+
     let refname = format!("refs/heads/{}", branch_name);
-    let obj = repo.revparse_single(&refname).map_err(|e| format!("Branch not found: {}", e))?;
-    repo.checkout_tree(&obj, None).map_err(|e| format!("Checkout failed: {}", e))?;
-    repo.set_head(&refname).map_err(|e| format!("Set HEAD failed: {}", e))?;
-    
+    let obj = repo
+        .revparse_single(&refname)
+        .map_err(|e| format!("Branch not found: {}", e))?;
+    repo.checkout_tree(&obj, None)
+        .map_err(|e| format!("Checkout failed: {}", e))?;
+    repo.set_head(&refname)
+        .map_err(|e| format!("Set HEAD failed: {}", e))?;
+
     Ok(())
 }

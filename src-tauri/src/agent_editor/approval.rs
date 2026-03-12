@@ -45,7 +45,9 @@ impl ApprovalWorkflow {
 
     /// Approve a pending edit
     pub fn approve(&mut self, id: &str) -> anyhow::Result<PendingEdit> {
-        let pending = self.pending.get_mut(id)
+        let pending = self
+            .pending
+            .get_mut(id)
             .ok_or_else(|| anyhow::anyhow!("Pending edit not found: {}", id))?;
 
         if pending.status != ApprovalStatus::Pending {
@@ -70,7 +72,9 @@ impl ApprovalWorkflow {
 
     /// Reject a pending edit
     pub fn reject(&mut self, id: &str) -> anyhow::Result<()> {
-        let pending = self.pending.get_mut(id)
+        let pending = self
+            .pending
+            .get_mut(id)
             .ok_or_else(|| anyhow::anyhow!("Pending edit not found: {}", id))?;
 
         pending.status = ApprovalStatus::Rejected;
@@ -79,7 +83,8 @@ impl ApprovalWorkflow {
 
     /// Get all pending edits
     pub fn get_pending(&self) -> Vec<PendingEdit> {
-        self.pending.values()
+        self.pending
+            .values()
             .filter(|p| p.status == ApprovalStatus::Pending)
             .cloned()
             .collect()
@@ -92,7 +97,9 @@ impl ApprovalWorkflow {
             .unwrap_or_else(|_| std::time::Duration::from_secs(0))
             .as_secs();
 
-        let expired: Vec<String> = self.pending.iter()
+        let expired: Vec<String> = self
+            .pending
+            .iter()
             .filter(|(_, p)| p.expires_at < now)
             .map(|(id, _)| id.clone())
             .collect();
@@ -190,7 +197,12 @@ impl PendingEdit {
         summary.push_str(&format!("Actions: {}\n\n", self.actions.len()));
 
         for (i, action) in self.actions.iter().enumerate() {
-            summary.push_str(&format!("{}. {:?}: {}\n", i + 1, action.action_type, action.description));
+            summary.push_str(&format!(
+                "{}. {:?}: {}\n",
+                i + 1,
+                action.action_type,
+                action.description
+            ));
             if let Some(file) = &action.target_file {
                 summary.push_str(&format!("   File: {}\n", file));
             }
@@ -212,7 +224,8 @@ impl PendingEdit {
 
     /// Get affected files
     pub fn affected_files(&self) -> Vec<String> {
-        self.actions.iter()
+        self.actions
+            .iter()
             .filter_map(|a| a.target_file.clone())
             .collect()
     }

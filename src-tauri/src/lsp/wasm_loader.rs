@@ -67,13 +67,13 @@ pub struct ModuleFeatures {
 pub trait LanguageMolecule: Send + Sync {
     /// Get completions at a position
     fn complete(&self, tree: &[u8], position: Position) -> Vec<Completion>;
-    
+
     /// Get hover information
     fn hover(&self, tree: &[u8], position: Position) -> Option<Hover>;
-    
+
     /// Get diagnostics
     fn diagnostics(&self, tree: &[u8]) -> Vec<Diagnostic>;
-    
+
     /// Get document symbols
     fn symbols(&self, tree: &[u8]) -> Vec<Symbol>;
 }
@@ -209,7 +209,7 @@ impl WasmGrammarLoader {
         }
 
         let module_path = self.modules_dir.join(language);
-        
+
         if !module_path.exists() {
             self.download_module(language).await?;
         }
@@ -225,12 +225,15 @@ impl WasmGrammarLoader {
 
         // In production, this would use wasmtime to load the WASM module
         // For now, we just track the module
-        self.loaded_modules.insert(language.to_string(), LoadedModule {
-            language: language.to_string(),
-            version: metadata.version,
-            memory_usage: 0,
-            grammar_hash: String::new(),
-        });
+        self.loaded_modules.insert(
+            language.to_string(),
+            LoadedModule {
+                language: language.to_string(),
+                version: metadata.version,
+                memory_usage: 0,
+                grammar_hash: String::new(),
+            },
+        );
 
         println!("Loaded language module: {}", language);
         Ok(())
@@ -254,13 +257,22 @@ impl WasmGrammarLoader {
     fn create_default_metadata(&self, language: &str) -> anyhow::Result<ModuleMetadata> {
         let (extensions, grammar_file) = match language {
             "rust" => (vec!["rs".to_string()], "tree-sitter-rust.wasm"),
-            "python" => (vec!["py".to_string(), "pyw".to_string()], "tree-sitter-python.wasm"),
-            "javascript" => (vec!["js".to_string(), "mjs".to_string()], "tree-sitter-javascript.wasm"),
+            "python" => (
+                vec!["py".to_string(), "pyw".to_string()],
+                "tree-sitter-python.wasm",
+            ),
+            "javascript" => (
+                vec!["js".to_string(), "mjs".to_string()],
+                "tree-sitter-javascript.wasm",
+            ),
             "typescript" => (vec!["ts".to_string()], "tree-sitter-typescript.wasm"),
             "go" => (vec!["go".to_string()], "tree-sitter-go.wasm"),
             "java" => (vec!["java".to_string()], "tree-sitter-java.wasm"),
             "c" => (vec!["c".to_string(), "h".to_string()], "tree-sitter-c.wasm"),
-            "cpp" => (vec!["cpp".to_string(), "hpp".to_string()], "tree-sitter-cpp.wasm"),
+            "cpp" => (
+                vec!["cpp".to_string(), "hpp".to_string()],
+                "tree-sitter-cpp.wasm",
+            ),
             "ruby" => (vec!["rb".to_string()], "tree-sitter-ruby.wasm"),
             _ => (vec![], "grammar.wasm"),
         };
@@ -318,13 +330,22 @@ impl WasmGrammarLoader {
     }
 
     /// Get completions for a file
-    pub fn get_completions(&self, language: &str, content: &str, position: Position) -> anyhow::Result<Vec<Completion>> {
+    pub fn get_completions(
+        &self,
+        _language: &str,
+        _content: &str,
+        _position: Position,
+    ) -> anyhow::Result<Vec<Completion>> {
         // In production, this would call the WASM LSP logic
         Ok(vec![])
     }
 
     /// Get diagnostics for a file
-    pub fn get_diagnostics(&self, language: &str, content: &str) -> anyhow::Result<Vec<Diagnostic>> {
+    pub fn get_diagnostics(
+        &self,
+        _language: &str,
+        _content: &str,
+    ) -> anyhow::Result<Vec<Diagnostic>> {
         Ok(vec![])
     }
 }

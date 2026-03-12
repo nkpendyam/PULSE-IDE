@@ -6,21 +6,20 @@
 //! - P2P layer sharing for running 70B models across devices
 //! - Aggressive KV caching for fast responses
 
-pub mod local_inference;
-pub mod speculative_decoder;
-pub mod kv_cache;
-pub mod p2p_swarm;
-pub mod model_registry;
 pub mod agents;
+pub mod kv_cache;
+pub mod local_inference;
+pub mod model_registry;
+pub mod p2p_swarm;
 pub mod router;
+pub mod speculative_decoder;
 
-pub use local_inference::LocalInferenceEngine;
-pub use speculative_decoder::SpeculativeDecoder;
-pub use kv_cache::KVCache;
-pub use p2p_swarm::P2PSwarm;
-pub use model_registry::ModelRegistry;
 pub use agents::AgentOrchestrator;
-pub use router::ModelRouter;
+pub use kv_cache::KVCache;
+pub use local_inference::LocalInferenceEngine;
+pub use model_registry::ModelRegistry;
+pub use p2p_swarm::P2PSwarm;
+pub use speculative_decoder::SpeculativeDecoder;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -79,10 +78,9 @@ impl SwarmAIEngine {
 
         // Initialize local inference engine if enabled
         let local_engine = if config.enable_local {
-            let engine = LocalInferenceEngine::new(
-                config.default_model.clone(),
-                config.max_memory_gb,
-            ).await?;
+            let engine =
+                LocalInferenceEngine::new(config.default_model.clone(), config.max_memory_gb)
+                    .await?;
             Some(Arc::new(RwLock::new(engine)))
         } else {
             None
@@ -91,10 +89,9 @@ impl SwarmAIEngine {
         // Initialize speculative decoder if enabled
         let speculative_decoder = if config.enable_speculative && local_engine.is_some() {
             if let Some(ref draft_model) = config.draft_model {
-                let decoder = SpeculativeDecoder::new(
-                    draft_model.clone(),
-                    config.default_model.clone(),
-                ).await?;
+                let decoder =
+                    SpeculativeDecoder::new(draft_model.clone(), config.default_model.clone())
+                        .await?;
                 Some(Arc::new(RwLock::new(decoder)))
             } else {
                 None
@@ -136,9 +133,12 @@ impl SwarmAIEngine {
         if let Some(ref decoder) = self.speculative_decoder {
             let mut decoder = decoder.write().await;
             let result = decoder.complete(prompt, max_tokens).await?;
-            
+
             // Cache the result
-            self.kv_cache.write().await.insert(prompt.to_string(), result.clone());
+            self.kv_cache
+                .write()
+                .await
+                .insert(prompt.to_string(), result.clone());
             return Ok(result);
         }
 
@@ -146,19 +146,25 @@ impl SwarmAIEngine {
         if let Some(ref engine) = self.local_engine {
             let mut engine = engine.write().await;
             let result = engine.complete(prompt, max_tokens).await?;
-            
+
             // Cache the result
-            self.kv_cache.write().await.insert(prompt.to_string(), result.clone());
+            self.kv_cache
+                .write()
+                .await
+                .insert(prompt.to_string(), result.clone());
             return Ok(result);
         }
 
         // Fall back to P2P distributed inference
         if let Some(ref swarm) = self.p2p_swarm {
-            let mut swarm = swarm.write().await;
+            let swarm = swarm.write().await;
             let result = swarm.complete(prompt, max_tokens).await?;
-            
+
             // Cache the result
-            self.kv_cache.write().await.insert(prompt.to_string(), result.clone());
+            self.kv_cache
+                .write()
+                .await
+                .insert(prompt.to_string(), result.clone());
             return Ok(result);
         }
 
@@ -226,7 +232,12 @@ impl SwarmAIEngine {
             p2p_available: self.p2p_swarm.is_some(),
             cache_size: self.kv_cache.read().await.len(),
             models_loaded: if self.local_engine.is_some() {
-                self.local_engine.as_ref().unwrap().read().await.models_loaded()
+                self.local_engine
+                    .as_ref()
+                    .unwrap()
+                    .read()
+                    .await
+                    .models_loaded()
             } else {
                 0
             },

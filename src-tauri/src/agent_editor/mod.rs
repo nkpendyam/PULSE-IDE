@@ -9,16 +9,14 @@
 //! Uses MCP (Model Context Protocol) for tool calling.
 
 pub mod agent;
-pub mod tools;
 pub mod approval;
 pub mod executor;
 pub mod planner;
+pub mod tools;
 
-pub use agent::MCPAgent;
-pub use tools::{AgentTools, FileEdit, EditOperation};
-pub use approval::{ApprovalWorkflow, PendingEdit, ApprovalStatus};
-pub use executor::EditExecutor;
+pub use approval::{ApprovalWorkflow, PendingEdit};
 pub use planner::EditPlanner;
+pub use tools::{EditOperation, FileEdit};
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

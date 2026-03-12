@@ -2,15 +2,15 @@
 //!
 //! Provides real-time synchronization between KYRO IDE instances
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{broadcast, RwLock, mpsc};
-use tokio_tungstenite::{accept_async, WebSocketStream};
+use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::Message;
 
 /// Collaboration WebSocket Server
@@ -41,13 +41,13 @@ pub enum CollaborationMessage {
         user_name: String,
         user_color: String,
     },
-    
+
     /// Leave document session
     LeaveDocument {
         document_id: String,
         user_id: String,
     },
-    
+
     /// Yjs document update
     DocumentUpdate {
         document_id: String,
@@ -55,7 +55,7 @@ pub enum CollaborationMessage {
         update: Vec<u8>,
         timestamp: u64,
     },
-    
+
     /// Awareness update (cursor, selection)
     AwarenessUpdate {
         document_id: String,
@@ -63,20 +63,20 @@ pub enum CollaborationMessage {
         cursor: Option<CursorPosition>,
         selection: Option<SelectionRange>,
     },
-    
+
     /// Request full document state
     RequestState {
         document_id: String,
         user_id: String,
     },
-    
+
     /// Full document state response
     FullState {
         document_id: String,
         state: Vec<u8>,
         version: u64,
     },
-    
+
     /// Chat message
     Chat {
         document_id: String,
@@ -85,11 +85,9 @@ pub enum CollaborationMessage {
         message: String,
         timestamp: u64,
     },
-    
+
     /// Heartbeat
-    Heartbeat {
-        user_id: String,
-    },
+    Heartbeat { user_id: String },
 }
 
 /// Cursor position
@@ -111,7 +109,7 @@ impl CollaborationServer {
     /// Create a new collaboration server
     pub fn new(port: u16) -> Self {
         let (message_sender, _) = broadcast::channel(1000);
-        
+
         Self {
             port,
             sessions: Arc::new(RwLock::new(HashMap::new())),
@@ -122,10 +120,12 @@ impl CollaborationServer {
 
     /// Start the server
     pub async fn start(&self) -> Result<()> {
-        let addr: SocketAddr = format!("0.0.0.0:{}", self.port).parse()
+        let addr: SocketAddr = format!("0.0.0.0:{}", self.port)
+            .parse()
             .context("Invalid address")?;
 
-        let listener = TcpListener::bind(addr).await
+        let listener = TcpListener::bind(addr)
+            .await
             .context("Failed to bind server")?;
 
         *self.running.write().await = true;
@@ -138,13 +138,16 @@ impl CollaborationServer {
             }
 
             let (stream, peer_addr) = listener.accept().await?;
-            
+
             let sessions = self.sessions.clone();
             let message_sender = self.message_sender.clone();
             let running = self.running.clone();
 
             tokio::spawn(async move {
-                if let Err(e) = Self::handle_connection(stream, peer_addr, sessions, message_sender, running).await {
+                if let Err(e) =
+                    Self::handle_connection(stream, peer_addr, sessions, message_sender, running)
+                        .await
+                {
                     eprintln!("Connection error from {}: {}", peer_addr, e);
                 }
             });
@@ -161,7 +164,8 @@ impl CollaborationServer {
         message_sender: broadcast::Sender<CollaborationMessage>,
         running: Arc<RwLock<bool>>,
     ) -> Result<()> {
-        let ws_stream = accept_async(stream).await
+        let ws_stream = accept_async(stream)
+            .await
             .context("Failed to accept WebSocket")?;
 
         let (mut ws_sender, mut ws_receiver) = ws_stream.split();
@@ -190,7 +194,7 @@ impl CollaborationServer {
                                     CollaborationMessage::JoinDocument { document_id, user_id, .. } => {
                                         current_user_id = Some(user_id.clone());
                                         current_document_id = Some(document_id.clone());
-                                        
+
                                         let session = CollaborationSession {
                                             session_id: session_id.clone(),
                                             document_id: document_id.clone(),
@@ -198,7 +202,7 @@ impl CollaborationServer {
                                             connected_at: chrono::Utc::now(),
                                             last_activity: chrono::Utc::now(),
                                         };
-                                        
+
                                         sessions.write().await.insert(session_id.clone(), session);
                                     }
                                     CollaborationMessage::LeaveDocument { .. } => {
@@ -206,7 +210,7 @@ impl CollaborationServer {
                                     }
                                     _ => {}
                                 }
-                                
+
                                 // Broadcast to other clients
                                 let _ = message_sender.send(collab_msg);
                             }
@@ -260,7 +264,7 @@ impl CollaborationServer {
             };
             let _ = message_sender.send(leave_msg);
         }
-        
+
         sessions.write().await.remove(&session_id);
         println!("Collaboration connection closed: {}", peer_addr);
 
@@ -279,7 +283,10 @@ impl CollaborationServer {
 
     /// Get sessions for a document
     pub async fn get_document_sessions(&self, document_id: &str) -> Vec<CollaborationSession> {
-        self.sessions.read().await.values()
+        self.sessions
+            .read()
+            .await
+            .values()
             .filter(|s| s.document_id == document_id)
             .cloned()
             .collect()
@@ -311,7 +318,7 @@ impl CollaborationClient {
     /// Create a new collaboration client
     pub fn new(server_url: String, user_id: String, user_name: String, user_color: String) -> Self {
         let (sender, receiver) = mpsc::channel(100);
-        
+
         Self {
             server_url,
             user_id,
@@ -337,7 +344,7 @@ impl CollaborationClient {
             user_name: self.user_name.clone(),
             user_color: self.user_color.clone(),
         };
-        
+
         self.message_sender.send(msg).await?;
         Ok(())
     }
@@ -350,20 +357,25 @@ impl CollaborationClient {
             update,
             timestamp: chrono::Utc::now().timestamp() as u64,
         };
-        
+
         self.message_sender.send(msg).await?;
         Ok(())
     }
 
     /// Send awareness update
-    pub async fn send_awareness(&self, document_id: &str, cursor: Option<CursorPosition>, selection: Option<SelectionRange>) -> Result<()> {
+    pub async fn send_awareness(
+        &self,
+        document_id: &str,
+        cursor: Option<CursorPosition>,
+        selection: Option<SelectionRange>,
+    ) -> Result<()> {
         let msg = CollaborationMessage::AwarenessUpdate {
             document_id: document_id.to_string(),
             user_id: self.user_id.clone(),
             cursor,
             selection,
         };
-        
+
         self.message_sender.send(msg).await?;
         Ok(())
     }
@@ -392,10 +404,10 @@ mod tests {
             user_name: "Alice".to_string(),
             user_color: "#ff0000".to_string(),
         };
-        
+
         let json = serde_json::to_string(&msg).unwrap();
         let decoded: CollaborationMessage = serde_json::from_str(&json).unwrap();
-        
+
         match decoded {
             CollaborationMessage::JoinDocument { document_id, .. } => {
                 assert_eq!(document_id, "doc1");

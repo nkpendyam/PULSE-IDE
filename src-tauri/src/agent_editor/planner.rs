@@ -1,8 +1,8 @@
 //! Edit Planner - Plans file edits from natural language
 
 use super::*;
+use anyhow::Result;
 use serde_json::Value;
-use anyhow::{Result, Context};
 
 /// Edit planner that parses LLM responses into actions
 pub struct EditPlanner {
@@ -11,9 +11,7 @@ pub struct EditPlanner {
 
 impl EditPlanner {
     pub fn new() -> Self {
-        Self {
-            max_actions: 20,
-        }
+        Self { max_actions: 20 }
     }
 
     /// Parse LLM response into execution plan
@@ -29,7 +27,13 @@ impl EditPlanner {
 
         // Determine if approval is needed
         let requires_approval = actions.iter().any(|a| {
-            matches!(a.action_type, ActionType::WriteFile | ActionType::EditLines | ActionType::DeleteFile | ActionType::CreateFile)
+            matches!(
+                a.action_type,
+                ActionType::WriteFile
+                    | ActionType::EditLines
+                    | ActionType::DeleteFile
+                    | ActionType::CreateFile
+            )
         });
 
         Ok(ExecutionPlan {
@@ -78,7 +82,8 @@ impl EditPlanner {
 
     /// Parse actions from JSON
     fn parse_actions(&self, json: &Value, context: &AgentContext) -> Result<Vec<AgentAction>> {
-        let actions_json = json.get("actions")
+        let actions_json = json
+            .get("actions")
             .and_then(|a| a.as_array())
             .ok_or_else(|| anyhow::anyhow!("No actions found in response"))?;
 
@@ -100,7 +105,8 @@ impl EditPlanner {
                     target_file: Some(current_file.to_string_lossy().to_string()),
                     edits: vec![],
                     confidence: 0.5,
-                    reasoning: json.get("reasoning")
+                    reasoning: json
+                        .get("reasoning")
                         .and_then(|r| r.as_str())
                         .unwrap_or("Need more information to proceed")
                         .to_string(),
@@ -113,7 +119,8 @@ impl EditPlanner {
 
     /// Parse a single action from JSON
     fn parse_single_action(&self, json: &Value, context: &AgentContext) -> Result<AgentAction> {
-        let type_str = json.get("type")
+        let type_str = json
+            .get("type")
             .and_then(|t| t.as_str())
             .ok_or_else(|| anyhow::anyhow!("Missing action type"))?;
 
@@ -130,23 +137,27 @@ impl EditPlanner {
             _ => return Err(anyhow::anyhow!("Unknown action type: {}", type_str)),
         };
 
-        let description = json.get("description")
+        let description = json
+            .get("description")
             .and_then(|d| d.as_str())
             .unwrap_or("No description")
             .to_string();
 
-        let path = json.get("path")
+        let path = json
+            .get("path")
             .or_else(|| json.get("file"))
             .and_then(|p| p.as_str())
             .map(|p| self.resolve_path(p, context));
 
         let edits = self.parse_edits(json)?;
 
-        let confidence = json.get("confidence")
+        let confidence = json
+            .get("confidence")
             .and_then(|c| c.as_f64())
             .unwrap_or(0.8) as f32;
 
-        let reasoning = json.get("reasoning")
+        let reasoning = json
+            .get("reasoning")
             .and_then(|r| r.as_str())
             .unwrap_or("")
             .to_string();
@@ -164,22 +175,22 @@ impl EditPlanner {
 
     /// Parse edits from action JSON
     fn parse_edits(&self, json: &Value) -> Result<Vec<EditOperation>> {
-        let edits_json = json.get("edits")
-            .and_then(|e| e.as_array());
+        let edits_json = json.get("edits").and_then(|e| e.as_array());
 
         if let Some(edits) = edits_json {
             let mut result = Vec::new();
 
             for edit in edits {
-                let start_line = edit.get("start_line")
-                    .and_then(|s| s.as_i64())
-                    .unwrap_or(1) as usize;
+                let start_line =
+                    edit.get("start_line").and_then(|s| s.as_i64()).unwrap_or(1) as usize;
 
-                let end_line = edit.get("end_line")
+                let end_line = edit
+                    .get("end_line")
                     .and_then(|e| e.as_i64())
                     .unwrap_or(start_line as i64) as usize;
 
-                let new_content = edit.get("new_content")
+                let new_content = edit
+                    .get("new_content")
                     .or_else(|| edit.get("content"))
                     .and_then(|c| c.as_str())
                     .unwrap_or("")
@@ -214,20 +225,31 @@ impl EditPlanner {
         if path.is_absolute() {
             path.to_string_lossy().to_string()
         } else {
-            context.project_path.join(path).to_string_lossy().to_string()
+            context
+                .project_path
+                .join(path)
+                .to_string_lossy()
+                .to_string()
         }
     }
 
     /// Assess risk level of actions
     fn assess_risk(&self, actions: &[AgentAction]) -> RiskLevel {
-        let has_deletes = actions.iter().any(|a| a.action_type == ActionType::DeleteFile);
-        let has_writes = actions.iter().any(|a| 
-            matches!(a.action_type, ActionType::WriteFile | ActionType::EditLines | ActionType::CreateFile)
-        );
-        let multiple_files = actions.iter()
+        let has_deletes = actions
+            .iter()
+            .any(|a| a.action_type == ActionType::DeleteFile);
+        let has_writes = actions.iter().any(|a| {
+            matches!(
+                a.action_type,
+                ActionType::WriteFile | ActionType::EditLines | ActionType::CreateFile
+            )
+        });
+        let multiple_files = actions
+            .iter()
             .filter_map(|a| a.target_file.as_ref())
             .collect::<std::collections::HashSet<_>>()
-            .len() > 3;
+            .len()
+            > 3;
 
         if has_deletes || multiple_files {
             RiskLevel::High
@@ -239,7 +261,12 @@ impl EditPlanner {
     }
 
     /// Create a plan for a quick fix
-    pub fn plan_quick_fix(&self, file_path: &str, description: &str, context: &AgentContext) -> ExecutionPlan {
+    pub fn plan_quick_fix(
+        &self,
+        file_path: &str,
+        description: &str,
+        _context: &AgentContext,
+    ) -> ExecutionPlan {
         let actions = vec![
             AgentAction {
                 id: uuid::Uuid::new_v4().to_string(),

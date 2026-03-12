@@ -54,20 +54,20 @@ impl TelemetryManager {
         counters.insert("crash_count".to_string(), AtomicU64::new(0));
         counters.insert("ai_requests".to_string(), AtomicU64::new(0));
         counters.insert("ai_cache_hits".to_string(), AtomicU64::new(0));
-        
+
         Self {
             config,
             events: Vec::new(),
             counters,
         }
     }
-    
+
     /// Record an event
     pub fn record(&mut self, event_type: &str, metadata: HashMap<String, serde_json::Value>) {
         if !self.config.enabled {
             return;
         }
-        
+
         let event = TelemetryEvent {
             event_type: event_type.to_string(),
             timestamp: chrono::Utc::now().timestamp_millis(),
@@ -75,22 +75,22 @@ impl TelemetryManager {
             success: None,
             metadata,
         };
-        
+
         self.events.push(event);
     }
-    
+
     /// Record a timed event
     pub fn record_timed(
-        &mut self, 
-        event_type: &str, 
-        duration_ms: u64, 
+        &mut self,
+        event_type: &str,
+        duration_ms: u64,
         success: bool,
-        metadata: HashMap<String, serde_json::Value>
+        metadata: HashMap<String, serde_json::Value>,
     ) {
         if !self.config.enabled {
             return;
         }
-        
+
         let event = TelemetryEvent {
             event_type: event_type.to_string(),
             timestamp: chrono::Utc::now().timestamp_millis(),
@@ -98,34 +98,35 @@ impl TelemetryManager {
             success: Some(success),
             metadata,
         };
-        
+
         self.events.push(event);
     }
-    
+
     /// Increment a counter
     pub fn increment(&self, counter: &str) {
         if !self.config.enabled {
             return;
         }
-        
+
         if let Some(atomic) = self.counters.get(counter) {
             atomic.fetch_add(1, Ordering::Relaxed);
         }
     }
-    
+
     /// Get counter value
     pub fn get_counter(&self, counter: &str) -> u64 {
-        self.counters.get(counter)
+        self.counters
+            .get(counter)
             .map(|a| a.load(Ordering::Relaxed))
             .unwrap_or(0)
     }
-    
+
     /// Flush events to server
     pub async fn flush(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if !self.config.enabled || self.events.is_empty() {
             return Ok(());
         }
-        
+
         if let Some(ref endpoint) = self.config.endpoint {
             let payload = serde_json::json!({
                 "session_id": self.config.session_id,
@@ -135,33 +136,34 @@ impl TelemetryManager {
                     .map(|(k, v)| (k.clone(), v.load(Ordering::Relaxed)))
                     .collect::<HashMap<_, _>>(),
             });
-            
+
             let client = reqwest::Client::new();
-            let _ = client.post(endpoint)
+            let _ = client
+                .post(endpoint)
                 .json(&payload)
                 .timeout(std::time::Duration::from_secs(10))
                 .send()
                 .await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if telemetry is enabled
     pub fn is_enabled(&self) -> bool {
         self.config.enabled
     }
-    
+
     /// Enable telemetry
     pub fn enable(&mut self) {
         self.config.enabled = true;
     }
-    
+
     /// Disable telemetry
     pub fn disable(&mut self) {
         self.config.enabled = false;
     }
-    
+
     /// Get session ID
     pub fn session_id(&self) -> &str {
         &self.config.session_id
@@ -179,17 +181,17 @@ impl CrashReporter {
             .unwrap_or_else(|| std::path::PathBuf::from("."))
             .join("kro_ide")
             .join("crashes");
-        
+
         std::fs::create_dir_all(&crash_dir).ok();
-        
+
         Self { crash_dir }
     }
-    
+
     /// Write crash report
     pub fn write_crash_report(&self, error: &str, backtrace: Option<&str>) {
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
         let report_path = self.crash_dir.join(format!("crash_{}.txt", timestamp));
-        
+
         let report = format!(
             "KRO_IDE Crash Report\n\
             ===================\n\
@@ -204,19 +206,14 @@ impl CrashReporter {
             error,
             backtrace.unwrap_or("Not available")
         );
-        
+
         std::fs::write(&report_path, report).ok();
     }
-    
+
     /// List crash reports
     pub fn list_crash_reports(&self) -> Vec<std::path::PathBuf> {
         std::fs::read_dir(&self.crash_dir)
-            .map(|entries| {
-                entries
-                    .filter_map(|e| e.ok())
-                    .map(|e| e.path())
-                    .collect()
-            })
+            .map(|entries| entries.filter_map(|e| e.ok()).map(|e| e.path()).collect())
             .unwrap_or_default()
     }
 }

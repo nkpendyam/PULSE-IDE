@@ -1,9 +1,9 @@
 //! Tauri Commands for GitHub Marketplace
 
-use crate::extensions::{GitHubMarketplace, GitHubExtension};
 use crate::extensions::github_marketplace::ExtensionVersion;
-use tokio::sync::Mutex;
+use crate::extensions::{GitHubExtension, GitHubMarketplace};
 use tauri::State;
+use tokio::sync::Mutex;
 
 /// Global marketplace state
 pub struct MarketplaceState(pub Mutex<GitHubMarketplace>);
@@ -26,7 +26,10 @@ pub async fn get_github_extension_details(
     repo: String,
 ) -> Result<GitHubExtension, String> {
     let marketplace = state.0.lock().await;
-    marketplace.get_extension(&owner, &repo).await.map_err(|e| e.to_string())
+    marketplace
+        .get_extension(&owner, &repo)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Get extension versions
@@ -37,7 +40,10 @@ pub async fn get_extension_versions(
     repo: String,
 ) -> Result<Vec<ExtensionVersion>, String> {
     let marketplace = state.0.lock().await;
-    marketplace.get_versions(&owner, &repo).await.map_err(|e| e.to_string())
+    marketplace
+        .get_versions(&owner, &repo)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Install extension from GitHub

@@ -23,20 +23,21 @@
 //! - Single static binary per platform
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![allow(dead_code, unused_variables, unused_imports, unused_mut)]
 
 // ============ Core Modules ============
-mod commands;
 mod ai;
-mod terminal;
+mod commands;
 mod files;
 mod git;
 mod lsp;
+mod terminal;
 
 // ============ AI Modules ============
-mod swarm_ai;
 mod embedded_llm;
 mod mcp;
 mod rag;
+mod swarm_ai;
 
 // ============ Collaboration Modules ============
 mod git_crdt;
@@ -51,11 +52,11 @@ mod telegram;
 mod agents;
 
 // ============ Infrastructure Modules ============
-mod update;
-mod plugin_sandbox;
-mod telemetry;
 mod accessibility;
 mod benchmark;
+mod plugin_sandbox;
+mod telemetry;
+mod update;
 
 // ============ VS Code Compatibility ============
 mod vscode_compat;
@@ -132,10 +133,10 @@ mod agent_editor;
 // ============ Agent Store ============
 mod agent_store;
 
-use tauri::Manager;
-use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock as AsyncRwLock};
 use parking_lot::RwLock;
+use std::sync::Arc;
+use tauri::Manager;
+use tokio::sync::{Mutex, RwLock as AsyncRwLock};
 
 fn main() {
     // Initialize logging
@@ -151,70 +152,75 @@ fn main() {
             )
         })
         .init();
-    
+
     log::info!("=================================");
     log::info!("  KRO_IDE v{} Starting", env!("CARGO_PKG_VERSION"));
     log::info!("=================================");
-    
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let window = app.get_webview_window("main")
+            let window = app
+                .get_webview_window("main")
                 .expect("Failed to get main webview window");
-            
+
             // ============ Hardware Detection ============
             log::info!("Detecting hardware capabilities...");
             let hardware_caps = detect_hardware_capabilities();
             log::info!("GPU: {:?}", hardware_caps.gpu_name);
-            log::info!("VRAM: {} GB", hardware_caps.vram_bytes / (1024*1024*1024));
+            log::info!(
+                "VRAM: {} GB",
+                hardware_caps.vram_bytes / (1024 * 1024 * 1024)
+            );
             log::info!("Memory Tier: {:?}", hardware_caps.recommended_tier);
             log::info!("Backend: {}", hardware_caps.recommended_backend);
-            
+
             // ============ Initialize Core Services ============
-            
+
             // Terminal manager
             let terminal_manager = terminal::TerminalManager::new();
             app.manage(Arc::new(Mutex::new(terminal_manager)));
-            
+
             // AI client (Ollama fallback)
             let ai_client = ai::AiClient::new();
             let ai_client_arc = Arc::new(Mutex::new(ai_client));
             app.manage(ai_client_arc.clone());
-            
+
             // File watcher
-            let file_watcher = files::FileWatcher::new(window.clone())
-                .unwrap_or_else(|e| {
-                    eprintln!("Failed to create file watcher: {}", e);
-                    panic!("File watcher initialization failed");
-                });
+            let file_watcher = files::FileWatcher::new(window.clone()).unwrap_or_else(|e| {
+                eprintln!("Failed to create file watcher: {}", e);
+                panic!("File watcher initialization failed");
+            });
             app.manage(Arc::new(Mutex::new(file_watcher)));
-            
+
             // Git manager
             let git_manager = git::GitManager::new();
             app.manage(Arc::new(Mutex::new(git_manager)));
-            
+
             // ============ Initialize LSP System ============
-            
+
             let molecular_lsp = lsp::MolecularLsp::new();
             let molecular_lsp_arc = Arc::new(RwLock::new(molecular_lsp));
             app.manage(Arc::new(Mutex::new(lsp::MolecularLsp::new())));
-            
+
             // AI completion engine
-            let completion_engine = lsp::completion_engine::AiCompletionEngine::new(molecular_lsp_arc);
+            let completion_engine =
+                lsp::completion_engine::AiCompletionEngine::new(molecular_lsp_arc);
             app.manage(Arc::new(Mutex::new(completion_engine)));
-            
+
             // ============ Initialize Swarm AI Engine ============
-            
+
             let app_handle = app.handle().clone();
             let hardware_caps_clone = hardware_caps.clone();
             tauri::async_runtime::spawn(async move {
                 let config = swarm_ai::SwarmConfig {
-                    max_memory_gb: hardware_caps_clone.vram_bytes as f32 / (1024.0*1024.0*1024.0),
+                    max_memory_gb: hardware_caps_clone.vram_bytes as f32
+                        / (1024.0 * 1024.0 * 1024.0),
                     ..Default::default()
                 };
-                
+
                 if let Ok(engine) = swarm_ai::SwarmAIEngine::new(config).await {
                     app_handle.manage(Arc::new(AsyncRwLock::new(engine)));
                     log::info!("✓ Swarm AI engine initialized");
@@ -222,9 +228,9 @@ fn main() {
                     log::warn!("⚠ Swarm AI engine initialization failed, using fallback");
                 }
             });
-            
+
             // ============ Initialize Embedded LLM ============
-            
+
             // Initialize embedded LLM state (for commands to access)
             let embedded_llm_state = commands::embedded_llm::EmbeddedLLMState {
                 engine: None,
@@ -232,21 +238,25 @@ fn main() {
             };
             app.manage(Arc::new(AsyncRwLock::new(embedded_llm_state)));
             log::info!("✓ Embedded LLM state initialized");
-            
+
             #[cfg(feature = "embedded-llm")]
             {
                 let app_handle = app.handle().clone();
                 let hardware_caps = hardware_caps.clone();
                 tauri::async_runtime::spawn(async move {
                     let config = embedded_llm::EmbeddedLLMConfig {
-                        max_vram_mb: (hardware_caps.vram_bytes / (1024*1024)) as u64 * 80 / 100, // 80% of VRAM
+                        max_vram_mb: (hardware_caps.vram_bytes / (1024 * 1024)) as u64 * 80 / 100, // 80% of VRAM
                         context_size: hardware_caps.recommended_tier.recommended_context_size(),
                         n_gpu_layers: hardware_caps.recommended_tier.gpu_layers(),
-                        default_model: hardware_caps.recommended_tier.recommended_models()
-                            .first().unwrap_or(&"phi-2b-q4_k_m").to_string(),
+                        default_model: hardware_caps
+                            .recommended_tier
+                            .recommended_models()
+                            .first()
+                            .unwrap_or(&"phi-2b-q4_k_m")
+                            .to_string(),
                         ..Default::default()
                     };
-                    
+
                     match embedded_llm::EmbeddedLLMEngine::new(config).await {
                         Ok(engine) => {
                             app_handle.manage(Arc::new(AsyncRwLock::new(engine)));
@@ -258,130 +268,141 @@ fn main() {
                     }
                 });
             }
-            
+
             // ============ Initialize MCP Server ============
-            
+
             let mcp_server = mcp::MCPServer::new(mcp::MCPConfig::default());
             app.manage(Arc::new(AsyncRwLock::new(mcp_server)));
             log::info!("✓ MCP server initialized");
-            
+
             // ============ Virtual PICO Bridge ============
             // virtual_pico module removed - incomplete feature
-            
+
             // ============ Initialize Collaboration ============
-            
+
             let collab_config = git_crdt::CollaborationConfig::default();
             let collab_manager = git_crdt::CollaborationManager::new(collab_config);
             app.manage(Arc::new(Mutex::new(collab_manager)));
             log::info!("✓ Collaboration manager initialized");
-            
+
             // ============ Verification ============
             // symbolic_verify module removed - incomplete feature
-            
+
             // ============ Initialize Plugin Manager ============
-            
+
             let plugins_dir = dirs::data_dir()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
                 .join("kro_ide")
                 .join("plugins");
-            
+
             let plugin_manager = plugin_sandbox::PluginManager::new(plugins_dir);
             app.manage(Arc::new(Mutex::new(plugin_manager)));
             log::info!("✓ Plugin manager initialized");
-            
+
             // ============ Initialize Update Manager ============
-            
+
             let update_config = update::UpdateConfig::default();
             if let Ok(update_manager) = update::UpdateManager::new(update_config) {
                 app.manage(Arc::new(AsyncRwLock::new(update_manager)));
                 log::info!("✓ Update manager initialized");
             }
-            
+
             // ============ Initialize Telemetry ============
-            
+
             let telemetry = telemetry::TelemetryManager::new(telemetry::TelemetryConfig::default());
             app.manage(Arc::new(Mutex::new(telemetry)));
             log::info!("✓ Telemetry initialized");
-            
+
             // ============ Initialize RAG State ============
-            
+
             let rag_state = commands::rag::RagState::default();
             app.manage(Arc::new(AsyncRwLock::new(rag_state)));
             log::info!("✓ RAG state initialized");
-            
+
             // ============ Initialize WebSocket State ============
-            
+
             let ws_state = commands::websocket::WsState::default();
             app.manage(Arc::new(AsyncRwLock::new(ws_state)));
             log::info!("✓ WebSocket state initialized");
-            
+
             // ============ Initialize Git CRDT State ============
-            
+
             let git_crdt_state = commands::gitcrdt::GitCrdtState::default();
             app.manage(Arc::new(AsyncRwLock::new(git_crdt_state)));
             log::info!("✓ Git CRDT state initialized");
-            
+
             // ============ Initialize Enhanced LSP State ============
-            
+
             let lsp_state = commands::lsp_real::LspState::default();
             app.manage(Arc::new(AsyncRwLock::new(lsp_state)));
             log::info!("✓ Enhanced LSP state initialized");
-            
+
             // ============ Initialize AirLLM State ============
             let airllm_state = commands::airllm::AirLLMState(tokio::sync::Mutex::new(None));
             app.manage(airllm_state);
             log::info!("✓ AirLLM state initialized");
-            
+
             // ============ Initialize PicoClaw State ============
-            let picoclaw_engine = picoclaw::PicoClawEngine::new(picoclaw::PicoClawConfig::default());
-            let picoclaw_state = commands::picoclaw::PicoClawState(std::sync::Mutex::new(picoclaw_engine));
+            let picoclaw_engine =
+                picoclaw::PicoClawEngine::new(picoclaw::PicoClawConfig::default());
+            let picoclaw_state =
+                commands::picoclaw::PicoClawState(std::sync::Mutex::new(picoclaw_engine));
             app.manage(picoclaw_state);
             log::info!("✓ PicoClaw state initialized");
-            
+
             // ============ Initialize Orchestrator (Mission Control) ============
-            let orchestrator = orchestrator::KyroOrchestrator::new(orchestrator::OrchestratorConfig::default());
-            app.manage(commands::orchestrator::OrchestratorState(Arc::new(tokio::sync::RwLock::new(orchestrator))));
+            let orchestrator =
+                orchestrator::KyroOrchestrator::new(orchestrator::OrchestratorConfig::default());
+            app.manage(commands::orchestrator::OrchestratorState(Arc::new(
+                tokio::sync::RwLock::new(orchestrator),
+            )));
             log::info!("✓ Orchestrator initialized");
-            
+
             // ============ Initialize AoT Reasoning Engine ============
             let aot_reasoner = aot::AotReasoner::new(aot::AotConfig::default());
             let aot_state = commands::aot::AotState(std::sync::Mutex::new(aot_reasoner));
             app.manage(aot_state);
             log::info!("✓ Atoms-of-Thought engine initialized");
-            
+
             // ============ Initialize Extension Store ============
             let ext_store_path = dirs::data_dir()
                 .unwrap_or_else(|| std::path::PathBuf::from("."))
                 .join("kro_ide")
                 .join("extensions");
             let ext_manager = extensions::ExtensionManager::new(ext_store_path);
-            app.manage(commands::extensions::ExtensionState(tokio::sync::Mutex::new(ext_manager)));
+            app.manage(commands::extensions::ExtensionState(
+                tokio::sync::Mutex::new(ext_manager),
+            ));
             log::info!("✓ Extension store initialized");
-            
+
             // ============ Initialize Agent Store ============
             let agent_store = agent_store::AgentStore::new();
-            app.manage(commands::agent_store::AgentStoreState(tokio::sync::Mutex::new(agent_store)));
+            app.manage(commands::agent_store::AgentStoreState(
+                tokio::sync::Mutex::new(agent_store),
+            ));
             log::info!("✓ Agent store initialized");
-            
+
             // ============ Initialize GitHub Marketplace ============
             let marketplace = extensions::GitHubMarketplace::new();
-            app.manage(commands::marketplace::MarketplaceState(tokio::sync::Mutex::new(marketplace)));
+            app.manage(commands::marketplace::MarketplaceState(
+                tokio::sync::Mutex::new(marketplace),
+            ));
             log::info!("✓ GitHub marketplace initialized");
-            
+
             // ============ Initialize Debug State ============
             let debug_state = commands::debug::DebugState::default();
             app.manage(Arc::new(Mutex::new(debug_state)));
             log::info!("✓ Debug state initialized");
-            
+
             // ============ Startup Complete ============
-            
+
             log::info!("=================================");
             log::info!("  KRO_IDE Ready");
             log::info!("  - Languages: 25+ (Tree-sitter)");
             log::info!("  - AI Agents: 8 specialized");
             log::info!("  - Memory Tier: {:?}", hardware_caps.recommended_tier);
             log::info!("=================================");
-            
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -404,13 +425,11 @@ fn main() {
             commands::fs::is_file,
             commands::fs::watch_directory,
             commands::fs::unwatch_directory,
-            
             // ============ Terminal Operations ============
             commands::terminal::create_terminal,
             commands::terminal::write_to_terminal,
             commands::terminal::resize_terminal,
             commands::terminal::kill_terminal,
-            
             // ============ AI Operations ============
             commands::ai::chat_completion,
             commands::ai::code_completion,
@@ -424,7 +443,6 @@ fn main() {
             commands::ai::ai_code_completion,
             commands::ai::ai_stream_completion,
             commands::ai::ai_inline_chat,
-            
             // ============ Git Operations ============
             commands::git::git_status,
             commands::git::git_commit,
@@ -442,7 +460,6 @@ fn main() {
             commands::git::git_unstage_all,
             commands::git::git_discard,
             commands::git::git_stage_hunk,
-            
             // ============ LSP Operations ============
             commands::lsp::detect_language,
             commands::lsp::extract_symbols,
@@ -453,7 +470,6 @@ fn main() {
             commands::lsp::update_file_symbols,
             commands::lsp::get_completion_stats,
             commands::lsp::get_completion_budget,
-            
             // ============ Embedded LLM Operations ============
             commands::embedded_llm::get_hardware_info,
             commands::embedded_llm::init_embedded_llm,
@@ -465,7 +481,6 @@ fn main() {
             commands::embedded_llm::embedded_code_complete,
             commands::embedded_llm::is_embedded_llm_ready,
             commands::embedded_llm::get_loaded_models,
-            
             // ============ Authentication Operations ============
             commands::auth::login_user,
             commands::auth::logout_user,
@@ -476,7 +491,6 @@ fn main() {
             commands::auth::validate_session,
             commands::auth::get_oauth_url,
             commands::auth::handle_oauth_callback,
-            
             // ============ Collaboration Operations ============
             commands::collaboration::create_room,
             commands::collaboration::join_room,
@@ -491,7 +505,6 @@ fn main() {
             commands::collaboration::get_current_room,
             commands::collaboration::list_rooms,
             commands::collaboration::broadcast_cursor,
-            
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,
@@ -504,7 +517,6 @@ fn main() {
             commands::e2ee::rotate_keys,
             commands::e2ee::get_prekey_count,
             commands::e2ee::delete_e2ee_session,
-            
             // ============ VS Code Compatibility Operations ============
             commands::vscode_compat::search_extensions,
             commands::vscode_compat::get_extension_details,
@@ -521,7 +533,6 @@ fn main() {
             commands::vscode_compat::install_extension_unified,
             commands::vscode_compat::get_openvsx_popular,
             commands::vscode_compat::get_extension_readme,
-            
             // ============ MCP/Agent Operations ============
             commands::mcp::list_agents,
             commands::mcp::create_agent,
@@ -534,7 +545,6 @@ fn main() {
             commands::mcp::read_mcp_resource,
             commands::mcp::register_tool,
             commands::mcp::unregister_tool,
-            
             // ============ Swarm AI Operations ============
             commands::swarm::list_swarm_agents,
             commands::swarm::create_swarm_agent,
@@ -546,7 +556,6 @@ fn main() {
             commands::swarm::get_swarm_stats,
             commands::swarm::delete_swarm_agent,
             commands::swarm::send_agent_message,
-            
             // ============ Multi-Model Router ============
             commands::swarm::router_route,
             commands::swarm::router_register_endpoint,
@@ -555,7 +564,6 @@ fn main() {
             commands::swarm::router_refresh_health,
             commands::swarm::router_get_config,
             commands::swarm::router_set_config,
-            
             // ============ Plugin Operations ============
             commands::plugin::list_plugins,
             commands::plugin::install_plugin,
@@ -568,7 +576,6 @@ fn main() {
             commands::plugin::get_plugin_status,
             commands::plugin::reload_plugins,
             commands::plugin::get_plugin_memory_usage,
-            
             // ============ Update Operations ============
             commands::update::check_for_updates,
             commands::update::download_update,
@@ -582,7 +589,6 @@ fn main() {
             commands::update::is_auto_update_enabled,
             commands::update::skip_update,
             commands::update::get_last_update_check,
-            
             // ============ RAG Operations ============
             commands::rag::get_rag_status,
             commands::rag::index_project,
@@ -593,7 +599,6 @@ fn main() {
             commands::rag::get_indexed_paths,
             commands::rag::remove_indexed_path,
             commands::rag::graph_enhanced_semantic_search,
-            
             // ============ WebSocket Operations ============
             commands::websocket::ws_connect,
             commands::websocket::ws_disconnect,
@@ -605,7 +610,6 @@ fn main() {
             commands::websocket::ws_send_operation,
             commands::websocket::ws_get_server_url,
             commands::websocket::ws_set_reconnect_handler,
-            
             // ============ Git CRDT Operations ============
             commands::gitcrdt::git_crdt_status,
             commands::gitcrdt::git_crdt_sync,
@@ -616,7 +620,6 @@ fn main() {
             commands::gitcrdt::git_crdt_get_history,
             commands::gitcrdt::git_crdt_create_branch,
             commands::gitcrdt::git_crdt_switch_branch,
-            
             // ============ Enhanced LSP Operations ============
             commands::lsp_real::lsp_start_server,
             commands::lsp_real::lsp_stop_server,
@@ -629,7 +632,6 @@ fn main() {
             commands::lsp_real::lsp_rename,
             commands::lsp_real::lsp_format_document,
             commands::lsp_real::lsp_code_actions,
-            
             // ============ AirLLM Operations ============
             commands::airllm::airllm_check_availability,
             commands::airllm::airllm_get_config,
@@ -637,13 +639,11 @@ fn main() {
             commands::airllm::airllm_unload_model,
             commands::airllm::airllm_generate,
             commands::airllm::airllm_get_status,
-            
             // ============ PicoClaw Operations ============
             commands::picoclaw::picoclaw_complete,
             commands::picoclaw::picoclaw_analyze,
             commands::picoclaw::picoclaw_memory_usage,
             commands::picoclaw::picoclaw_is_available,
-            
             // ============ Orchestrator (Mission Control) Operations ============
             commands::orchestrator::orchestrator_start_mission,
             commands::orchestrator::orchestrator_get_mission,
@@ -653,7 +653,6 @@ fn main() {
             commands::orchestrator::quest_start,
             commands::orchestrator::quest_execute,
             commands::orchestrator::quest_get_status,
-            
             // ============ Feedback / Learning Flywheel ============
             commands::feedback::feedback_log_suggestion,
             commands::feedback::feedback_accept,
@@ -661,20 +660,17 @@ fn main() {
             commands::feedback::feedback_correct,
             commands::feedback::feedback_stats,
             commands::feedback::feedback_recent,
-            
             // ============ AoT Reasoning Operations ============
             commands::aot::aot_decompose,
             commands::aot::aot_optimize_context,
             commands::aot::aot_get_stats,
             commands::aot::aot_is_available,
-            
             // ============ Extension Store Operations ============
             commands::extensions::search_extensions_registry,
             commands::extensions::install_extension_registry,
             commands::extensions::uninstall_extension_registry,
             commands::extensions::list_extensions,
             commands::extensions::toggle_extension,
-            
             // ============ Agent Store Operations ============
             commands::agent_store::search_agents,
             commands::agent_store::install_agent,
@@ -683,7 +679,6 @@ fn main() {
             commands::agent_store::toggle_agent,
             commands::agent_store::execute_agent,
             commands::agent_store::featured_agents,
-            
             // ============ GitHub Marketplace Operations ============
             commands::marketplace::search_marketplace,
             commands::marketplace::get_github_extension_details,
@@ -691,7 +686,6 @@ fn main() {
             commands::marketplace::install_from_github,
             commands::marketplace::get_featured_extensions,
             commands::marketplace::get_trending_extensions,
-            
             // ============ Chat Agent Operations ============
             commands::ai::detect_ai_backends,
             commands::ai::smart_ai_completion,
@@ -701,11 +695,9 @@ fn main() {
             commands::ai::agent_command,
             commands::ai::agent_approve,
             commands::ai::agent_reject,
-            
             // ============ Project Search Operations ============
             commands::search::search_in_project,
             commands::search::replace_in_project,
-            
             // ============ Debug Operations ============
             commands::debug::debug_start,
             commands::debug::debug_stop,
@@ -718,7 +710,6 @@ fn main() {
             commands::debug::debug_remove_breakpoint,
             commands::debug::debug_set_breakpoint_condition,
             commands::debug::debug_evaluate,
-            
             // ============ Settings Persistence ============
             commands::settings::get_settings,
             commands::settings::set_setting,
@@ -726,22 +717,18 @@ fn main() {
             commands::settings::export_settings,
             commands::settings::import_settings,
             commands::settings::is_first_run,
-            
             // ============ Project Config ============
             commands::project_config::init_project_config,
             commands::project_config::get_project_config,
             commands::project_config::set_project_config,
-            
             // ============ Model Download ============
             commands::model_download::list_available_models,
             commands::model_download::download_model,
             commands::model_download::delete_model,
             commands::model_download::get_download_status,
-            
             // ============ Test Runner ============
             commands::testing::detect_test_framework,
             commands::testing::run_tests,
-            
             // ============ RepoWiki Operations ============
             commands::repowiki::repowiki_init,
             commands::repowiki::repowiki_generate,
@@ -763,7 +750,7 @@ fn main() {
 /// Detect hardware capabilities at startup
 fn detect_hardware_capabilities() -> embedded_llm::HardwareCapabilities {
     let cpu_cores = num_cpus::get();
-    
+
     // Detect CPU features
     let mut cpu_features = vec![];
     #[cfg(target_arch = "x86_64")]
@@ -779,15 +766,15 @@ fn detect_hardware_capabilities() -> embedded_llm::HardwareCapabilities {
     {
         cpu_features.push("neon".to_string());
     }
-    
+
     // Get system memory
     let mut sys = sysinfo::System::new_all();
     sys.refresh_memory();
     let ram_bytes = sys.total_memory() * 1024;
-    
+
     // Detect GPU and VRAM
     let (gpu_name, vram_bytes, recommended_backend, recommended_tier) = detect_gpu();
-    
+
     embedded_llm::HardwareCapabilities {
         vram_bytes,
         ram_bytes,
@@ -806,9 +793,14 @@ fn detect_gpu() -> (Option<String>, u64, String, embedded_llm::MemoryTier) {
     #[cfg(feature = "cuda")]
     {
         // Would query CUDA
-        return (Some("NVIDIA GPU".to_string()), 8_589_934_592, "cuda".to_string(), embedded_llm::MemoryTier::Medium8GB);
+        return (
+            Some("NVIDIA GPU".to_string()),
+            8_589_934_592,
+            "cuda".to_string(),
+            embedded_llm::MemoryTier::Medium8GB,
+        );
     }
-    
+
     // Try Metal on macOS
     #[cfg(target_os = "macos")]
     {
@@ -817,13 +809,23 @@ fn detect_gpu() -> (Option<String>, u64, String, embedded_llm::MemoryTier) {
         let ram = sys.total_memory() * 1024;
         let usable_vram = (ram as f64 * 0.75) as u64; // Metal gives ~75% of unified memory
         let tier = embedded_llm::MemoryTier::from_vram(usable_vram);
-        return (Some("Apple Silicon".to_string()), usable_vram, "metal".to_string(), tier);
+        return (
+            Some("Apple Silicon".to_string()),
+            usable_vram,
+            "metal".to_string(),
+            tier,
+        );
     }
-    
+
     // Fallback to CPU
     let mut sys = sysinfo::System::new_all();
     sys.refresh_memory();
     let ram = sys.total_memory() * 1024;
     let usable = (ram as f64 * 0.25) as u64;
-    (None, usable, "cpu".to_string(), embedded_llm::MemoryTier::Cpu)
+    (
+        None,
+        usable,
+        "cpu".to_string(),
+        embedded_llm::MemoryTier::Cpu,
+    )
 }

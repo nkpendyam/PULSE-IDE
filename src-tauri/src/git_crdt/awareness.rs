@@ -101,7 +101,8 @@ impl AwarenessProtocol {
 
     /// Get users editing a specific file
     pub fn get_users_in_file(&self, file_path: &str) -> Vec<&UserState> {
-        self.states.values()
+        self.states
+            .values()
             .filter(|s| s.editing_file.as_deref() == Some(file_path))
             .collect()
     }
@@ -113,7 +114,8 @@ impl AwarenessProtocol {
             .unwrap_or_default()
             .as_secs();
 
-        self.states.values()
+        self.states
+            .values()
             .filter(|s| now - s.last_activity < threshold_secs)
             .collect()
     }
@@ -125,7 +127,9 @@ impl AwarenessProtocol {
             .unwrap_or_default()
             .as_secs();
 
-        let stale: Vec<String> = self.states.iter()
+        let stale: Vec<String> = self
+            .states
+            .iter()
             .filter(|(_, s)| now - s.last_activity > threshold_secs)
             .map(|(id, _)| id.clone())
             .collect();
@@ -190,7 +194,7 @@ mod tests {
     #[test]
     fn test_awareness_update() {
         let mut awareness = AwarenessProtocol::new();
-        
+
         let state = UserState {
             user_id: "user1".to_string(),
             name: "Alice".to_string(),
@@ -206,7 +210,7 @@ mod tests {
         };
 
         awareness.update("user1", state);
-        
+
         assert_eq!(awareness.get_states().len(), 1);
         assert!(awareness.get_state("user1").is_some());
     }

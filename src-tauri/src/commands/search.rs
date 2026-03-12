@@ -3,11 +3,11 @@
 //! Fast file search using walkdir + regex, with gitignore-aware filtering.
 //! Called by GlobalSearch.tsx via `search_in_project` and `replace_in_project`.
 
+use regex::RegexBuilder;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use tauri::command;
 use walkdir::WalkDir;
-use regex::RegexBuilder;
-use std::path::Path;
 
 /// A single match within a file
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,8 +32,17 @@ fn is_excluded(path: &Path, root: &Path, exclude_filter: &str) -> bool {
 
     // Always skip common binary/build directories
     let skip_dirs = [
-        "node_modules", ".git", "target", "dist", "build", ".next",
-        "__pycache__", ".venv", "venv", ".tox", "out",
+        "node_modules",
+        ".git",
+        "target",
+        "dist",
+        "build",
+        ".next",
+        "__pycache__",
+        ".venv",
+        "venv",
+        ".tox",
+        "out",
     ];
     for component in relative.components() {
         let s = component.as_os_str().to_string_lossy();
@@ -66,7 +75,10 @@ fn matches_file_filter(path: &Path, root: &Path, file_filter: &str) -> bool {
     }
     let relative = path.strip_prefix(root).unwrap_or(path);
     let rel_str = relative.to_string_lossy();
-    let file_name = path.file_name().map(|n| n.to_string_lossy()).unwrap_or_default();
+    let file_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy())
+        .unwrap_or_default();
 
     for pattern in file_filter.split(',').map(|s| s.trim()) {
         if !pattern.is_empty() {
@@ -128,14 +140,10 @@ fn build_search_regex(
 /// Check if a file is likely binary
 fn is_binary(path: &Path) -> bool {
     let binary_exts = [
-        "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg", "webp",
-        "mp3", "mp4", "avi", "mov", "mkv", "wav", "flac",
-        "zip", "tar", "gz", "bz2", "xz", "7z", "rar",
-        "exe", "dll", "so", "dylib", "o", "a", "lib",
-        "wasm", "class", "pyc", "pyo",
-        "pdf", "doc", "docx", "xls", "xlsx",
-        "ttf", "otf", "woff", "woff2", "eot",
-        "db", "sqlite", "sqlite3",
+        "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg", "webp", "mp3", "mp4", "avi", "mov",
+        "mkv", "wav", "flac", "zip", "tar", "gz", "bz2", "xz", "7z", "rar", "exe", "dll", "so",
+        "dylib", "o", "a", "lib", "wasm", "class", "pyc", "pyo", "pdf", "doc", "docx", "xls",
+        "xlsx", "ttf", "otf", "woff", "woff2", "eot", "db", "sqlite", "sqlite3",
     ];
     path.extension()
         .map(|ext| binary_exts.iter().any(|b| ext.eq_ignore_ascii_case(b)))

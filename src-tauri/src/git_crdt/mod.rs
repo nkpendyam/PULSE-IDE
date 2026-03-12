@@ -7,23 +7,22 @@
 //! - Time-limited collaboration windows (5 min default)
 //! - WebSocket sync layer for peer communication
 
-pub mod yjs_adapter;
-pub mod git_persistence;
 pub mod ai_merge;
 pub mod awareness;
+pub mod git_persistence;
 pub mod websocket_sync;
+pub mod yjs_adapter;
 
-pub use yjs_adapter::YjsAdapter;
-pub use git_persistence::GitPersistence;
 pub use ai_merge::AiMergeResolver;
 pub use awareness::AwarenessProtocol;
-pub use websocket_sync::{CollaborationServer, CollaborationClient, CollaborationMessage};
+pub use git_persistence::GitPersistence;
+pub use yjs_adapter::YjsAdapter;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
 
 /// Collaboration session configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,9 +112,9 @@ impl CollaborationManager {
     }
 
     /// Create a new collaboration session
-    pub async fn create_session(&self, document_id: &str, user_id: &str) -> Result<String> {
+    pub async fn create_session(&self, document_id: &str, _user_id: &str) -> Result<String> {
         let session_id = uuid::Uuid::new_v4().to_string();
-        
+
         let session = CollaborationSession {
             session_id: session_id.clone(),
             document_id: document_id.to_string(),
@@ -126,15 +125,19 @@ impl CollaborationManager {
             awareness: Arc::new(RwLock::new(AwarenessProtocol::new())),
         };
 
-        self.sessions.write().await.insert(session_id.clone(), session);
-        
+        self.sessions
+            .write()
+            .await
+            .insert(session_id.clone(), session);
+
         Ok(session_id)
     }
 
     /// Join a collaboration session
     pub async fn join_session(&self, session_id: &str, user: Participant) -> Result<()> {
         let mut sessions = self.sessions.write().await;
-        let session = sessions.get_mut(session_id)
+        let session = sessions
+            .get_mut(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found: {}", session_id))?;
 
         // Check user limit
@@ -143,7 +146,7 @@ impl CollaborationManager {
         }
 
         session.participants.insert(user.user_id.clone(), user);
-        
+
         Ok(())
     }
 
@@ -152,22 +155,27 @@ impl CollaborationManager {
         let mut sessions = self.sessions.write().await;
         if let Some(session) = sessions.get_mut(session_id) {
             session.participants.remove(user_id);
-            
+
             // End session if no participants
             if session.participants.is_empty() {
                 // Commit final state to git
-                session.git_persistence.write().await.commit("Session ended")?;
+                session
+                    .git_persistence
+                    .write()
+                    .await
+                    .commit("Session ended")?;
                 sessions.remove(session_id);
             }
         }
-        
+
         Ok(())
     }
 
     /// Apply a document update
     pub async fn apply_update(&self, update: DocumentUpdate) -> Result<Vec<u8>> {
         let sessions = self.sessions.read().await;
-        let session = sessions.get(&update.session_id)
+        let session = sessions
+            .get(&update.session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
         // Apply to Yjs document
@@ -176,14 +184,15 @@ impl CollaborationManager {
 
         // Broadcast to other participants
         let awareness_update = session.awareness.write().await.encode();
-        
+
         Ok(awareness_update)
     }
 
     /// Get current document state
     pub async fn get_document_state(&self, session_id: &str) -> Result<Vec<u8>> {
         let sessions = self.sessions.read().await;
-        let session = sessions.get(session_id)
+        let session = sessions
+            .get(session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
 
         let adapter = session.yjs_adapter.read().await;
@@ -191,7 +200,11 @@ impl CollaborationManager {
     }
 
     /// Resolve a merge conflict
-    pub async fn resolve_conflict(&self, session_id: &str, conflict: &MergeConflict) -> Result<String> {
+    pub async fn resolve_conflict(
+        &self,
+        _session_id: &str,
+        conflict: &MergeConflict,
+    ) -> Result<String> {
         if let Some(ref resolver) = self.ai_resolver {
             let resolver = resolver.read().await;
             resolver.resolve(conflict).await
@@ -210,8 +223,9 @@ impl CollaborationManager {
     pub async fn cleanup_expired(&self) -> Result<()> {
         let mut sessions = self.sessions.write().await;
         let now = chrono::Utc::now();
-        
-        let expired: Vec<String> = sessions.iter()
+
+        let expired: Vec<String> = sessions
+            .iter()
             .filter(|(_, session)| {
                 let elapsed = now.signed_duration_since(session.created_at);
                 elapsed.num_seconds() as u64 > self.config.session_timeout_secs
@@ -222,7 +236,11 @@ impl CollaborationManager {
         for session_id in expired {
             if let Some(session) = sessions.remove(&session_id) {
                 // Final commit before removal
-                session.git_persistence.write().await.commit("Session expired")?;
+                session
+                    .git_persistence
+                    .write()
+                    .await
+                    .commit("Session expired")?;
             }
         }
 

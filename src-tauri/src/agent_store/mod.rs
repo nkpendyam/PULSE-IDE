@@ -13,9 +13,9 @@
 //! - Agent marketplace based on GitHub stars/activity
 //! - Custom agent creation with MCP protocol
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 /// Agent definition that can be imported from GitHub
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -137,12 +137,12 @@ impl AgentStore {
             cache_updated: None,
         }
     }
-    
+
     /// Search for agents on GitHub
-    pub async fn search_github(&mut self, query: &str) -> anyhow::Result<Vec<AgentDefinition>> {
+    pub async fn search_github(&mut self, _query: &str) -> anyhow::Result<Vec<AgentDefinition>> {
         // In production, this would use GitHub API to search for repositories
         // containing kyro-agent.yaml or similar
-        
+
         let agents = vec![
             AgentDefinition {
                 id: "github.com/kyro-ide/agent-code-reviewer".to_string(),
@@ -158,7 +158,10 @@ impl AgentStore {
                 icon_url: None,
                 stars: 1250,
                 updated_at: Utc::now(),
-                readme: Some("# Code Reviewer Agent\n\nReviews code for bugs, security issues, and style.".to_string()),
+                readme: Some(
+                    "# Code Reviewer Agent\n\nReviews code for bugs, security issues, and style."
+                        .to_string(),
+                ),
                 license: "MIT".to_string(),
             },
             AgentDefinition {
@@ -168,14 +171,20 @@ impl AgentStore {
                 version: "1.2.0".to_string(),
                 repository: "https://github.com/kyro-ide/agent-refactor".to_string(),
                 author: "kyro-ide".to_string(),
-                capabilities: vec![AgentCapability::Refactoring, AgentCapability::CodeGeneration],
+                capabilities: vec![
+                    AgentCapability::Refactoring,
+                    AgentCapability::CodeGeneration,
+                ],
                 permissions: vec![Permission::ReadFiles, Permission::WriteFiles],
                 mcp_tools: vec!["filesystem".to_string()],
                 config_schema: None,
                 icon_url: None,
                 stars: 890,
                 updated_at: Utc::now(),
-                readme: Some("# Refactor Agent\n\nAutomatically refactors code using best practices.".to_string()),
+                readme: Some(
+                    "# Refactor Agent\n\nAutomatically refactors code using best practices."
+                        .to_string(),
+                ),
                 license: "MIT".to_string(),
             },
             AgentDefinition {
@@ -192,59 +201,66 @@ impl AgentStore {
                 icon_url: None,
                 stars: 567,
                 updated_at: Utc::now(),
-                readme: Some("# Test Generator Agent\n\nGenerates comprehensive test suites.".to_string()),
+                readme: Some(
+                    "# Test Generator Agent\n\nGenerates comprehensive test suites.".to_string(),
+                ),
                 license: "Apache-2.0".to_string(),
             },
         ];
-        
+
         self.cache = agents.clone();
         self.cache_updated = Some(Utc::now());
-        
+
         Ok(agents)
     }
-    
+
     /// Install agent from GitHub repository
     pub async fn install_from_github(&mut self, repo_url: &str) -> anyhow::Result<String> {
         let agent_id = repo_url
             .replace("https://github.com/", "github.com/")
             .trim_end_matches('/')
             .to_string();
-        
-        let definition = self.cache.iter()
+
+        let definition = self
+            .cache
+            .iter()
             .find(|a| a.repository == repo_url || a.id == agent_id)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Agent not found: {}", repo_url))?;
-        
+
         let installed = InstalledAgent {
             definition: definition.clone(),
-            install_path: format!("~/.local/share/kyro-ide/agents/{}", agent_id.replace('/', "_")),
+            install_path: format!(
+                "~/.local/share/kyro-ide/agents/{}",
+                agent_id.replace('/', "_")
+            ),
             installed_at: Utc::now(),
             config: HashMap::new(),
             usage_count: 0,
             last_used: None,
             enabled: true,
         };
-        
+
         self.installed.insert(agent_id.clone(), installed);
-        
+
         Ok(agent_id)
     }
-    
+
     /// List installed agents
     pub fn list_installed(&self) -> Vec<&InstalledAgent> {
         self.installed.values().collect()
     }
-    
+
     /// Get installed agent by ID
     pub fn get(&self, id: &str) -> Option<&InstalledAgent> {
         self.installed.get(id)
     }
-    
+
     /// Uninstall agent
     pub fn uninstall(&mut self, id: &str) -> bool {
         self.installed.remove(id).is_some()
     }
-    
+
     /// Enable or disable an agent
     pub fn set_enabled(&mut self, id: &str, enabled: bool) -> bool {
         if let Some(agent) = self.installed.get_mut(id) {
@@ -254,7 +270,7 @@ impl AgentStore {
             false
         }
     }
-    
+
     /// Get featured agents (top by stars)
     pub fn featured(&self) -> Vec<&AgentDefinition> {
         let mut agents: Vec<_> = self.cache.iter().collect();
@@ -280,20 +296,22 @@ impl AgentExecutor {
     pub fn new(store: AgentStore) -> Self {
         Self { store }
     }
-    
+
     /// Execute an agent with a task
     pub async fn execute(
         &mut self,
         agent_id: &str,
         task: &str,
     ) -> anyhow::Result<AgentExecutionResult> {
-        let agent = self.store.get(agent_id)
+        let agent = self
+            .store
+            .get(agent_id)
             .ok_or_else(|| anyhow::anyhow!("Agent not installed: {}", agent_id))?;
-        
+
         if !agent.enabled {
             return Err(anyhow::anyhow!("Agent is disabled: {}", agent_id));
         }
-        
+
         Ok(AgentExecutionResult {
             success: true,
             output: format!("Agent {} executed task: {}", agent.definition.name, task),
@@ -322,13 +340,13 @@ pub struct AgentExecutionResult {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_agent_store_creation() {
         let store = AgentStore::new();
         assert!(store.installed.is_empty());
     }
-    
+
     #[tokio::test]
     async fn test_search_github() {
         let mut store = AgentStore::new();

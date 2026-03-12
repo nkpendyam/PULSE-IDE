@@ -3,8 +3,6 @@
 //! Global user settings stored as JSON at `~/.kyro/settings.json`.
 //! Settings are read on startup and written on every change.
 
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::PathBuf;
 use tauri::command;
 
@@ -53,12 +51,10 @@ fn read_settings() -> serde_json::Value {
 
     if path.exists() {
         match std::fs::read_to_string(&path) {
-            Ok(content) => {
-                match serde_json::from_str::<serde_json::Value>(&content) {
-                    Ok(saved) => merge_json(&defaults, &saved),
-                    Err(_) => defaults,
-                }
-            }
+            Ok(content) => match serde_json::from_str::<serde_json::Value>(&content) {
+                Ok(saved) => merge_json(&defaults, &saved),
+                Err(_) => defaults,
+            },
             Err(_) => defaults,
         }
     } else {
@@ -70,7 +66,8 @@ fn read_settings() -> serde_json::Value {
 fn write_settings(settings: &serde_json::Value) -> Result<(), String> {
     let path = settings_path();
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create settings dir: {}", e))?;
     }
     let json = serde_json::to_string_pretty(settings)
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
@@ -123,8 +120,8 @@ pub fn export_settings() -> Result<String, String> {
 
 #[command]
 pub fn import_settings(json_str: String) -> Result<serde_json::Value, String> {
-    let imported: serde_json::Value = serde_json::from_str(&json_str)
-        .map_err(|e| format!("Invalid JSON: {}", e))?;
+    let imported: serde_json::Value =
+        serde_json::from_str(&json_str).map_err(|e| format!("Invalid JSON: {}", e))?;
     let defaults = default_settings();
     let merged = merge_json(&defaults, &imported);
     write_settings(&merged)?;
@@ -135,5 +132,8 @@ pub fn import_settings(json_str: String) -> Result<serde_json::Value, String> {
 #[command]
 pub fn is_first_run() -> Result<bool, String> {
     let settings = read_settings();
-    Ok(!settings.get("firstRunComplete").and_then(|v| v.as_bool()).unwrap_or(false))
+    Ok(!settings
+        .get("firstRunComplete")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false))
 }

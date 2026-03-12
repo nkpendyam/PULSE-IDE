@@ -3,9 +3,7 @@
 //! Routes requests to the optimal model based on task type, latency
 //! requirements, and available models. Inspired by LiteLLM routing.
 
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -175,7 +173,8 @@ impl ModelRouter {
         }
 
         // Filter candidates: healthy + task allowed
-        let mut candidates: Vec<&ModelEndpoint> = eps.iter()
+        let mut candidates: Vec<&ModelEndpoint> = eps
+            .iter()
             .filter(|e| e.healthy && e.allowed_tasks.contains(&task))
             .collect();
 
@@ -191,23 +190,30 @@ impl ModelRouter {
         match strategy {
             RouteStrategy::Speed => {
                 candidates.sort_by(|a, b| {
-                    b.tokens_per_second.partial_cmp(&a.tokens_per_second).unwrap_or(std::cmp::Ordering::Equal)
+                    b.tokens_per_second
+                        .partial_cmp(&a.tokens_per_second)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
             }
             RouteStrategy::Quality => {
                 candidates.sort_by(|a, b| {
-                    b.quality_score.partial_cmp(&a.quality_score).unwrap_or(std::cmp::Ordering::Equal)
+                    b.quality_score
+                        .partial_cmp(&a.quality_score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
             }
             RouteStrategy::Balanced => {
                 // Score = quality * 0.6 + speed_norm * 0.4
-                let max_tps = candidates.iter()
+                let max_tps = candidates
+                    .iter()
                     .map(|c| c.tokens_per_second)
                     .fold(1.0f32, f32::max);
                 candidates.sort_by(|a, b| {
                     let score_a = a.quality_score * 0.6 + (a.tokens_per_second / max_tps) * 0.4;
                     let score_b = b.quality_score * 0.6 + (b.tokens_per_second / max_tps) * 0.4;
-                    score_b.partial_cmp(&score_a).unwrap_or(std::cmp::Ordering::Equal)
+                    score_b
+                        .partial_cmp(&score_a)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 });
             }
         }
@@ -224,7 +230,12 @@ impl ModelRouter {
 
         let mut eps = self.endpoints.write().await;
         // Group by base_url so we only ping each server once
-        let urls: Vec<String> = eps.iter().map(|e| e.base_url.clone()).collect::<std::collections::HashSet<_>>().into_iter().collect();
+        let urls: Vec<String> = eps
+            .iter()
+            .map(|e| e.base_url.clone())
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
         let mut healthy_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
         for url in &urls {
             if let Ok(resp) = client.get(format!("{}/api/tags", url)).send().await {
@@ -279,8 +290,12 @@ fn default_endpoints() -> Vec<ModelEndpoint> {
             tokens_per_second: 28.0,
             quality_score: 0.92,
             allowed_tasks: vec![
-                TaskKind::Autocomplete, TaskKind::Chat, TaskKind::Plan,
-                TaskKind::Review, TaskKind::Test, TaskKind::Generic,
+                TaskKind::Autocomplete,
+                TaskKind::Chat,
+                TaskKind::Plan,
+                TaskKind::Review,
+                TaskKind::Test,
+                TaskKind::Generic,
             ],
             healthy: false,
         },
@@ -293,8 +308,12 @@ fn default_endpoints() -> Vec<ModelEndpoint> {
             tokens_per_second: 25.0,
             quality_score: 0.85,
             allowed_tasks: vec![
-                TaskKind::Autocomplete, TaskKind::Chat, TaskKind::Plan,
-                TaskKind::Review, TaskKind::Test, TaskKind::Generic,
+                TaskKind::Autocomplete,
+                TaskKind::Chat,
+                TaskKind::Plan,
+                TaskKind::Review,
+                TaskKind::Test,
+                TaskKind::Generic,
             ],
             healthy: false,
         },
@@ -307,8 +326,11 @@ fn default_endpoints() -> Vec<ModelEndpoint> {
             tokens_per_second: 15.0,
             quality_score: 0.90,
             allowed_tasks: vec![
-                TaskKind::Chat, TaskKind::Plan, TaskKind::Review,
-                TaskKind::Test, TaskKind::Generic,
+                TaskKind::Chat,
+                TaskKind::Plan,
+                TaskKind::Review,
+                TaskKind::Test,
+                TaskKind::Generic,
             ],
             healthy: false,
         },
@@ -321,7 +343,9 @@ fn default_endpoints() -> Vec<ModelEndpoint> {
             tokens_per_second: 30.0,
             quality_score: 0.88,
             allowed_tasks: vec![
-                TaskKind::Chat, TaskKind::Plan, TaskKind::Review,
+                TaskKind::Chat,
+                TaskKind::Plan,
+                TaskKind::Review,
                 TaskKind::Generic,
             ],
             healthy: false,

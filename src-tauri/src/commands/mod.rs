@@ -57,23 +57,19 @@ pub mod gitcrdt;
 // ============ Chat Agent Operations ============
 pub mod chat_agent;
 
-
 // ============ Extensions & Marketplace ============
-pub mod extensions;
 pub mod agent_store;
+pub mod extensions;
 pub mod marketplace;
 
 // ============ AirLLM Operations ============
 pub mod airllm;
-pub use crate::airllm::commands as airllm_commands;
 
 // ============ PicoClaw Operations ============
 pub mod picoclaw;
-pub use crate::picoclaw::commands as picoclaw_commands;
 
 // ============ AoT Reasoning Operations ============
 pub mod aot;
-pub use crate::aot::commands as aot_commands;
 
 // ============ Orchestrator (Mission Control) ============
 pub mod orchestrator;

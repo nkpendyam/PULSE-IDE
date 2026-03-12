@@ -16,8 +16,6 @@
 
 mod prompts;
 
-pub use prompts::AotPrompts;
-
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -134,7 +132,7 @@ impl AotReasoner {
 
     /// Decompose a complex prompt into atomic thoughts
     pub fn decompose(&self, prompt: &str) -> Vec<AtomOfThought> {
-        let start = std::time::Instant::now();
+        let _start = std::time::Instant::now();
         let mut atoms: Vec<AtomOfThought> = Vec::new();
 
         // Strategy 1: Split by logical conjunctions / numbered steps
@@ -217,11 +215,10 @@ impl AotReasoner {
         // Update stats
         self.stats.total_sessions += 1;
         self.stats.total_atoms_processed += atoms.len() as u64;
-        self.stats.avg_atoms_per_session = self.stats.total_atoms_processed as f32
-            / self.stats.total_sessions as f32;
+        self.stats.avg_atoms_per_session =
+            self.stats.total_atoms_processed as f32 / self.stats.total_sessions as f32;
         let elapsed = start.elapsed().as_millis() as f64;
-        self.stats.avg_time_ms = (self.stats.avg_time_ms
-            * (self.stats.total_sessions - 1) as f64
+        self.stats.avg_time_ms = (self.stats.avg_time_ms * (self.stats.total_sessions - 1) as f64
             + elapsed)
             / self.stats.total_sessions as f64;
 
@@ -242,10 +239,7 @@ impl AotReasoner {
         }
 
         if completed.len() == 1 {
-            return completed[0]
-                .result
-                .clone()
-                .unwrap_or_default();
+            return completed[0].result.clone().unwrap_or_default();
         }
 
         // Merge results in dependency order
@@ -274,9 +268,9 @@ impl AotReasoner {
                     return true;
                 }
                 // Keep the line if it's not already established
-                !established_facts.iter().any(|fact| {
-                    trimmed.contains(fact.as_str()) || fact.contains(trimmed)
-                })
+                !established_facts
+                    .iter()
+                    .any(|fact| trimmed.contains(fact.as_str()) || fact.contains(trimmed))
             });
             atom.question = lines.join("\n");
 
@@ -322,7 +316,7 @@ impl AotReasoner {
 
         // Strategy 2: Sentence-level splitting for multi-sentence prompts
         let sentences: Vec<&str> = prompt
-            .split(|c: char| c == '.' || c == '?' || c == '!')
+            .split(['.', '?', '!'])
             .filter(|s| s.trim().len() > 5)
             .collect();
 
@@ -425,7 +419,11 @@ impl AotReasoner {
         }
         format!(
             "Prior results:\n{}\n\nNow answer: {}",
-            context.values().cloned().collect::<Vec<_>>().join("\n---\n"),
+            context
+                .values()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n---\n"),
             question
         )
     }
@@ -465,9 +463,7 @@ pub mod commands {
 
     /// Get AoT statistics
     #[tauri::command]
-    pub fn aot_get_stats(
-        state: State<'_, AotState>,
-    ) -> Result<AotStats, String> {
+    pub fn aot_get_stats(state: State<'_, AotState>) -> Result<AotStats, String> {
         let reasoner = state.0.lock().map_err(|e| e.to_string())?;
         Ok(reasoner.stats().clone())
     }

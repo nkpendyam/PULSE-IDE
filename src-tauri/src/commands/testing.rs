@@ -55,7 +55,10 @@ fn detect_project_type(project_path: &str) -> ProjectType {
         ProjectType::Rust
     } else if root.join("package.json").exists() {
         ProjectType::Node
-    } else if root.join("pyproject.toml").exists() || root.join("setup.py").exists() || root.join("requirements.txt").exists() {
+    } else if root.join("pyproject.toml").exists()
+        || root.join("setup.py").exists()
+        || root.join("requirements.txt").exists()
+    {
         ProjectType::Python
     } else if root.join("go.mod").exists() {
         ProjectType::Go
@@ -113,7 +116,11 @@ pub async fn run_tests(
 
     // Run the test command
     let output = tokio::process::Command::new(if cfg!(windows) { "cmd" } else { "sh" })
-        .args(if cfg!(windows) { vec!["/C", &cmd] } else { vec!["-c", &cmd] })
+        .args(if cfg!(windows) {
+            vec!["/C", &cmd]
+        } else {
+            vec!["-c", &cmd]
+        })
         .current_dir(&project_path)
         .output()
         .await
@@ -127,9 +134,18 @@ pub async fn run_tests(
 
     // Parse test results from output
     let test_results = parse_test_output(&full_output, &pt);
-    let passed = test_results.iter().filter(|t| matches!(t.status, TestStatus::Passed)).count() as u32;
-    let failed = test_results.iter().filter(|t| matches!(t.status, TestStatus::Failed)).count() as u32;
-    let skipped = test_results.iter().filter(|t| matches!(t.status, TestStatus::Skipped)).count() as u32;
+    let passed = test_results
+        .iter()
+        .filter(|t| matches!(t.status, TestStatus::Passed))
+        .count() as u32;
+    let failed = test_results
+        .iter()
+        .filter(|t| matches!(t.status, TestStatus::Failed))
+        .count() as u32;
+    let skipped = test_results
+        .iter()
+        .filter(|t| matches!(t.status, TestStatus::Skipped))
+        .count() as u32;
     let total = test_results.len() as u32;
 
     let result = TestRunResult {
@@ -143,13 +159,16 @@ pub async fn run_tests(
         success,
     };
 
-    let _ = app.emit("test-run-complete", serde_json::json!({
-        "total": result.total,
-        "passed": result.passed,
-        "failed": result.failed,
-        "success": result.success,
-        "duration_ms": result.duration_ms,
-    }));
+    let _ = app.emit(
+        "test-run-complete",
+        serde_json::json!({
+            "total": result.total,
+            "passed": result.passed,
+            "failed": result.failed,
+            "success": result.success,
+            "duration_ms": result.duration_ms,
+        }),
+    );
 
     Ok(result)
 }
@@ -163,14 +182,27 @@ fn parse_test_output(output: &str, project_type: &ProjectType) -> Vec<SingleTest
             // Parse "test module::test_name ... ok" or "... FAILED"
             for line in output.lines() {
                 let trimmed = line.trim();
-                if trimmed.starts_with("test ") && (trimmed.ends_with("... ok") || trimmed.ends_with("... FAILED") || trimmed.contains("... ignored")) {
+                if trimmed.starts_with("test ")
+                    && (trimmed.ends_with("... ok")
+                        || trimmed.ends_with("... FAILED")
+                        || trimmed.contains("... ignored"))
+                {
                     let name = trimmed.strip_prefix("test ").unwrap_or(trimmed);
                     let (name, status) = if name.ends_with("... ok") {
-                        (name.strip_suffix(" ... ok").unwrap_or(name), TestStatus::Passed)
+                        (
+                            name.strip_suffix(" ... ok").unwrap_or(name),
+                            TestStatus::Passed,
+                        )
                     } else if name.ends_with("... FAILED") {
-                        (name.strip_suffix(" ... FAILED").unwrap_or(name), TestStatus::Failed)
+                        (
+                            name.strip_suffix(" ... FAILED").unwrap_or(name),
+                            TestStatus::Failed,
+                        )
                     } else {
-                        (name.strip_suffix(" ... ignored").unwrap_or(name), TestStatus::Skipped)
+                        (
+                            name.strip_suffix(" ... ignored").unwrap_or(name),
+                            TestStatus::Skipped,
+                        )
                     };
                     results.push(SingleTestResult {
                         name: name.to_string(),
@@ -206,7 +238,10 @@ fn parse_test_output(output: &str, project_type: &ProjectType) -> Vec<SingleTest
             // Parse pytest: "test_file.py::test_name PASSED" or "FAILED"
             for line in output.lines() {
                 let trimmed = line.trim();
-                if trimmed.contains("PASSED") || trimmed.contains("FAILED") || trimmed.contains("SKIPPED") {
+                if trimmed.contains("PASSED")
+                    || trimmed.contains("FAILED")
+                    || trimmed.contains("SKIPPED")
+                {
                     let parts: Vec<&str> = trimmed.rsplitn(2, ' ').collect();
                     if parts.len() == 2 {
                         let status = match parts[0] {

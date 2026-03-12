@@ -2,12 +2,12 @@
 //!
 //! High-level LSP client that wraps the transport layer.
 
-use std::collections::HashMap;
-use serde_json::{json, Value};
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use log::{debug, info};
+use serde_json::{json, Value};
+use std::collections::HashMap;
 
-use super::transport::{LspTransport, get_language_server_config};
+use super::transport::{get_language_server_config, LspTransport};
 
 /// LSP Client state
 pub struct LspClient {
@@ -26,14 +26,16 @@ impl LspClient {
             initialized: false,
         }
     }
-    
+
     /// Start the language server
     pub async fn start(&mut self, root_uri: &str) -> Result<()> {
-        let config = get_language_server_config(&self.language)
-            .context(format!("No language server configured for: {}", self.language))?;
-        
+        let config = get_language_server_config(&self.language).context(format!(
+            "No language server configured for: {}",
+            self.language
+        ))?;
+
         let mut transport = LspTransport::new(config)?;
-        
+
         // Initialize with full capabilities
         let capabilities = json!({
             "textDocument": {
@@ -169,246 +171,351 @@ impl LspClient {
                 "configuration": true
             }
         });
-        
+
         transport.initialize(root_uri, capabilities).await?;
-        
+
         self.transport = Some(transport);
         self.root_uri = Some(root_uri.to_string());
         self.initialized = true;
-        
+
         info!("LSP client started for {} at {}", self.language, root_uri);
         Ok(())
     }
-    
+
     /// Open a text document
     pub async fn open_document(&mut self, uri: &str, language_id: &str, text: &str) -> Result<()> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_notification("textDocument/didOpen", Some(json!({
-            "textDocument": {
-                "uri": uri,
-                "languageId": language_id,
-                "version": 1,
-                "text": text
-            }
-        })))?;
-        
+
+        transport.send_notification(
+            "textDocument/didOpen",
+            Some(json!({
+                "textDocument": {
+                    "uri": uri,
+                    "languageId": language_id,
+                    "version": 1,
+                    "text": text
+                }
+            })),
+        )?;
+
         debug!("Opened document: {}", uri);
         Ok(())
     }
-    
+
     /// Update document content
-    pub async fn change_document(&mut self, uri: &str, version: u32, changes: Vec<Value>) -> Result<()> {
+    pub async fn change_document(
+        &mut self,
+        uri: &str,
+        version: u32,
+        changes: Vec<Value>,
+    ) -> Result<()> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_notification("textDocument/didChange", Some(json!({
-            "textDocument": {
-                "uri": uri,
-                "version": version
-            },
-            "contentChanges": changes
-        })))?;
-        
+
+        transport.send_notification(
+            "textDocument/didChange",
+            Some(json!({
+                "textDocument": {
+                    "uri": uri,
+                    "version": version
+                },
+                "contentChanges": changes
+            })),
+        )?;
+
         Ok(())
     }
-    
+
     /// Save document
     pub async fn save_document(&mut self, uri: &str) -> Result<()> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_notification("textDocument/didSave", Some(json!({
-            "textDocument": {
-                "uri": uri
-            }
-        })))?;
-        
+
+        transport.send_notification(
+            "textDocument/didSave",
+            Some(json!({
+                "textDocument": {
+                    "uri": uri
+                }
+            })),
+        )?;
+
         Ok(())
     }
-    
+
     /// Close document
     pub async fn close_document(&mut self, uri: &str) -> Result<()> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_notification("textDocument/didClose", Some(json!({
-            "textDocument": {
-                "uri": uri
-            }
-        })))?;
-        
+
+        transport.send_notification(
+            "textDocument/didClose",
+            Some(json!({
+                "textDocument": {
+                    "uri": uri
+                }
+            })),
+        )?;
+
         debug!("Closed document: {}", uri);
         Ok(())
     }
-    
+
     /// Get completions
     pub async fn get_completions(&mut self, uri: &str, line: u32, character: u32) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/completion", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "position": {
-                "line": line,
-                "character": character
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/completion",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "position": {
+                        "line": line,
+                        "character": character
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Get hover info
     pub async fn get_hover(&mut self, uri: &str, line: u32, character: u32) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/hover", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "position": {
-                "line": line,
-                "character": character
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/hover",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "position": {
+                        "line": line,
+                        "character": character
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Go to definition
     pub async fn goto_definition(&mut self, uri: &str, line: u32, character: u32) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/definition", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "position": {
-                "line": line,
-                "character": character
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/definition",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "position": {
+                        "line": line,
+                        "character": character
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Find references
-    pub async fn find_references(&mut self, uri: &str, line: u32, character: u32, include_declaration: bool) -> Result<Value> {
+    pub async fn find_references(
+        &mut self,
+        uri: &str,
+        line: u32,
+        character: u32,
+        include_declaration: bool,
+    ) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/references", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "position": {
-                "line": line,
-                "character": character
-            },
-            "context": {
-                "includeDeclaration": include_declaration
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/references",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "position": {
+                        "line": line,
+                        "character": character
+                    },
+                    "context": {
+                        "includeDeclaration": include_declaration
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Rename symbol
-    pub async fn rename(&mut self, uri: &str, line: u32, character: u32, new_name: &str) -> Result<Value> {
+    pub async fn rename(
+        &mut self,
+        uri: &str,
+        line: u32,
+        character: u32,
+        new_name: &str,
+    ) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/rename", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "position": {
-                "line": line,
-                "character": character
-            },
-            "newName": new_name
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/rename",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "position": {
+                        "line": line,
+                        "character": character
+                    },
+                    "newName": new_name
+                })),
+            )
+            .await
     }
-    
+
     /// Format document
-    pub async fn format_document(&mut self, uri: &str, tab_size: u32, insert_spaces: bool) -> Result<Value> {
+    pub async fn format_document(
+        &mut self,
+        uri: &str,
+        tab_size: u32,
+        insert_spaces: bool,
+    ) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/formatting", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "options": {
-                "tabSize": tab_size,
-                "insertSpaces": insert_spaces
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/formatting",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "options": {
+                        "tabSize": tab_size,
+                        "insertSpaces": insert_spaces
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Get code actions
-    pub async fn get_code_actions(&mut self, uri: &str, start_line: u32, start_char: u32, end_line: u32, end_char: u32) -> Result<Value> {
+    pub async fn get_code_actions(
+        &mut self,
+        uri: &str,
+        start_line: u32,
+        start_char: u32,
+        end_line: u32,
+        end_char: u32,
+    ) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/codeAction", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "range": {
-                "start": {
-                    "line": start_line,
-                    "character": start_char
-                },
-                "end": {
-                    "line": end_line,
-                    "character": end_char
-                }
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/codeAction",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "range": {
+                        "start": {
+                            "line": start_line,
+                            "character": start_char
+                        },
+                        "end": {
+                            "line": end_line,
+                            "character": end_char
+                        }
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Get semantic tokens
     pub async fn get_semantic_tokens(&mut self, uri: &str) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/semanticTokens/full", Some(json!({
-            "textDocument": {
-                "uri": uri
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/semanticTokens/full",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Get semantic tokens delta
-    pub async fn get_semantic_tokens_delta(&mut self, uri: &str, previous_result_id: &str) -> Result<Value> {
+    pub async fn get_semantic_tokens_delta(
+        &mut self,
+        uri: &str,
+        previous_result_id: &str,
+    ) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/semanticTokens/full/delta", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "previousResultId": previous_result_id
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/semanticTokens/full/delta",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "previousResultId": previous_result_id
+                })),
+            )
+            .await
     }
-    
+
     /// Get inlay hints
-    pub async fn get_inlay_hints(&mut self, uri: &str, start_line: u32, end_line: u32) -> Result<Value> {
+    pub async fn get_inlay_hints(
+        &mut self,
+        uri: &str,
+        start_line: u32,
+        end_line: u32,
+    ) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/inlayHint", Some(json!({
-            "textDocument": {
-                "uri": uri
-            },
-            "range": {
-                "start": {
-                    "line": start_line,
-                    "character": 0
-                },
-                "end": {
-                    "line": end_line,
-                    "character": 0
-                }
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/inlayHint",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    },
+                    "range": {
+                        "start": {
+                            "line": start_line,
+                            "character": 0
+                        },
+                        "end": {
+                            "line": end_line,
+                            "character": 0
+                        }
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Get code lens
     pub async fn get_code_lens(&mut self, uri: &str) -> Result<Value> {
         let transport = self.transport.as_mut().context("LSP not initialized")?;
-        
-        transport.send_request("textDocument/codeLens", Some(json!({
-            "textDocument": {
-                "uri": uri
-            }
-        }))).await
+
+        transport
+            .send_request(
+                "textDocument/codeLens",
+                Some(json!({
+                    "textDocument": {
+                        "uri": uri
+                    }
+                })),
+            )
+            .await
     }
-    
+
     /// Shutdown the client
     pub async fn shutdown(&mut self) -> Result<()> {
         if let Some(mut transport) = self.transport.take() {
@@ -417,12 +524,12 @@ impl LspClient {
         self.initialized = false;
         Ok(())
     }
-    
+
     /// Check if initialized
     pub fn is_initialized(&self) -> bool {
         self.initialized
     }
-    
+
     /// Get language
     pub fn language(&self) -> &str {
         &self.language
@@ -434,23 +541,34 @@ pub struct LspClientManager {
     clients: HashMap<String, LspClient>,
 }
 
+impl Default for LspClientManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LspClientManager {
     pub fn new() -> Self {
         Self {
             clients: HashMap::new(),
         }
     }
-    
-    pub async fn get_or_create(&mut self, language: &str, root_uri: &str) -> Result<&mut LspClient> {
+
+    pub async fn get_or_create(
+        &mut self,
+        language: &str,
+        root_uri: &str,
+    ) -> Result<&mut LspClient> {
         if !self.clients.contains_key(language) {
             let mut client = LspClient::new(language);
             client.start(root_uri).await?;
             self.clients.insert(language.to_string(), client);
         }
-        self.clients.get_mut(language)
+        self.clients
+            .get_mut(language)
             .ok_or_else(|| anyhow::anyhow!("Failed to get LSP client for language: {}", language))
     }
-    
+
     pub async fn shutdown_all(&mut self) {
         for (_, client) in self.clients.iter_mut() {
             let _ = client.shutdown().await;

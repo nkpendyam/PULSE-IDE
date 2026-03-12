@@ -2,8 +2,8 @@
 //!
 //! Handles Telegram Bot API communication
 
-use anyhow::{Result, Context};
 use crate::telegram::TelegramConfig;
+use anyhow::{Context, Result};
 use reqwest::Client;
 use serde_json::json;
 
@@ -18,7 +18,7 @@ impl TelegramBot {
     /// Create a new Telegram bot
     pub fn new(config: TelegramConfig) -> Result<Self> {
         let base_url = format!("https://api.telegram.org/bot{}", config.bot_token);
-        
+
         Ok(Self {
             config,
             client: Client::new(),
@@ -29,8 +29,9 @@ impl TelegramBot {
     /// Send a text message
     pub async fn send_message(&self, chat_id: i64, text: &str) -> Result<()> {
         let url = format!("{}/sendMessage", self.base_url);
-        
-        let response = self.client
+
+        let response = self
+            .client
             .post(&url)
             .json(&json!({
                 "chat_id": chat_id,
@@ -51,19 +52,20 @@ impl TelegramBot {
 
     /// Send a message with keyboard
     pub async fn send_message_with_keyboard(
-        &self, 
-        chat_id: i64, 
-        text: &str, 
-        buttons: Vec<Vec<String>>
+        &self,
+        chat_id: i64,
+        text: &str,
+        buttons: Vec<Vec<String>>,
     ) -> Result<()> {
         let url = format!("{}/sendMessage", self.base_url);
-        
+
         let keyboard: Vec<Vec<serde_json::Value>> = buttons
             .into_iter()
             .map(|row| row.into_iter().map(|btn| json!({ "text": btn })).collect())
             .collect();
 
-        let response = self.client
+        let response = self
+            .client
             .post(&url)
             .json(&json!({
                 "chat_id": chat_id,
@@ -94,10 +96,16 @@ impl TelegramBot {
     }
 
     /// Send a document
-    pub async fn send_document(&self, chat_id: i64, file_path: &str, caption: Option<&str>) -> Result<()> {
+    pub async fn send_document(
+        &self,
+        chat_id: i64,
+        file_path: &str,
+        caption: Option<&str>,
+    ) -> Result<()> {
         let url = format!("{}/sendDocument", self.base_url);
-        
-        let response = self.client
+
+        let response = self
+            .client
             .post(&url)
             .json(&json!({
                 "chat_id": chat_id,
@@ -119,14 +127,15 @@ impl TelegramBot {
     /// Get updates (polling mode)
     pub async fn get_updates(&self, offset: Option<i64>) -> Result<Vec<serde_json::Value>> {
         let url = format!("{}/getUpdates", self.base_url);
-        
+
         let mut params = vec![];
         if let Some(o) = offset {
             params.push(("offset", o.to_string()));
         }
         params.push(("timeout", "30".to_string()));
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .query(&params)
             .send()
@@ -134,10 +143,8 @@ impl TelegramBot {
             .context("Failed to get Telegram updates")?;
 
         let body: serde_json::Value = response.json().await?;
-        
-        let updates = body["result"].as_array()
-            .cloned()
-            .unwrap_or_default();
+
+        let updates = body["result"].as_array().cloned().unwrap_or_default();
 
         Ok(updates)
     }
@@ -145,8 +152,9 @@ impl TelegramBot {
     /// Set webhook for production
     pub async fn set_webhook(&self, webhook_url: &str) -> Result<()> {
         let url = format!("{}/setWebhook", self.base_url);
-        
-        let response = self.client
+
+        let response = self
+            .client
             .post(&url)
             .json(&json!({
                 "url": webhook_url,

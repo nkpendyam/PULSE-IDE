@@ -22,12 +22,12 @@ impl OpenVSXRegistry {
             client: (),
         }
     }
-    
+
     /// Search for extensions
-    pub async fn search(&self, query: &str) -> anyhow::Result<Vec<ExtensionMetadata>> {
+    pub async fn search(&self, _query: &str) -> anyhow::Result<Vec<ExtensionMetadata>> {
         // In production: GET /api/-/search?query={query}
         // Returns list of matching extensions
-        
+
         let results = vec![
             ExtensionMetadata {
                 id: "esbenp.prettier-vscode".to_string(),
@@ -78,14 +78,18 @@ impl OpenVSXRegistry {
                 repository: Some("https://github.com/gitkraken/vscode-gitlens".to_string()),
             },
         ];
-        
+
         Ok(results)
     }
-    
+
     /// Get extension metadata
-    pub async fn get_extension(&self, publisher: &str, name: &str) -> anyhow::Result<ExtensionMetadata> {
+    pub async fn get_extension(
+        &self,
+        publisher: &str,
+        name: &str,
+    ) -> anyhow::Result<ExtensionMetadata> {
         // In production: GET /api/{publisher}/{name}
-        
+
         Ok(ExtensionMetadata {
             id: format!("{}.{}", publisher, name),
             publisher: publisher.to_string(),
@@ -98,21 +102,28 @@ impl OpenVSXRegistry {
             download_count: 0,
             published_date: chrono::Utc::now(),
             last_updated: chrono::Utc::now(),
-            download_url: Some(format!("https://open-vsx.org/api/{}/{}/latest/file/{}-latest.vsix", publisher, name, name)),
+            download_url: Some(format!(
+                "https://open-vsx.org/api/{}/{}/latest/file/{}-latest.vsix",
+                publisher, name, name
+            )),
             license: Some("MIT".to_string()),
             repository: None,
         })
     }
-    
+
     /// Download extension VSIX
-    pub async fn download_extension(&self, metadata: &ExtensionMetadata, dest: &Path) -> anyhow::Result<()> {
+    pub async fn download_extension(
+        &self,
+        _metadata: &ExtensionMetadata,
+        dest: &Path,
+    ) -> anyhow::Result<()> {
         // In production:
         // 1. Download VSIX from download_url
         // 2. Extract ZIP to dest path
         // 3. Validate extension manifest
-        
+
         std::fs::create_dir_all(dest)?;
-        
+
         Ok(())
     }
 }
@@ -159,13 +170,13 @@ pub struct ExtensionMetadata {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_registry_creation() {
         let registry = OpenVSXRegistry::new();
         assert_eq!(registry.base_url, "https://open-vsx.org/api");
     }
-    
+
     #[tokio::test]
     async fn test_search() {
         let registry = OpenVSXRegistry::new();

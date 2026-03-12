@@ -122,52 +122,60 @@ pub struct DecodedInlayHint {
 /// Parse inlay hints from LSP response
 pub fn parse_inlay_hints(value: &Value) -> Vec<DecodedInlayHint> {
     let hints = value.as_array().cloned().unwrap_or_default();
-    
-    hints.iter().filter_map(|hint| {
-        let position = hint.get("position")?;
-        let line = position.get("line")?.as_u64()? as u32;
-        let character = position.get("character")?.as_u64()? as u32;
-        
-        let label = hint.get("label")?;
-        let text = match label {
-            Value::String(s) => s.clone(),
-            Value::Array(parts) => {
-                parts.iter()
+
+    hints
+        .iter()
+        .filter_map(|hint| {
+            let position = hint.get("position")?;
+            let line = position.get("line")?.as_u64()? as u32;
+            let character = position.get("character")?.as_u64()? as u32;
+
+            let label = hint.get("label")?;
+            let text = match label {
+                Value::String(s) => s.clone(),
+                Value::Array(parts) => parts
+                    .iter()
                     .filter_map(|p| p.get("value")?.as_str())
                     .collect::<Vec<_>>()
-                    .join("")
-            }
-            _ => return None,
-        };
-        
-        let kind = hint.get("kind").and_then(|k| k.as_u64()).unwrap_or(0);
-        let kind_str = match kind {
-            1 => "type",
-            2 => "parameter",
-            _ => "other",
-        };
-        
-        let tooltip = hint.get("tooltip").and_then(|t| match t {
-            Value::String(s) => Some(s.clone()),
-            Value::Object(obj) => obj.get("value")?.as_str().map(|s| s.to_string()),
-            _ => None,
-        });
-        
-        let padding_left = hint.get("paddingLeft").and_then(|p| p.as_bool()).unwrap_or(false);
-        let padding_right = hint.get("paddingRight").and_then(|p| p.as_bool()).unwrap_or(false);
-        
-        Some(DecodedInlayHint {
-            line,
-            character,
-            text,
-            kind: kind_str.to_string(),
-            tooltip,
-            padding_left,
-            padding_right,
-            is_type_hint: kind == 1,
-            is_parameter_hint: kind == 2,
+                    .join(""),
+                _ => return None,
+            };
+
+            let kind = hint.get("kind").and_then(|k| k.as_u64()).unwrap_or(0);
+            let kind_str = match kind {
+                1 => "type",
+                2 => "parameter",
+                _ => "other",
+            };
+
+            let tooltip = hint.get("tooltip").and_then(|t| match t {
+                Value::String(s) => Some(s.clone()),
+                Value::Object(obj) => obj.get("value")?.as_str().map(|s| s.to_string()),
+                _ => None,
+            });
+
+            let padding_left = hint
+                .get("paddingLeft")
+                .and_then(|p| p.as_bool())
+                .unwrap_or(false);
+            let padding_right = hint
+                .get("paddingRight")
+                .and_then(|p| p.as_bool())
+                .unwrap_or(false);
+
+            Some(DecodedInlayHint {
+                line,
+                character,
+                text,
+                kind: kind_str.to_string(),
+                tooltip,
+                padding_left,
+                padding_right,
+                is_type_hint: kind == 1,
+                is_parameter_hint: kind == 2,
+            })
         })
-    }).collect()
+        .collect()
 }
 
 /// Inlay hint configuration
@@ -195,16 +203,22 @@ impl Default for InlayHintConfig {
 }
 
 /// Filter inlay hints based on configuration
-pub fn filter_inlay_hints(hints: Vec<DecodedInlayHint>, config: &InlayHintConfig) -> Vec<DecodedInlayHint> {
-    hints.into_iter().filter(|hint| {
-        if hint.is_type_hint && !config.enable_type_hints {
-            return false;
-        }
-        if hint.is_parameter_hint && !config.enable_parameter_hints {
-            return false;
-        }
-        true
-    }).collect()
+pub fn filter_inlay_hints(
+    hints: Vec<DecodedInlayHint>,
+    config: &InlayHintConfig,
+) -> Vec<DecodedInlayHint> {
+    hints
+        .into_iter()
+        .filter(|hint| {
+            if hint.is_type_hint && !config.enable_type_hints {
+                return false;
+            }
+            if hint.is_parameter_hint && !config.enable_parameter_hints {
+                return false;
+            }
+            true
+        })
+        .collect()
 }
 
 /// Generate CSS for inlay hints
@@ -248,5 +262,6 @@ pub fn generate_inlay_hint_css() -> String {
     z-index: 1000;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
-"#.to_string()
+"#
+    .to_string()
 }

@@ -4,14 +4,14 @@
 //! Target: <200MB idle memory usage.
 
 use anyhow::Result;
-use std::time::{Duration, Instant};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
-use std::collections::VecDeque;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{RwLock, Mutex};
+use std::collections::VecDeque;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
-use super::{BenchmarkRunner, BenchmarkModule, BenchmarkCategory};
+use super::{BenchmarkCategory, BenchmarkModule, BenchmarkRunner};
 
 /// Memory tier classification
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,7 +47,7 @@ impl MemoryTier {
 }
 
 /// Memory component breakdown
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MemoryBreakdown {
     pub total_bytes: u64,
     pub editor_bytes: u64,
@@ -58,22 +58,6 @@ pub struct MemoryBreakdown {
     pub ui_bytes: u64,
     pub collaboration_bytes: u64,
     pub other_bytes: u64,
-}
-
-impl Default for MemoryBreakdown {
-    fn default() -> Self {
-        Self {
-            total_bytes: 0,
-            editor_bytes: 0,
-            ai_model_bytes: 0,
-            extensions_bytes: 0,
-            lsp_bytes: 0,
-            file_cache_bytes: 0,
-            ui_bytes: 0,
-            collaboration_bytes: 0,
-            other_bytes: 0,
-        }
-    }
 }
 
 impl MemoryBreakdown {
@@ -174,8 +158,8 @@ impl Default for MemoryOptimizationConfig {
     fn default() -> Self {
         Self {
             target_idle_memory_bytes: 200 * 1024 * 1024, // 200MB
-            max_file_cache_bytes: 50 * 1024 * 1024, // 50MB
-            max_buffer_cache_bytes: 30 * 1024 * 1024, // 30MB
+            max_file_cache_bytes: 50 * 1024 * 1024,      // 50MB
+            max_buffer_cache_bytes: 30 * 1024 * 1024,    // 30MB
             lazy_load_components: true,
             unload_timeout_ms: 300000, // 5 minutes
             enable_monitoring: true,
@@ -226,7 +210,8 @@ impl MemoryMonitor {
         {
             use std::mem::size_of;
             let mut info: libc::task_vm_info_data_t = unsafe { std::mem::zeroed() };
-            let count = (size_of::<libc::task_vm_info_data_t>() / size_of::<libc::natural_t>()) as libc::mach_msg_type_number_t;
+            let count = (size_of::<libc::task_vm_info_data_t>() / size_of::<libc::natural_t>())
+                as libc::mach_msg_type_number_t;
 
             unsafe {
                 let result = libc::task_info(
@@ -297,7 +282,8 @@ impl MemoryMonitor {
             use std::mem::zeroed;
             unsafe {
                 let mut status: winapi::um::sysinfoapi::MEMORYSTATUSEX = zeroed();
-                status.dwLength = std::mem::size_of::<winapi::um::sysinfoapi::MEMORYSTATUSEX>() as u32;
+                status.dwLength =
+                    std::mem::size_of::<winapi::um::sysinfoapi::MEMORYSTATUSEX>() as u32;
                 winapi::um::sysinfoapi::GlobalMemoryStatusEx(&mut status);
                 return status.ullTotalPhys;
             }
@@ -310,7 +296,7 @@ impl MemoryMonitor {
     pub async fn sample(&self) -> MemorySample {
         let current = Self::get_current_memory();
         let breakdown = self.estimate_breakdown(current).await;
-        
+
         // Update peak
         let mut peak = self.peak_memory.load(Ordering::Relaxed);
         while current > peak {
@@ -355,7 +341,7 @@ impl MemoryMonitor {
         let file_cache_ratio = 0.10;
         let ui_ratio = 0.05;
         let collaboration_ratio = 0.03;
-        
+
         MemoryBreakdown {
             total_bytes: total,
             editor_bytes: (total as f64 * editor_ratio) as u64,
@@ -422,7 +408,7 @@ impl MemoryMonitor {
     /// Get memory statistics
     pub async fn get_stats(&self) -> MemoryStats {
         let samples = self.samples.read().await;
-        
+
         if samples.is_empty() {
             return MemoryStats {
                 samples: Vec::new(),
@@ -500,7 +486,8 @@ impl MemoryMonitor {
         }
 
         if breakdown.extensions_bytes > 100 * 1024 * 1024 {
-            recommendations.push("Extensions using significant memory - disable unused ones".to_string());
+            recommendations
+                .push("Extensions using significant memory - disable unused ones".to_string());
         }
 
         let pressure = (current as f64 / total as f64 * 100.0) as u8;
@@ -547,11 +534,11 @@ impl MemoryBenchmark {
     /// Measure memory with editor loaded
     fn measure_editor_memory(&self) -> Result<Duration> {
         let start = Instant::now();
-        
+
         // Simulate editor memory allocation
         // Monaco editor typically uses 50-100MB
         let _editor_buffer = vec![0u8; 80 * 1024 * 1024]; // 80MB
-        
+
         let _memory = MemoryMonitor::get_current_memory();
         Ok(start.elapsed())
     }
@@ -559,11 +546,11 @@ impl MemoryBenchmark {
     /// Measure memory with AI model loaded
     fn measure_ai_model_memory(&self) -> Result<Duration> {
         let start = Instant::now();
-        
+
         // Simulate AI model memory
         // 4B model Q4 quantization: ~2.5GB for weights + ~2GB for KV cache
         let _model_weights = vec![0u8; 100 * 1024 * 1024]; // Simulate 100MB chunk
-        
+
         let _memory = MemoryMonitor::get_current_memory();
         Ok(start.elapsed())
     }
@@ -571,11 +558,11 @@ impl MemoryBenchmark {
     /// Measure memory with extensions loaded
     fn measure_extension_memory(&self) -> Result<Duration> {
         let start = Instant::now();
-        
+
         // Simulate extension memory
         // Each extension typically uses 1-10MB
         let _extension_data = vec![0u8; 5 * 1024 * 1024]; // 5MB
-        
+
         let _memory = MemoryMonitor::get_current_memory();
         Ok(start.elapsed())
     }
@@ -583,10 +570,10 @@ impl MemoryBenchmark {
     /// Measure collaboration memory
     fn measure_collaboration_memory(&self) -> Result<Duration> {
         let start = Instant::now();
-        
+
         // Simulate Yjs document memory
         let _yjs_doc = vec![0u8; 1024 * 1024]; // 1MB
-        
+
         let _memory = MemoryMonitor::get_current_memory();
         Ok(start.elapsed())
     }
@@ -594,13 +581,13 @@ impl MemoryBenchmark {
     /// Measure memory leak detection
     fn measure_memory_growth(&self) -> Result<Duration> {
         let start = Instant::now();
-        
+
         // Allocate and deallocate to check for leaks
         for _ in 0..10 {
             let _temp = vec![0u8; 1024 * 1024]; // 1MB
-            // Drop happens automatically
+                                                // Drop happens automatically
         }
-        
+
         let _memory = MemoryMonitor::get_current_memory();
         Ok(start.elapsed())
     }
@@ -608,13 +595,13 @@ impl MemoryBenchmark {
     /// Measure GC pressure
     fn measure_gc_pressure(&self) -> Result<Duration> {
         let start = Instant::now();
-        
+
         // Create many small allocations
         let mut allocations = Vec::new();
         for i in 0..10000 {
             allocations.push(format!("allocation_{}", i));
         }
-        
+
         let _memory = MemoryMonitor::get_current_memory();
         Ok(start.elapsed())
     }
@@ -623,7 +610,7 @@ impl MemoryBenchmark {
     pub async fn run_profile(&self) -> Result<MemoryProfile> {
         let rt = tokio::runtime::Runtime::new()
             .expect("failed to create Tokio runtime for memory benchmark");
-        
+
         let total = rt.block_on(async { self.monitor.sample().await });
         let breakdown = total.breakdown.clone();
 
@@ -641,53 +628,39 @@ impl MemoryBenchmark {
 impl BenchmarkModule for MemoryBenchmark {
     fn run(&self, runner: &mut BenchmarkRunner) -> Result<()> {
         // Idle memory
-        runner.run_benchmark(
-            "memory_idle",
-            BenchmarkCategory::Memory,
-            || self.measure_idle_memory(),
-        )?;
+        runner.run_benchmark("memory_idle", BenchmarkCategory::Memory, || {
+            self.measure_idle_memory()
+        })?;
 
         // Editor memory
-        runner.run_benchmark(
-            "memory_editor",
-            BenchmarkCategory::Memory,
-            || self.measure_editor_memory(),
-        )?;
+        runner.run_benchmark("memory_editor", BenchmarkCategory::Memory, || {
+            self.measure_editor_memory()
+        })?;
 
         // AI model memory
-        runner.run_benchmark(
-            "memory_ai_model",
-            BenchmarkCategory::Memory,
-            || self.measure_ai_model_memory(),
-        )?;
+        runner.run_benchmark("memory_ai_model", BenchmarkCategory::Memory, || {
+            self.measure_ai_model_memory()
+        })?;
 
         // Extension memory
-        runner.run_benchmark(
-            "memory_extensions",
-            BenchmarkCategory::Memory,
-            || self.measure_extension_memory(),
-        )?;
+        runner.run_benchmark("memory_extensions", BenchmarkCategory::Memory, || {
+            self.measure_extension_memory()
+        })?;
 
         // Collaboration memory
-        runner.run_benchmark(
-            "memory_collaboration",
-            BenchmarkCategory::Memory,
-            || self.measure_collaboration_memory(),
-        )?;
+        runner.run_benchmark("memory_collaboration", BenchmarkCategory::Memory, || {
+            self.measure_collaboration_memory()
+        })?;
 
         // Memory growth check
-        runner.run_benchmark(
-            "memory_growth_check",
-            BenchmarkCategory::Memory,
-            || self.measure_memory_growth(),
-        )?;
+        runner.run_benchmark("memory_growth_check", BenchmarkCategory::Memory, || {
+            self.measure_memory_growth()
+        })?;
 
         // GC pressure test
-        runner.run_benchmark(
-            "memory_gc_pressure",
-            BenchmarkCategory::Memory,
-            || self.measure_gc_pressure(),
-        )?;
+        runner.run_benchmark("memory_gc_pressure", BenchmarkCategory::Memory, || {
+            self.measure_gc_pressure()
+        })?;
 
         Ok(())
     }
@@ -773,8 +746,14 @@ impl LazyComponentManager {
             .unwrap_or_default()
             .as_millis() as u64;
 
-        self.loaded_components.write().await.insert(component.to_string());
-        self.last_access.write().await.insert(component.to_string(), now);
+        self.loaded_components
+            .write()
+            .await
+            .insert(component.to_string());
+        self.last_access
+            .write()
+            .await
+            .insert(component.to_string(), now);
     }
 
     /// Check if component should be unloaded

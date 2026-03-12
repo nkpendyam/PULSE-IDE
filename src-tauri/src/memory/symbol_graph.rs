@@ -1,12 +1,12 @@
 //! Symbol Graph Module
 //!
 //! Builds and queries code symbol relationships using AST extracted metadata
-//! to provide the LLM with a structural map of the workspace. This is the 
+//! to provide the LLM with a structural map of the workspace. This is the
 //! Logic Toon's implementation for Phase 2.
 
+use super::SymbolKind;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use super::SymbolKind;
 
 /// Symbol graph for maintaining local workspace structural awareness
 #[derive(Debug, Clone, Default)]
@@ -47,25 +47,30 @@ pub enum EdgeType {
 }
 
 impl SymbolGraph {
-    pub fn new() -> Self { Self::default() }
-    
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn add_symbol(&mut self, node: SymbolNode) {
         self.nodes.insert(node.id.clone(), node);
     }
-    
+
     pub fn add_edge(&mut self, from: &str, to: &str, edge_type: EdgeType) {
         self.edges.push(SymbolEdge {
             from: from.to_string(),
             to: to.to_string(),
             edge_type,
         });
-        self.reverse_index.entry(to.to_string()).or_default().insert(from.to_string());
+        self.reverse_index
+            .entry(to.to_string())
+            .or_default()
+            .insert(from.to_string());
     }
 
     pub fn get_symbol(&self, id: &str) -> Option<&SymbolNode> {
         self.nodes.get(id)
     }
-    
+
     pub fn find_references(&self, symbol_id: &str) -> Vec<&SymbolNode> {
         self.reverse_index
             .get(symbol_id)

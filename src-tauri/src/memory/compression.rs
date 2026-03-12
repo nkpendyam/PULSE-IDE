@@ -55,13 +55,24 @@ fn collect_signatures(
         _ => &[][..],
     };
 
-    let is_declaration = matches!(kind,
-        "function_item" | "function_declaration" | "function_definition" | "method_definition" |
-        "struct_item" | "class_declaration" | "class_definition" |
-        "enum_item" | "enum_declaration" |
-        "trait_item" | "interface_declaration" |
-        "impl_item" | "type_item" | "type_alias_declaration" |
-        "const_item" | "static_item"
+    let is_declaration = matches!(
+        kind,
+        "function_item"
+            | "function_declaration"
+            | "function_definition"
+            | "method_definition"
+            | "struct_item"
+            | "class_declaration"
+            | "class_definition"
+            | "enum_item"
+            | "enum_declaration"
+            | "trait_item"
+            | "interface_declaration"
+            | "impl_item"
+            | "type_item"
+            | "type_alias_declaration"
+            | "const_item"
+            | "static_item"
     );
 
     if is_declaration {
@@ -89,7 +100,14 @@ fn collect_signatures(
             }
         }
         // For containers (impl, class), recurse into body to find nested decls
-        if matches!(kind, "impl_item" | "class_declaration" | "class_definition" | "class_body" | "interface_declaration") {
+        if matches!(
+            kind,
+            "impl_item"
+                | "class_declaration"
+                | "class_definition"
+                | "class_body"
+                | "interface_declaration"
+        ) {
             for i in 0..node.child_count() {
                 if let Some(child) = node.child(i) {
                     if body_kinds.contains(&child.kind()) {
@@ -102,7 +120,10 @@ fn collect_signatures(
                 }
             }
         }
-    } else if matches!(kind, "use_declaration" | "import_statement" | "import_declaration" | "preproc_include") {
+    } else if matches!(
+        kind,
+        "use_declaration" | "import_statement" | "import_declaration" | "preproc_include"
+    ) {
         // Keep imports as-is
         let text = node.utf8_text(source).unwrap_or("").trim();
         out.push_str(text);
@@ -130,7 +151,7 @@ pub fn compress_chat_history(history_text: &str) -> String {
 }
 
 /// Line-based fallback compression
-fn compress_by_lines(code: &str, language: &str) -> String {
+fn compress_by_lines(code: &str, _language: &str) -> String {
     let mut result = String::new();
     let mut brace_depth = 0i32;
     let mut in_body = false;

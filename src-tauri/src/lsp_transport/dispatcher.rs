@@ -2,11 +2,11 @@
 //!
 //! Routes LSP notifications and responses to appropriate handlers
 
+use log::debug;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
-use serde_json::Value;
-use log::{debug, info, warn};
 
 /// LSP event types
 #[derive(Debug, Clone)]
@@ -64,18 +64,18 @@ impl LspDispatcher {
             broadcast_tx,
         }
     }
-    
+
     /// Subscribe to all events via broadcast channel
     pub fn subscribe(&self) -> broadcast::Receiver<LspEvent> {
         self.broadcast_tx.subscribe()
     }
-    
+
     /// Register handler for specific event type
     pub fn on<F: Fn(LspEvent) + Send + Sync + 'static>(&mut self, event_type: &str, handler: F) {
         let handlers = self.handlers.entry(event_type.to_string()).or_default();
         handlers.push(Box::new(FnHandler(handler)));
     }
-    
+
     /// Dispatch an event to all registered handlers
     pub fn dispatch(&self, event: LspEvent) {
         let event_type = match &event {
@@ -90,17 +90,17 @@ impl LspDispatcher {
             LspEvent::WorkspaceFoldersChanged => "workspaceFoldersChanged",
             LspEvent::Custom { event_type, .. } => event_type.as_str(),
         };
-        
+
         // Broadcast to subscribers
         let _ = self.broadcast_tx.send(event.clone());
-        
+
         // Call specific handlers
         if let Some(handlers) = self.handlers.get(event_type) {
             for handler in handlers {
                 handler.handle(event.clone());
             }
         }
-        
+
         // Call global handlers
         if let Some(handlers) = self.handlers.get("*") {
             for handler in handlers {
@@ -108,11 +108,11 @@ impl LspDispatcher {
             }
         }
     }
-    
+
     /// Handle LSP notification
     pub fn handle_notification(&self, method: &str, params: Value) {
         debug!("Handling LSP notification: {}", method);
-        
+
         match method {
             "textDocument/publishDiagnostics" => {
                 if let Some(uri) = params.get("uri").and_then(|u| u.as_str()) {
@@ -125,7 +125,8 @@ impl LspDispatcher {
                 }
             }
             "window/logMessage" => {
-                let level = params.get("type")
+                let level = params
+                    .get("type")
                     .and_then(|t| t.as_u64())
                     .map(|t| match t {
                         1 => "error",
@@ -135,14 +136,16 @@ impl LspDispatcher {
                     })
                     .unwrap_or("log")
                     .to_string();
-                let message = params.get("message")
+                let message = params
+                    .get("message")
                     .and_then(|m| m.as_str())
                     .unwrap_or("")
                     .to_string();
                 self.dispatch(LspEvent::LogMessage { level, message });
             }
             "window/showMessage" => {
-                let level = params.get("type")
+                let level = params
+                    .get("type")
                     .and_then(|t| t.as_u64())
                     .map(|t| match t {
                         1 => "error",
@@ -152,7 +155,8 @@ impl LspDispatcher {
                     })
                     .unwrap_or("log")
                     .to_string();
-                let message = params.get("message")
+                let message = params
+                    .get("message")
                     .and_then(|m| m.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -168,7 +172,8 @@ impl LspDispatcher {
                 self.dispatch(LspEvent::CodeLensRefresh);
             }
             "workspace/didChangeConfiguration" => {
-                let section = params.get("section")
+                let section = params
+                    .get("section")
                     .and_then(|s| s.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -199,26 +204,32 @@ pub type SharedDispatcher = Arc<RwLock<LspDispatcher>>;
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_dispatcher_routes_diagnostics() {
         let mut dispatcher = LspDispatcher::new();
         let mut received = Vec::new();
-        
+
         let received_clone = Arc::new(RwLock::new(Vec::new()));
         let received_clone2 = received_clone.clone();
-        
+
         dispatcher.on("diagnostics", move |event| {
             if let LspEvent::Diagnostics { uri, .. } = event {
                 received_clone2.try_write().unwrap().push(uri);
             }
         });
-        
-        dispatcher.handle_notification("textDocument/publishDiagnostics", serde_json::json!({
-            "uri": "file:///test.rs",
-            "diagnostics": []
-        }));
-        
-        assert!(received_clone.try_read().unwrap().contains(&"file:///test.rs".to_string()));
+
+        dispatcher.handle_notification(
+            "textDocument/publishDiagnostics",
+            serde_json::json!({
+                "uri": "file:///test.rs",
+                "diagnostics": []
+            }),
+        );
+
+        assert!(received_clone
+            .try_read()
+            .unwrap()
+            .contains(&"file:///test.rs".to_string()));
     }
 }

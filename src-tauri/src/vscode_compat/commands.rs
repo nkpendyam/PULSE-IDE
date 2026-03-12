@@ -1,11 +1,11 @@
 //! VS Code Commands API Implementation
-//! 
+//!
 //! Command registration and execution for extensions
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 /// Command registry for VS Code compatible commands
 pub struct CommandRegistry {
@@ -60,7 +60,7 @@ impl CommandRegistry {
             commands: Arc::new(RwLock::new(HashMap::new())),
             keybindings: Arc::new(RwLock::new(HashMap::new())),
         };
-        
+
         // Register built-in commands
         registry.register_builtin_commands();
         registry
@@ -253,7 +253,9 @@ impl CommandRegistry {
             title: "Toggle Sidebar".to_string(),
             category: Some("View".to_string()),
             icon: Some("sidebar".to_string()),
-            handler: CommandHandler::Builtin(|_| Ok(serde_json::json!({ "action": "toggleSidebar" }))),
+            handler: CommandHandler::Builtin(|_| {
+                Ok(serde_json::json!({ "action": "toggleSidebar" }))
+            }),
             when: None,
             keybinding: Some(Keybinding {
                 key: "Ctrl+B".to_string(),
@@ -269,7 +271,9 @@ impl CommandRegistry {
             title: "Toggle Terminal".to_string(),
             category: Some("View".to_string()),
             icon: Some("terminal".to_string()),
-            handler: CommandHandler::Builtin(|_| Ok(serde_json::json!({ "action": "toggleTerminal" }))),
+            handler: CommandHandler::Builtin(|_| {
+                Ok(serde_json::json!({ "action": "toggleTerminal" }))
+            }),
             when: None,
             keybinding: Some(Keybinding {
                 key: "Ctrl+`".to_string(),
@@ -285,7 +289,9 @@ impl CommandRegistry {
             title: "Show All Commands".to_string(),
             category: Some("View".to_string()),
             icon: None,
-            handler: CommandHandler::Builtin(|_| Ok(serde_json::json!({ "action": "showCommands" }))),
+            handler: CommandHandler::Builtin(|_| {
+                Ok(serde_json::json!({ "action": "showCommands" }))
+            }),
             when: None,
             keybinding: Some(Keybinding {
                 key: "Ctrl+Shift+P".to_string(),
@@ -361,39 +367,38 @@ impl CommandRegistry {
     /// Register a new command
     pub fn register_command(&self, command: RegisteredCommand) {
         let mut commands = self.commands.write();
-        
+
         if let Some(ref keybinding) = command.keybinding {
             let key = &keybinding.key;
             let mut keybindings = self.keybindings.write();
-            keybindings.entry(key.clone())
-                .or_insert_with(Vec::new)
+            keybindings
+                .entry(key.clone())
+                .or_default()
                 .push(command.id.clone());
         }
-        
+
         commands.insert(command.id.clone(), command);
     }
 
     /// Execute a command
     pub fn execute_command(&self, command_id: &str, args: Vec<serde_json::Value>) -> CommandResult {
         let commands = self.commands.read();
-        
+
         match commands.get(command_id) {
             Some(cmd) => {
                 match &cmd.handler {
-                    CommandHandler::Builtin(handler) => {
-                        match handler(args) {
-                            Ok(result) => CommandResult {
-                                success: true,
-                                result: Some(result),
-                                error: None,
-                            },
-                            Err(e) => CommandResult {
-                                success: false,
-                                result: None,
-                                error: Some(e.to_string()),
-                            },
-                        }
-                    }
+                    CommandHandler::Builtin(handler) => match handler(args) {
+                        Ok(result) => CommandResult {
+                            success: true,
+                            result: Some(result),
+                            error: None,
+                        },
+                        Err(e) => CommandResult {
+                            success: false,
+                            result: None,
+                            error: Some(e.to_string()),
+                        },
+                    },
                     CommandHandler::Extension(_ext_id) => {
                         // Would dispatch to extension host
                         CommandResult {
@@ -402,13 +407,11 @@ impl CommandRegistry {
                             error: None,
                         }
                     }
-                    CommandHandler::None => {
-                        CommandResult {
-                            success: true,
-                            result: None,
-                            error: None,
-                        }
-                    }
+                    CommandHandler::None => CommandResult {
+                        success: true,
+                        result: None,
+                        error: None,
+                    },
                 }
             }
             None => CommandResult {
@@ -422,7 +425,8 @@ impl CommandRegistry {
     /// Get all registered commands
     pub fn get_all_commands(&self) -> Vec<CommandInfo> {
         let commands = self.commands.read();
-        commands.values()
+        commands
+            .values()
             .map(|cmd| CommandInfo {
                 id: cmd.id.clone(),
                 title: cmd.title.clone(),
@@ -446,7 +450,8 @@ impl CommandRegistry {
     /// Get commands by category
     pub fn get_commands_by_category(&self, category: &str) -> Vec<CommandInfo> {
         let commands = self.commands.read();
-        commands.values()
+        commands
+            .values()
             .filter(|cmd| cmd.category.as_deref() == Some(category))
             .map(|cmd| CommandInfo {
                 id: cmd.id.clone(),
@@ -487,15 +492,16 @@ mod tests {
     #[test]
     fn test_builtin_commands() {
         let registry = CommandRegistry::new();
-        
+
         // Test save command
         let result = registry.execute_command("workbench.action.files.save", vec![]);
         assert!(result.success);
-        
+
         // Test AI explain
-        let result = registry.execute_command("kyro.ai.explain", vec![
-            serde_json::json!({ "code": "fn main() {}" })
-        ]);
+        let result = registry.execute_command(
+            "kyro.ai.explain",
+            vec![serde_json::json!({ "code": "fn main() {}" })],
+        );
         assert!(result.success);
     }
 
@@ -512,7 +518,7 @@ mod tests {
         let registry = CommandRegistry::new();
         let file_commands = registry.get_commands_by_category("File");
         assert!(!file_commands.is_empty());
-        
+
         let ai_commands = registry.get_commands_by_category("AI");
         assert!(!ai_commands.is_empty());
     }

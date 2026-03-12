@@ -1,17 +1,17 @@
 // E2EE Tauri Commands — Real X25519 + ChaCha20-Poly1305 implementation
-use tauri::command;
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::collections::HashMap;
-use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
+use base64::Engine;
 use chacha20poly1305::{
     aead::{Aead, KeyInit, OsRng},
     ChaCha20Poly1305, Nonce,
 };
 use hkdf::Hkdf;
-use sha2::Sha256;
-use base64::Engine;
 use rand::RngCore;
+use sha2::Sha256;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tauri::command;
+use tokio::sync::RwLock;
+use x25519_dalek::{PublicKey, StaticSecret};
 
 lazy_static::lazy_static! {
     static ref E2EE_STATE: Arc<RwLock<E2eeState>> = Arc::new(RwLock::new(E2eeState::new()));
@@ -28,6 +28,12 @@ pub struct E2eeState {
     public_key: Option<[u8; 32]>,
     channels: HashMap<String, ChannelKeys>,
     prekeys: Vec<([u8; 32], StaticSecret)>,
+}
+
+impl Default for E2eeState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl E2eeState {
@@ -53,12 +59,20 @@ fn derive_channel_keys(shared_secret: &[u8], is_initiator: bool) -> ChannelKeys 
     let hk = Hkdf::<Sha256>::new(Some(b"kyro-e2ee-v1"), shared_secret);
     let mut key_a = [0u8; 32];
     let mut key_b = [0u8; 32];
-    hk.expand(b"channel-key-a", &mut key_a).expect("HKDF expand");
-    hk.expand(b"channel-key-b", &mut key_b).expect("HKDF expand");
+    hk.expand(b"channel-key-a", &mut key_a)
+        .expect("HKDF expand");
+    hk.expand(b"channel-key-b", &mut key_b)
+        .expect("HKDF expand");
     if is_initiator {
-        ChannelKeys { send_key: key_a, recv_key: key_b }
+        ChannelKeys {
+            send_key: key_a,
+            recv_key: key_b,
+        }
     } else {
-        ChannelKeys { send_key: key_b, recv_key: key_a }
+        ChannelKeys {
+            send_key: key_b,
+            recv_key: key_a,
+        }
     }
 }
 
@@ -78,14 +92,16 @@ pub async fn generate_key_pair() -> Result<String, String> {
 #[command]
 pub async fn get_public_key() -> Result<Option<String>, String> {
     let state = E2EE_STATE.read().await;
-    Ok(state.public_key.map(|k| hex::encode(k)))
+    Ok(state.public_key.map(hex::encode))
 }
 
 #[command]
 pub async fn create_key_bundle() -> Result<String, String> {
     let state = E2EE_STATE.read().await;
     let pk = state.public_key.ok_or("No keypair generated")?;
-    let prekey_pubs: Vec<String> = state.prekeys.iter()
+    let prekey_pubs: Vec<String> = state
+        .prekeys
+        .iter()
         .take(10)
         .map(|(pk, _)| hex::encode(pk))
         .collect();
@@ -102,7 +118,9 @@ pub async fn init_encrypted_channel(peer_id: String) -> Result<bool, String> {
     let our_secret = state.secret_key.as_ref().ok_or("No keypair generated")?;
     // For channel init, derive keys from our secret + peer's public key (encoded in peer_id)
     let peer_bytes = hex::decode(&peer_id).map_err(|e| format!("Invalid peer key: {}", e))?;
-    if peer_bytes.len() != 32 { return Err("Invalid peer key length".to_string()); }
+    if peer_bytes.len() != 32 {
+        return Err("Invalid peer key length".to_string());
+    }
     let mut peer_key_bytes = [0u8; 32];
     peer_key_bytes.copy_from_slice(&peer_bytes);
     let peer_public = PublicKey::from(peer_key_bytes);
@@ -115,13 +133,17 @@ pub async fn init_encrypted_channel(peer_id: String) -> Result<bool, String> {
 #[command]
 pub async fn encrypt_message(channel_id: String, plaintext: String) -> Result<String, String> {
     let state = E2EE_STATE.read().await;
-    let keys = state.channels.get(&channel_id).ok_or("No channel established")?;
+    let keys = state
+        .channels
+        .get(&channel_id)
+        .ok_or("No channel established")?;
     let cipher = ChaCha20Poly1305::new_from_slice(&keys.send_key)
         .map_err(|e| format!("Cipher init error: {}", e))?;
     let mut nonce_bytes = [0u8; 12];
     rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
-    let ciphertext = cipher.encrypt(nonce, plaintext.as_bytes())
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext.as_bytes())
         .map_err(|e| format!("Encryption error: {}", e))?;
     // Prepend nonce to ciphertext
     let mut output = Vec::with_capacity(12 + ciphertext.len());
@@ -133,15 +155,22 @@ pub async fn encrypt_message(channel_id: String, plaintext: String) -> Result<St
 #[command]
 pub async fn decrypt_message(channel_id: String, ciphertext: String) -> Result<String, String> {
     let state = E2EE_STATE.read().await;
-    let keys = state.channels.get(&channel_id).ok_or("No channel established")?;
-    let data = base64::engine::general_purpose::STANDARD.decode(&ciphertext)
+    let keys = state
+        .channels
+        .get(&channel_id)
+        .ok_or("No channel established")?;
+    let data = base64::engine::general_purpose::STANDARD
+        .decode(&ciphertext)
         .map_err(|e| format!("Base64 decode error: {}", e))?;
-    if data.len() < 12 { return Err("Ciphertext too short".to_string()); }
+    if data.len() < 12 {
+        return Err("Ciphertext too short".to_string());
+    }
     let (nonce_bytes, encrypted) = data.split_at(12);
     let cipher = ChaCha20Poly1305::new_from_slice(&keys.recv_key)
         .map_err(|e| format!("Cipher init error: {}", e))?;
     let nonce = Nonce::from_slice(nonce_bytes);
-    let plaintext = cipher.decrypt(nonce, encrypted)
+    let plaintext = cipher
+        .decrypt(nonce, encrypted)
         .map_err(|_| "Decryption failed — message may be tampered".to_string())?;
     String::from_utf8(plaintext).map_err(|e| format!("UTF-8 error: {}", e))
 }

@@ -3,21 +3,15 @@
 //! "Describe your feature in English, get production code in 30 seconds"
 //! This is the differentiation that makes KRO_IDE irresistible.
 
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use tokio::sync::mpsc;
 
-pub mod planner;
 pub mod executor;
-pub mod verifier;
 pub mod external;
-
-pub use planner::*;
-pub use executor::*;
-pub use verifier::*;
-pub use external::*;
+pub mod planner;
+pub mod verifier;
 
 /// Autonomous agent that can complete entire coding tasks
 pub struct AutonomousAgent {
@@ -124,15 +118,44 @@ pub struct Decision {
 /// Agent events for UI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AgentEvent {
-    StateChanged { from: String, to: String },
-    TaskStarted { task_id: String, description: String },
-    TaskProgress { task_id: String, progress: f32, message: String },
-    TaskCompleted { task_id: String, success: bool },
-    ApprovalNeeded { task_id: String, description: String, risk_level: String },
-    FileModified { path: String, change_type: String },
-    TestResult { passed: bool, details: String },
-    Error { message: String, recoverable: bool },
-    Complete { success: bool, summary: String },
+    StateChanged {
+        from: String,
+        to: String,
+    },
+    TaskStarted {
+        task_id: String,
+        description: String,
+    },
+    TaskProgress {
+        task_id: String,
+        progress: f32,
+        message: String,
+    },
+    TaskCompleted {
+        task_id: String,
+        success: bool,
+    },
+    ApprovalNeeded {
+        task_id: String,
+        description: String,
+        risk_level: String,
+    },
+    FileModified {
+        path: String,
+        change_type: String,
+    },
+    TestResult {
+        passed: bool,
+        details: String,
+    },
+    Error {
+        message: String,
+        recoverable: bool,
+    },
+    Complete {
+        success: bool,
+        summary: String,
+    },
 }
 
 /// Permission set for autonomous operations
@@ -159,49 +182,61 @@ impl AutonomousAgent {
             event_tx,
         }
     }
-    
+
     /// The "wow moment" - describe a feature, get code
-    pub async fn execute_natural_language(&mut self, description: &str, project_path: &str) -> Result<ExecutionResult, String> {
+    pub async fn execute_natural_language(
+        &mut self,
+        description: &str,
+        project_path: &str,
+    ) -> Result<ExecutionResult, String> {
         // Phase 1: Planning
         self.set_state(AgentState::Planning);
-        let _ = self.event_tx.send(AgentEvent::StateChanged {
-            from: "Idle".to_string(),
-            to: "Planning".to_string(),
-        }).await;
-        
+        let _ = self
+            .event_tx
+            .send(AgentEvent::StateChanged {
+                from: "Idle".to_string(),
+                to: "Planning".to_string(),
+            })
+            .await;
+
         let plan = self.create_plan(description, project_path).await?;
         self.plan = Some(plan.clone());
-        
+
         // Calculate risk
         let risk = self.calculate_risk(&plan);
         if risk >= RiskLevel::Medium {
             self.set_state(AgentState::WaitingForApproval);
-            let _ = self.event_tx.send(AgentEvent::ApprovalNeeded {
-                task_id: plan.id.clone(),
-                description: plan.goal.clone(),
-                risk_level: format!("{:?}", risk),
-            }).await;
-            
+            let _ = self
+                .event_tx
+                .send(AgentEvent::ApprovalNeeded {
+                    task_id: plan.id.clone(),
+                    description: plan.goal.clone(),
+                    risk_level: format!("{:?}", risk),
+                })
+                .await;
+
             return Err("Approval required for medium/high risk operation".to_string());
         }
-        
+
         // Phase 2: Execution
         self.execute_plan(&plan).await
     }
-    
+
     /// Create execution plan from natural language
-    async fn create_plan(&mut self, description: &str, project_path: &str) -> Result<ExecutionPlan, String> {
+    async fn create_plan(
+        &mut self,
+        description: &str,
+        _project_path: &str,
+    ) -> Result<ExecutionPlan, String> {
         // Use LLM to create plan
         let tasks = self.decompose_into_tasks(description).await?;
-        
+
         // Analyze dependencies
         let dependencies = self.analyze_dependencies(&tasks);
-        
+
         // Estimate time
-        let estimated_time: u32 = tasks.iter()
-            .map(|t| t.estimated_tokens / 100)
-            .sum();
-        
+        let estimated_time: u32 = tasks.iter().map(|t| t.estimated_tokens / 100).sum();
+
         Ok(ExecutionPlan {
             id: uuid::Uuid::new_v4().to_string(),
             goal: description.to_string(),
@@ -212,12 +247,12 @@ impl AutonomousAgent {
             created_at: Utc::now(),
         })
     }
-    
+
     /// Decompose goal into tasks
-    async fn decompose_into_tasks(&self, description: &str) -> Result<Vec<Task>, String> {
+    async fn decompose_into_tasks(&self, _description: &str) -> Result<Vec<Task>, String> {
         // This would use LLM to decompose
         // For now, return structured tasks based on common patterns
-        
+
         let tasks = vec![
             Task {
                 id: "task-1".to_string(),
@@ -270,21 +305,24 @@ impl AutonomousAgent {
                 result: None,
             },
         ];
-        
+
         Ok(tasks)
     }
-    
+
     fn analyze_dependencies(&self, tasks: &[Task]) -> HashMap<String, Vec<String>> {
-        tasks.iter()
+        tasks
+            .iter()
             .map(|t| (t.id.clone(), t.dependencies.clone()))
             .collect()
     }
-    
+
     fn calculate_risk(&self, plan: &ExecutionPlan) -> RiskLevel {
-        let delete_count = plan.tasks.iter()
+        let delete_count = plan
+            .tasks
+            .iter()
             .filter(|t| matches!(t.task_type, TaskType::DeleteFile))
             .count();
-        
+
         if delete_count > 0 {
             RiskLevel::High
         } else if plan.files_affected_count() > 10 {
@@ -293,34 +331,40 @@ impl AutonomousAgent {
             RiskLevel::Low
         }
     }
-    
+
     /// Execute the plan
     async fn execute_plan(&mut self, plan: &ExecutionPlan) -> Result<ExecutionResult, String> {
         self.set_state(AgentState::Executing);
-        
+
         let mut completed = Vec::new();
         let mut failed = Vec::new();
         let mut files_modified = Vec::new();
-        
+
         // Execute tasks in dependency order
         let execution_order = self.topological_sort(plan);
-        
+
         for task_id in execution_order {
             if let Some(task) = plan.tasks.iter().find(|t| t.id == task_id) {
-                let _ = self.event_tx.send(AgentEvent::TaskStarted {
-                    task_id: task.id.clone(),
-                    description: task.description.clone(),
-                }).await;
-                
+                let _ = self
+                    .event_tx
+                    .send(AgentEvent::TaskStarted {
+                        task_id: task.id.clone(),
+                        description: task.description.clone(),
+                    })
+                    .await;
+
                 match self.executor.execute(task, &self.permissions).await {
                     Ok(result) => {
                         files_modified.extend(result.files_modified.clone());
-                        
-                        let _ = self.event_tx.send(AgentEvent::TaskCompleted {
-                            task_id: task.id.clone(),
-                            success: result.success,
-                        }).await;
-                        
+
+                        let _ = self
+                            .event_tx
+                            .send(AgentEvent::TaskCompleted {
+                                task_id: task.id.clone(),
+                                success: result.success,
+                            })
+                            .await;
+
                         if result.success {
                             completed.push(task_id);
                         } else {
@@ -331,40 +375,56 @@ impl AutonomousAgent {
                     }
                     Err(e) => {
                         failed.push(task_id);
-                        let _ = self.event_tx.send(AgentEvent::Error {
-                            message: e.clone(),
-                            recoverable: false,
-                        }).await;
+                        let _ = self
+                            .event_tx
+                            .send(AgentEvent::Error {
+                                message: e.clone(),
+                                recoverable: false,
+                            })
+                            .await;
                         break;
                     }
                 }
             }
         }
-        
+
         let success = failed.is_empty();
-        
+
         // Verify results
         if success {
             self.set_state(AgentState::Verifying);
-            let _ = self.event_tx.send(AgentEvent::StateChanged {
-                from: "Executing".to_string(),
-                to: "Verifying".to_string(),
-            }).await;
-            
+            let _ = self
+                .event_tx
+                .send(AgentEvent::StateChanged {
+                    from: "Executing".to_string(),
+                    to: "Verifying".to_string(),
+                })
+                .await;
+
             let verification = self.verifier.verify(&files_modified).await;
-            let _ = self.event_tx.send(AgentEvent::TestResult {
-                passed: verification.passed,
-                details: verification.summary.clone(),
-            }).await;
+            let _ = self
+                .event_tx
+                .send(AgentEvent::TestResult {
+                    passed: verification.passed,
+                    details: verification.summary.clone(),
+                })
+                .await;
         }
-        
-        self.set_state(if success { AgentState::Completed } else { AgentState::Failed });
-        
-        let _ = self.event_tx.send(AgentEvent::Complete {
-            success,
-            summary: format!("Modified {} files", files_modified.len()),
-        }).await;
-        
+
+        self.set_state(if success {
+            AgentState::Completed
+        } else {
+            AgentState::Failed
+        });
+
+        let _ = self
+            .event_tx
+            .send(AgentEvent::Complete {
+                success,
+                summary: format!("Modified {} files", files_modified.len()),
+            })
+            .await;
+
         Ok(ExecutionResult {
             success,
             files_modified,
@@ -372,51 +432,57 @@ impl AutonomousAgent {
             tasks_failed: failed.len(),
         })
     }
-    
+
     fn topological_sort(&self, plan: &ExecutionPlan) -> Vec<String> {
         let mut result = Vec::new();
         let mut visited = std::collections::HashSet::new();
-        
+
         for task in &plan.tasks {
             self.visit_task(&task.id, plan, &mut visited, &mut result);
         }
-        
+
         result
     }
-    
-    fn visit_task(&self, task_id: &str, plan: &ExecutionPlan, visited: &mut std::collections::HashSet<String>, result: &mut Vec<String>) {
+
+    fn visit_task(
+        &self,
+        task_id: &str,
+        plan: &ExecutionPlan,
+        visited: &mut std::collections::HashSet<String>,
+        result: &mut Vec<String>,
+    ) {
         if visited.contains(task_id) {
             return;
         }
-        
+
         visited.insert(task_id.to_string());
-        
+
         if let Some(deps) = plan.dependencies.get(task_id) {
             for dep in deps {
                 self.visit_task(dep, plan, visited, result);
             }
         }
-        
+
         result.push(task_id.to_string());
     }
-    
+
     fn set_state(&mut self, state: AgentState) {
         self.state = state;
     }
-    
+
     /// Approve pending execution
     pub async fn approve(&mut self) -> Result<(), String> {
         if self.state != AgentState::WaitingForApproval {
             return Err("Not waiting for approval".to_string());
         }
-        
+
         if let Some(plan) = self.plan.clone() {
             self.execute_plan(&plan).await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Cancel current operation
     pub fn cancel(&mut self) {
         self.state = AgentState::Failed;
@@ -433,9 +499,7 @@ pub struct ExecutionResult {
 
 impl ExecutionPlan {
     fn files_affected_count(&self) -> usize {
-        self.tasks.iter()
-            .map(|t| t.files_affected.len())
-            .sum()
+        self.tasks.iter().map(|t| t.files_affected.len()).sum()
     }
 }
 
@@ -448,13 +512,23 @@ impl TaskExecutor {
     pub fn new() -> Self {
         Self {}
     }
-    
-    async fn execute(&self, task: &Task, _permissions: &PermissionSet) -> Result<TaskResult, String> {
+
+    async fn execute(
+        &self,
+        task: &Task,
+        _permissions: &PermissionSet,
+    ) -> Result<TaskResult, String> {
         match task.task_type {
             TaskType::Analyze => self.analyze(&task.description).await,
             TaskType::Design => self.design(&task.description).await,
-            TaskType::CreateFile => self.create_file(&task.files_affected[0], &task.description).await,
-            TaskType::ModifyFile => self.modify_file(&task.files_affected[0], &task.description).await,
+            TaskType::CreateFile => {
+                self.create_file(&task.files_affected[0], &task.description)
+                    .await
+            }
+            TaskType::ModifyFile => {
+                self.modify_file(&task.files_affected[0], &task.description)
+                    .await
+            }
             TaskType::GenerateTests => self.generate_tests(&task.files_affected[0]).await,
             TaskType::RunTests => self.run_tests().await,
             _ => Ok(TaskResult {
@@ -466,7 +540,7 @@ impl TaskExecutor {
             }),
         }
     }
-    
+
     async fn analyze(&self, _description: &str) -> Result<TaskResult, String> {
         Ok(TaskResult {
             success: true,
@@ -476,7 +550,7 @@ impl TaskExecutor {
             verification: None,
         })
     }
-    
+
     async fn design(&self, _description: &str) -> Result<TaskResult, String> {
         Ok(TaskResult {
             success: true,
@@ -486,7 +560,7 @@ impl TaskExecutor {
             verification: None,
         })
     }
-    
+
     async fn create_file(&self, path: &str, _content: &str) -> Result<TaskResult, String> {
         Ok(TaskResult {
             success: true,
@@ -496,7 +570,7 @@ impl TaskExecutor {
             verification: None,
         })
     }
-    
+
     async fn modify_file(&self, path: &str, _changes: &str) -> Result<TaskResult, String> {
         Ok(TaskResult {
             success: true,
@@ -506,7 +580,7 @@ impl TaskExecutor {
             verification: None,
         })
     }
-    
+
     async fn generate_tests(&self, _source_file: &str) -> Result<TaskResult, String> {
         Ok(TaskResult {
             success: true,
@@ -516,7 +590,7 @@ impl TaskExecutor {
             verification: None,
         })
     }
-    
+
     async fn run_tests(&self) -> Result<TaskResult, String> {
         Ok(TaskResult {
             success: true,
@@ -550,7 +624,7 @@ impl ResultVerifier {
     pub fn new() -> Self {
         Self {}
     }
-    
+
     async fn verify(&self, _files: &[String]) -> VerificationResult {
         VerificationResult {
             passed: true,
@@ -564,4 +638,3 @@ impl Default for ResultVerifier {
         Self::new()
     }
 }
-

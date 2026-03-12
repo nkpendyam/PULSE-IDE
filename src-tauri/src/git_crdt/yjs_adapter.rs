@@ -2,7 +2,7 @@
 //!
 //! Uses y-crdt (Rust port of Yjs) for CRDT-based collaboration
 
-use anyhow::{Result, Context};
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -69,11 +69,11 @@ impl YjsAdapter {
     /// Apply an update to the document
     pub fn apply_update(&mut self, update: &[u8]) -> anyhow::Result<()> {
         // Parse update as operation
-        let operation: Operation = serde_json::from_slice(update)
-            .context("Failed to parse operation")?;
+        let operation: Operation =
+            serde_json::from_slice(update).context("Failed to parse operation")?;
 
         self.apply_operation(operation);
-        
+
         Ok(())
     }
 
@@ -86,7 +86,9 @@ impl YjsAdapter {
                 self.document.content.insert_str(byte_pos, text);
                 self.document.version += 1;
             }
-            Operation::Delete { position, length, .. } => {
+            Operation::Delete {
+                position, length, ..
+            } => {
                 let start = self.char_to_byte(*position as usize);
                 let end = self.char_to_byte((*position + *length) as usize);
                 self.document.content.drain(start..end);
@@ -103,7 +105,8 @@ impl YjsAdapter {
 
     /// Convert character position to byte position
     fn char_to_byte(&self, char_pos: usize) -> usize {
-        self.document.content
+        self.document
+            .content
             .char_indices()
             .nth(char_pos)
             .map(|(i, _)| i)
@@ -117,7 +120,7 @@ impl YjsAdapter {
             version: self.document.version,
             checksum: self.calculate_checksum(),
         };
-        
+
         Ok(serde_json::to_vec(&snapshot)?)
     }
 
@@ -134,7 +137,9 @@ impl YjsAdapter {
 
     /// Get operations since a version
     pub fn get_operations_since(&self, version: u64) -> Vec<Operation> {
-        self.document.operations.iter()
+        self.document
+            .operations
+            .iter()
             .filter(|op| {
                 if let Operation::Insert { timestamp, .. } = op {
                     *timestamp > version
@@ -158,13 +163,13 @@ impl YjsAdapter {
             self.document.content = other.content.clone();
             self.document.version = other.version;
         }
-        
+
         Ok(())
     }
 
     /// Calculate document checksum
     fn calculate_checksum(&self) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(self.document.content.as_bytes());
         format!("{:x}", hasher.finalize())

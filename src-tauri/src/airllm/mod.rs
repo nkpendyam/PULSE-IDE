@@ -21,12 +21,12 @@
 //! let result = airllm.generate("Hello, world!").await?;
 //! ```
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::process::{Command, Stdio, Child};
+use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex};
+use tokio::sync::{Mutex, RwLock};
 
 /// AirLLM configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -231,12 +231,12 @@ impl AirLLMEngine {
     /// Load a model
     pub async fn load_model(&mut self, model_name: Option<&str>) -> Result<()> {
         let model = model_name.unwrap_or(&self.config.model_name);
-        
+
         log::info!("Loading AirLLM model: {}", model);
 
         // Start Python process with AirLLM
         let python_script = self.create_loader_script(model)?;
-        
+
         let child = Command::new(&self.config.python_path)
             .args(["-c", &python_script])
             .stdin(Stdio::piped())
@@ -325,7 +325,8 @@ impl AirLLMEngine {
             _ => "none",
         };
 
-        Ok(format!(r#"
+        Ok(format!(
+            r#"
 import sys
 try:
     from airllm import AutoModelForCausalLM
@@ -361,7 +362,8 @@ except Exception as e:
         let max_tokens = request.max_tokens.unwrap_or(self.config.max_tokens);
         let temperature = request.temperature.unwrap_or(self.config.temperature);
 
-        Ok(format!(r#"
+        Ok(format!(
+            r#"
 from airllm import AutoModelForCausalLM
 from transformers import AutoTokenizer
 
@@ -420,7 +422,9 @@ pub mod commands {
     /// Check AirLLM availability
     #[tauri::command]
     pub async fn airllm_check_availability() -> Result<bool, String> {
-        AirLLMEngine::check_availability().await.map_err(|e| e.to_string())
+        AirLLMEngine::check_availability()
+            .await
+            .map_err(|e| e.to_string())
     }
 
     /// Get AirLLM configuration
@@ -437,24 +441,24 @@ pub mod commands {
         config: Option<AirLLMConfig>,
     ) -> Result<(), String> {
         let mut engine_opt = state.0.lock().await;
-        
+
         let config = config.unwrap_or_default();
         let mut engine = AirLLMEngine::new(config);
-        
-        engine.load_model(model_name.as_deref()).await
+
+        engine
+            .load_model(model_name.as_deref())
+            .await
             .map_err(|e| e.to_string())?;
-        
+
         *engine_opt = Some(engine);
         Ok(())
     }
 
     /// Unload AirLLM model
     #[tauri::command]
-    pub async fn airllm_unload_model(
-        state: State<'_, AirLLMState>,
-    ) -> Result<(), String> {
+    pub async fn airllm_unload_model(state: State<'_, AirLLMState>) -> Result<(), String> {
         let mut engine_opt = state.0.lock().await;
-        
+
         if let Some(engine) = engine_opt.as_mut() {
             engine.unload_model().await.map_err(|e| e.to_string())?;
         }
@@ -469,20 +473,19 @@ pub mod commands {
         request: GenerationRequest,
     ) -> Result<GenerationResponse, String> {
         let engine_opt = state.0.lock().await;
-        
-        let engine = engine_opt.as_ref()
+
+        let engine = engine_opt
+            .as_ref()
             .ok_or_else(|| "No model loaded".to_string())?;
-        
+
         engine.generate(request).await.map_err(|e| e.to_string())
     }
 
     /// Get AirLLM status
     #[tauri::command]
-    pub async fn airllm_get_status(
-        state: State<'_, AirLLMState>,
-    ) -> Result<ModelStatus, String> {
+    pub async fn airllm_get_status(state: State<'_, AirLLMState>) -> Result<ModelStatus, String> {
         let engine_opt = state.0.lock().await;
-        
+
         match engine_opt.as_ref() {
             Some(engine) => Ok(engine.status().await),
             None => Ok(ModelStatus {

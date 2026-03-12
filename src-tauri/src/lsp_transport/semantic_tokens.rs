@@ -5,7 +5,6 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
 
 /// Semantic token types as defined by LSP
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -68,7 +67,7 @@ impl SemanticTokenType {
             _ => None,
         }
     }
-    
+
     pub fn to_css_class(self) -> &'static str {
         match self {
             Self::Namespace => "semantic-namespace",
@@ -159,13 +158,16 @@ pub struct SemanticTokensLegend {
 
 impl SemanticTokensLegend {
     pub fn new(token_types: Vec<String>, token_modifiers: Vec<String>) -> Self {
-        Self { token_types, token_modifiers }
+        Self {
+            token_types,
+            token_modifiers,
+        }
     }
-    
+
     pub fn get_token_type(&self, index: u32) -> Option<&str> {
         self.token_types.get(index as usize).map(|s| s.as_str())
     }
-    
+
     pub fn get_token_modifiers(&self, modifier_bits: u32) -> Vec<String> {
         let mut modifiers = Vec::new();
         for i in 0..self.token_modifiers.len() {
@@ -181,28 +183,36 @@ impl SemanticTokensLegend {
 /// The LSP encodes tokens as a flat array of 5 integers per token:
 /// [delta_line, delta_start, length, token_type, token_modifiers]
 pub fn decode_semantic_tokens(data: &Value, legend: &SemanticTokensLegend) -> SemanticTokensResult {
-    let result_id = data.get("resultId").and_then(|v| v.as_str()).map(|s| s.to_string());
-    
-    let data_array = data.get("data")
+    let result_id = data
+        .get("resultId")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    let data_array = data
+        .get("data")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|x| x as u32)).collect::<Vec<_>>())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_u64().map(|x| x as u32))
+                .collect::<Vec<_>>()
+        })
         .unwrap_or_default();
-    
+
     let mut tokens = Vec::new();
     let mut line = 0u32;
     let mut column = 0u32;
-    
+
     for chunk in data_array.chunks(5) {
         if chunk.len() < 5 {
             continue;
         }
-        
+
         let delta_line = chunk[0];
         let delta_start = chunk[1];
         let length = chunk[2];
         let token_type_idx = chunk[3];
         let token_modifiers = chunk[4];
-        
+
         // Apply deltas
         if delta_line > 0 {
             line += delta_line;
@@ -210,13 +220,14 @@ pub fn decode_semantic_tokens(data: &Value, legend: &SemanticTokensLegend) -> Se
         } else {
             column += delta_start;
         }
-        
-        let token_type = legend.get_token_type(token_type_idx)
+
+        let token_type = legend
+            .get_token_type(token_type_idx)
             .unwrap_or("unknown")
             .to_string();
-        
+
         let modifiers = legend.get_token_modifiers(token_modifiers);
-        
+
         tokens.push(SemanticToken {
             line,
             column,
@@ -225,7 +236,7 @@ pub fn decode_semantic_tokens(data: &Value, legend: &SemanticTokensLegend) -> Se
             modifiers,
         });
     }
-    
+
     SemanticTokensResult { result_id, tokens }
 }
 
@@ -299,7 +310,7 @@ pub fn generate_semantic_css() -> String {
         (SemanticTokenType::Decorator, "#dcdcaa"),
         (SemanticTokenType::Label, "#c8c8c8"),
     ];
-    
+
     let mut css = String::new();
     for (token_type, color) in styles {
         css.push_str(&format!(
@@ -308,12 +319,12 @@ pub fn generate_semantic_css() -> String {
             color
         ));
     }
-    
+
     // Add modifier styles
     css.push_str(".semantic-deprecated { text-decoration: line-through; }\n");
     css.push_str(".semantic-readonly { font-style: italic; }\n");
     css.push_str(".semantic-static { font-weight: bold; }\n");
     css.push_str(".semantic-definition { font-weight: bold; }\n");
-    
+
     css
 }

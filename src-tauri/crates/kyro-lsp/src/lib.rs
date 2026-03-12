@@ -2,6 +2,8 @@
 //!
 //! Provides LSP integration for 165+ programming languages using
 //! tower-lsp and tree-sitter.
+
+#![allow(dead_code, unused_variables, unused_imports)]
 //!
 //! # Features
 //!

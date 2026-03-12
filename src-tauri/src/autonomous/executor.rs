@@ -1,14 +1,13 @@
-
 // Autonomous Executor Module
 //
 // Executes plan steps for autonomous agents, interacting with external
 // tools and maintaining tool execution state.
 
-use serde::{Deserialize, Serialize};
-use super::planner::PlanStep;
 use super::external::{access_resource, ExternalResource, ResourceResult};
-use std::time::Instant;
+use super::planner::PlanStep;
 use crate::ai::AiClient;
+use serde::{Deserialize, Serialize};
+use std::time::Instant;
 
 /// Execution result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,26 +28,31 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn new(allowed_tools: Vec<String>) -> Self { 
-        Self { allowed_tools, ai_client: Some(AiClient::new()) } 
+    pub fn new(allowed_tools: Vec<String>) -> Self {
+        Self {
+            allowed_tools,
+            ai_client: Some(AiClient::new()),
+        }
     }
-    
+
     fn ai(&self) -> &AiClient {
         // Safe: always initialized via new() or default()
         self.ai_client.as_ref().expect("AiClient not initialized")
     }
-    
+
     /// Execute a plan step
     pub async fn execute(&self, step: &PlanStep) -> ExecutionResult {
         let start = Instant::now();
-        
+
         let tool_name = match &step.tool_name {
             Some(name) => name,
             None => {
                 return ExecutionResult {
                     step_id: step.id.clone(),
                     success: true,
-                    output: Some("No tool configured, step marked as complete by default.".to_string()),
+                    output: Some(
+                        "No tool configured, step marked as complete by default.".to_string(),
+                    ),
                     error: None,
                     duration_ms: start.elapsed().as_millis() as u64,
                 };
@@ -60,19 +64,34 @@ impl Executor {
                 step_id: step.id.clone(),
                 success: false,
                 output: None,
-                error: Some(format!("Tool '{}' is not in the allowed tools list", tool_name)),
+                error: Some(format!(
+                    "Tool '{}' is not in the allowed tools list",
+                    tool_name
+                )),
                 duration_ms: start.elapsed().as_millis() as u64,
             };
         }
 
         let result = match tool_name.as_str() {
             "read_file" | "ast_prune" => {
-                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let path = step
+                    .tool_args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 access_resource(&ExternalResource::File(path.to_string())).await
-            },
+            }
             "write_file" => {
-                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                let content = step.tool_args.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                let path = step
+                    .tool_args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let content = step
+                    .tool_args
+                    .get("content")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 if path.is_empty() {
                     ResourceResult {
                         resource: ExternalResource::File(path.to_string()),
@@ -103,20 +122,32 @@ impl Executor {
                         },
                     }
                 }
-            },
+            }
             "run_terminal" => {
-                let cmd = step.tool_args.get("command").and_then(|v| v.as_str()).unwrap_or("");
+                let cmd = step
+                    .tool_args
+                    .get("command")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 access_resource(&ExternalResource::Tool(format!("terminal:{}", cmd))).await
-            },
+            }
             "list_dir" => {
-                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+                let path = step
+                    .tool_args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(".");
                 match std::fs::read_dir(path) {
                     Ok(entries) => {
                         let listing: Vec<String> = entries
                             .filter_map(|e| e.ok())
                             .map(|e| {
                                 let name = e.file_name().to_string_lossy().to_string();
-                                if e.path().is_dir() { format!("{}/", name) } else { name }
+                                if e.path().is_dir() {
+                                    format!("{}/", name)
+                                } else {
+                                    name
+                                }
                             })
                             .collect();
                         ResourceResult {
@@ -133,10 +164,16 @@ impl Executor {
                         error: Some(format!("list_dir error: {}", e)),
                     },
                 }
-            },
+            }
             "llm_generate" => {
-                let prompt = step.tool_args.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
-                let max_tokens = step.tool_args.get("max_tokens")
+                let prompt = step
+                    .tool_args
+                    .get("prompt")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let max_tokens = step
+                    .tool_args
+                    .get("max_tokens")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(2048) as usize;
                 match self.ai().generate(prompt, max_tokens).await {
@@ -153,11 +190,23 @@ impl Executor {
                         error: Some("LLM generation failed — is Ollama running?".to_string()),
                     },
                 }
-            },
+            }
             "apply_edit" => {
-                let path = step.tool_args.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                let old_text = step.tool_args.get("old_text").and_then(|v| v.as_str()).unwrap_or("");
-                let new_text = step.tool_args.get("new_text").and_then(|v| v.as_str()).unwrap_or("");
+                let path = step
+                    .tool_args
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let old_text = step
+                    .tool_args
+                    .get("old_text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let new_text = step
+                    .tool_args
+                    .get("new_text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 if path.is_empty() || path.contains("..") {
                     ResourceResult {
                         resource: ExternalResource::File(path.to_string()),
@@ -189,7 +238,9 @@ impl Executor {
                                     resource: ExternalResource::File(path.to_string()),
                                     success: false,
                                     data: None,
-                                    error: Some("apply_edit: old_text not found in file".to_string()),
+                                    error: Some(
+                                        "apply_edit: old_text not found in file".to_string(),
+                                    ),
                                 }
                             }
                         }
@@ -201,15 +252,13 @@ impl Executor {
                         },
                     }
                 }
-            },
-            _ => {
-                ResourceResult {
-                    resource: ExternalResource::Tool(tool_name.clone()),
-                    success: false,
-                    data: None,
-                    error: Some(format!("Tool '{}' not implemented", tool_name)),
-                }
             }
+            _ => ResourceResult {
+                resource: ExternalResource::Tool(tool_name.clone()),
+                success: false,
+                data: None,
+                error: Some(format!("Tool '{}' not implemented", tool_name)),
+            },
         };
 
         ExecutionResult {
@@ -223,7 +272,7 @@ impl Executor {
 }
 
 impl Default for Executor {
-    fn default() -> Self { 
+    fn default() -> Self {
         Self::new(vec![
             "read_file".to_string(),
             "write_file".to_string(),

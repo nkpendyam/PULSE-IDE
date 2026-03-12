@@ -70,7 +70,7 @@ impl RuntimeConfig {
     /// Build a tokio runtime with this configuration
     pub fn build_runtime(&self) -> KyroResult<tokio::runtime::Runtime> {
         let mut builder = tokio::runtime::Builder::new_multi_thread();
-        
+
         builder
             .worker_threads(self.worker_threads)
             .max_blocking_threads(self.max_blocking_threads)
@@ -97,7 +97,7 @@ impl RuntimeConfig {
     /// Get recommended configuration for the current system
     pub fn recommended() -> Self {
         let cpu_cores = num_cpus::get();
-        
+
         Self {
             worker_threads: cpu_cores,
             max_blocking_threads: cpu_cores * 4,
@@ -114,7 +114,7 @@ impl RuntimeConfig {
         Self {
             worker_threads: 2,
             max_blocking_threads: 4,
-            thread_stack_size: 1 * 1024 * 1024, // 1MB
+            thread_stack_size: 1024 * 1024, // 1MB
             thread_name: "kyro-worker".to_string(),
             thread_keep_alive: Some(Duration::from_secs(5)),
             enable_time: true,
@@ -125,7 +125,7 @@ impl RuntimeConfig {
     /// Get configuration optimized for high-performance systems
     pub fn high_performance() -> Self {
         let cpu_cores = num_cpus::get();
-        
+
         Self {
             worker_threads: cpu_cores * 2,
             max_blocking_threads: cpu_cores * 8,
@@ -141,7 +141,7 @@ impl RuntimeConfig {
 impl Default for RuntimeConfig {
     fn default() -> Self {
         let cpu_cores = num_cpus::get();
-        
+
         Self {
             worker_threads: cpu_cores,
             max_blocking_threads: 512,

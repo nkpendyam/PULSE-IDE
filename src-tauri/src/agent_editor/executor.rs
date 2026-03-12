@@ -1,15 +1,15 @@
-use crate::agent_editor::tools::FileOperation;
 use crate::agent_editor::approval::DiffLineType;
+use crate::agent_editor::tools::FileOperation;
 // Edit Executor - Safely executes file edits with rollback support
 
 use super::*;
-use crate::agent_editor::tools::{FileEditor, EditOperation, EditResult};
+use crate::agent_editor::tools::{EditOperation, EditResult, FileEditor};
 
-use anyhow::{Result, Context};
-use std::path::PathBuf;
+use anyhow::Result;
 use std::collections::HashMap;
-use tokio::sync::RwLock;
+use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 /// Edit executor with transaction support
 pub struct EditExecutor {
@@ -83,7 +83,10 @@ impl EditExecutor {
 
         // Store rollback info
         if self.config.enable_rollback {
-            self.rollback_log.write().await.insert(edit.path.clone(), rollback);
+            self.rollback_log
+                .write()
+                .await
+                .insert(edit.path.clone(), rollback);
         }
 
         Ok(result)
@@ -148,7 +151,10 @@ impl EditExecutor {
         }
 
         // Check allowed patterns
-        let allowed = self.config.allowed_patterns.iter()
+        let allowed = self
+            .config
+            .allowed_patterns
+            .iter()
             .any(|pattern| glob_match::glob_match(pattern, &edit.path));
 
         if !allowed {
@@ -206,7 +212,7 @@ impl EditExecutor {
                     tokio::fs::write(&path, content).await?;
 
                     // Restore metadata if available
-                    if let Some(meta) = &rollback.original_metadata {
+                    if let Some(_meta) = &rollback.original_metadata {
                         // Note: Full metadata restoration would require platform-specific code
                         log::debug!("Would restore metadata for {}", rollback.path);
                     }
@@ -239,7 +245,7 @@ impl EditExecutor {
         let mut edits = Vec::new();
 
         for hunk in &edit.diff {
-            let mut current_start = hunk.new_start;
+            let current_start = hunk.new_start;
             let mut current_end = hunk.new_start;
             let mut new_content = String::new();
 
@@ -310,6 +316,3 @@ mod tests {
         assert!(executor.config.enable_rollback);
     }
 }
-
-
-

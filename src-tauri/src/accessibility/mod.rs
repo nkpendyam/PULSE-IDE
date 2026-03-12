@@ -37,20 +37,15 @@ impl Default for AccessibilityConfig {
 }
 
 /// Focus indicator style
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum FocusIndicatorStyle {
     /// Default outline
+    #[default]
     Outline,
     /// High visibility outline
     HighVisibility,
     /// Custom color
     Custom(String),
-}
-
-impl Default for FocusIndicatorStyle {
-    fn default() -> Self {
-        Self::Outline
-    }
 }
 
 /// Accessibility manager
@@ -66,64 +61,64 @@ impl AccessibilityManager {
             announce_queue: Vec::new(),
         }
     }
-    
+
     /// Check if screen reader is enabled
     pub fn is_screen_reader_enabled(&self) -> bool {
         self.config.screen_reader_enabled
     }
-    
+
     /// Check if high contrast is enabled
     pub fn is_high_contrast(&self) -> bool {
         self.config.high_contrast
     }
-    
+
     /// Check if reduced motion is enabled
     pub fn is_reduced_motion(&self) -> bool {
         self.config.reduced_motion
     }
-    
+
     /// Announce a message to screen reader
     pub fn announce(&mut self, message: &str) {
         if self.config.screen_reader_enabled {
             self.announce_queue.push(message.to_string());
         }
     }
-    
+
     /// Get pending announcements
     pub fn get_announcements(&mut self) -> Vec<String> {
         std::mem::take(&mut self.announce_queue)
     }
-    
+
     /// Get font size multiplier
     pub fn font_size_multiplier(&self) -> f32 {
         self.config.font_size_multiplier
     }
-    
+
     /// Update configuration
     pub fn update_config(&mut self, config: AccessibilityConfig) {
         self.config = config;
     }
-    
+
     /// Get current configuration
     pub fn config(&self) -> &AccessibilityConfig {
         &self.config
     }
-    
+
     /// Detect system accessibility settings
     pub fn detect_system_settings() -> AccessibilityConfig {
-        let mut config = AccessibilityConfig::default();
-        
+        let config = AccessibilityConfig::default();
+
         // Check for system reduced motion preference
         #[cfg(target_os = "macos")]
         {
             // Would query NSWorkspace.accessibilityDisplayShouldReduceMotion
         }
-        
+
         #[cfg(target_os = "windows")]
         {
             // Would query SystemParametersInfo with SPI_GETCLIENTAREAANIMATION
         }
-        
+
         config
     }
 }
@@ -136,26 +131,27 @@ impl Default for AccessibilityManager {
 
 /// Screen reader support
 pub mod screen_reader {
-    use super::*;
-    
+
     /// Screen reader interface
     pub trait ScreenReaderSupport: Send + Sync {
         /// Announce a message
         fn announce(&self, message: &str);
-        
+
         /// Get current focus description
         fn get_focus_description(&self) -> String;
-        
+
         /// Set focus to element
         fn set_focus(&mut self, element_id: &str);
     }
-    
+
     /// No-op screen reader for when accessibility is disabled
     pub struct NoOpScreenReader;
-    
+
     impl ScreenReaderSupport for NoOpScreenReader {
         fn announce(&self, _message: &str) {}
-        fn get_focus_description(&self) -> String { String::new() }
+        fn get_focus_description(&self) -> String {
+            String::new()
+        }
         fn set_focus(&mut self, _element_id: &str) {}
     }
 }
@@ -163,7 +159,7 @@ pub mod screen_reader {
 /// Keyboard navigation
 pub mod keyboard {
     use super::*;
-    
+
     /// Keyboard shortcut
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct KeyboardShortcut {
@@ -172,7 +168,7 @@ pub mod keyboard {
         pub action: String,
         pub description: String,
     }
-    
+
     /// Key modifier
     #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
     pub enum Modifier {
@@ -181,7 +177,7 @@ pub mod keyboard {
         Shift,
         Meta,
     }
-    
+
     /// Default keyboard shortcuts
     pub fn default_shortcuts() -> Vec<KeyboardShortcut> {
         vec![
@@ -252,7 +248,7 @@ pub mod keyboard {
 /// Visual accessibility
 pub mod visual {
     use super::*;
-    
+
     /// High contrast color scheme
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct HighContrastTheme {
@@ -265,7 +261,7 @@ pub mod visual {
         pub selection: String,
         pub cursor: String,
     }
-    
+
     impl Default for HighContrastTheme {
         fn default() -> Self {
             Self {
@@ -280,7 +276,7 @@ pub mod visual {
             }
         }
     }
-    
+
     /// Color blind friendly palette
     pub fn color_blind_palette() -> Vec<String> {
         // Paul Tol's color blind friendly palette

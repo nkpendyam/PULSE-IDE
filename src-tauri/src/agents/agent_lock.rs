@@ -65,8 +65,9 @@ impl AgentLock {
         // Ensure memory directory exists
         let memory_dir = PathBuf::from(MEMORY_DIR);
         if !memory_dir.exists() {
-            fs::create_dir_all(&memory_dir)
-                .map_err(|e| AgentError::ProcessError(format!("Failed to create memory dir: {}", e)))?;
+            fs::create_dir_all(&memory_dir).map_err(|e| {
+                AgentError::ProcessError(format!("Failed to create memory dir: {}", e))
+            })?;
         }
 
         // Create lock file
@@ -134,9 +135,7 @@ impl AgentLock {
         #[cfg(unix)]
         {
             // Send signal 0 to check if process exists
-            unsafe {
-                libc::kill(pid as i32, 0) == 0
-            }
+            unsafe { libc::kill(pid as i32, 0) == 0 }
         }
         #[cfg(windows)]
         {
@@ -173,8 +172,9 @@ impl AgentLock {
     pub fn force_release() -> Result<(), AgentError> {
         let lock_path = PathBuf::from(LOCK_FILE);
         if lock_path.exists() {
-            fs::remove_file(&lock_path)
-                .map_err(|e| AgentError::ProcessError(format!("Failed to remove lock file: {}", e)))?;
+            fs::remove_file(&lock_path).map_err(|e| {
+                AgentError::ProcessError(format!("Failed to remove lock file: {}", e))
+            })?;
             log::warn!("Force released agent lock");
         }
         Ok(())
@@ -186,7 +186,11 @@ impl Drop for AgentLock {
         // Clean up lock file when lock goes out of scope
         if self.lock_path.exists() {
             match fs::remove_file(&self.lock_path) {
-                Ok(()) => log::info!("Agent lock released: {} (PID: {})", self.agent_name, self.pid),
+                Ok(()) => log::info!(
+                    "Agent lock released: {} (PID: {})",
+                    self.agent_name,
+                    self.pid
+                ),
                 Err(e) => log::error!("Failed to release lock: {}", e),
             }
         }

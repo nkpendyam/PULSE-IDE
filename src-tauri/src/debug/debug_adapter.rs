@@ -3,11 +3,11 @@
 //! Integrates LLDB-DAP and CodeLLDB for Rust debugging.
 //! Provides "batteries included" debugging experience.
 
-use anyhow::{Result, Context, bail};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Child};
-use std::collections::HashMap;
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command};
 
 /// Supported debug adapters
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,7 +94,7 @@ impl DebugAdapterManager {
             if bundled_path.exists() {
                 return true;
             }
-            
+
             // Check system PATH
             which::which(&config.command).is_ok()
         } else {
@@ -105,25 +105,37 @@ impl DebugAdapterManager {
     /// Get recommended adapter for platform
     pub fn get_recommended_adapter(&self) -> &'static str {
         #[cfg(target_os = "macos")]
-        { "lldb-dap" }
-        
+        {
+            "lldb-dap"
+        }
+
         #[cfg(target_os = "linux")]
-        { "lldb-dap" }
-        
+        {
+            "lldb-dap"
+        }
+
         #[cfg(target_os = "windows")]
-        { "codelldb" }
-        
+        {
+            "codelldb"
+        }
+
         #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-        { "codelldb" }
+        {
+            "codelldb"
+        }
     }
 
     /// Download a debug adapter
     pub async fn download_adapter(&self, adapter_name: &str) -> Result<PathBuf> {
-        let config = self.adapters.get(adapter_name)
+        let config = self
+            .adapters
+            .get(adapter_name)
             .ok_or_else(|| anyhow::anyhow!("Unknown adapter: {}", adapter_name))?
             .clone();
 
-        let url = config.download_url.as_ref()
+        let url = config
+            .download_url
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No download URL for {}", adapter_name))?;
 
         // Replace platform placeholder
@@ -141,11 +153,11 @@ impl DebugAdapterManager {
             // Download VSIX
             let response = reqwest::get(&url).await?;
             let bytes = response.bytes().await?;
-            
+
             // Extract the extension
             let vsix_path = self.bin_dir.join(format!("{}.vsix", adapter_name));
             std::fs::write(&vsix_path, &bytes)?;
-            
+
             // Extract using unzip
             self.extract_vsix(&vsix_path, &dest_path)?;
         } else {
@@ -168,9 +180,9 @@ impl DebugAdapterManager {
 
     /// Extract VSIX and find adapter binary
     fn extract_vsix(&self, vsix_path: &Path, dest_path: &Path) -> Result<()> {
-        use zip::ZipArchive;
         use std::fs::File;
         use std::io::Read;
+        use zip::ZipArchive;
 
         let file = File::open(vsix_path)?;
         let mut archive = ZipArchive::new(file)?;
@@ -179,7 +191,7 @@ impl DebugAdapterManager {
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             let name = file.name().to_string();
-            
+
             // Look for the adapter binary
             if name.contains("codelldb") || name.contains("lldb-dap") {
                 let mut contents = Vec::new();
@@ -227,7 +239,9 @@ impl DebugAdapterManager {
 
     /// Start a debug adapter
     pub fn start_adapter(&mut self, adapter_name: &str) -> Result<()> {
-        let config = self.adapters.get(adapter_name)
+        let config = self
+            .adapters
+            .get(adapter_name)
             .ok_or_else(|| anyhow::anyhow!("Unknown adapter: {}", adapter_name))?
             .clone();
 
@@ -241,7 +255,10 @@ impl DebugAdapterManager {
 
         // Check if installed
         if !self.is_adapter_installed(adapter_name) {
-            bail!("Adapter {} not installed. Call download_adapter first.", adapter_name);
+            bail!(
+                "Adapter {} not installed. Call download_adapter first.",
+                adapter_name
+            );
         }
 
         // Determine command path
@@ -251,7 +268,11 @@ impl DebugAdapterManager {
             which::which(&config.command)?
         };
 
-        log::info!("Starting debug adapter: {} from {:?}", adapter_name, command_path);
+        log::info!(
+            "Starting debug adapter: {} from {:?}",
+            adapter_name,
+            command_path
+        );
 
         // Start process
         let child = Command::new(&command_path)
@@ -294,7 +315,8 @@ impl DebugAdapterManager {
                 name: "Debug Rust".to_string(),
                 config_type: "lldb".to_string(),
                 request: "launch".to_string(),
-                program: project_path.join("target")
+                program: project_path
+                    .join("target")
                     .join("debug")
                     .join(program_name)
                     .to_string_lossy()
@@ -320,7 +342,7 @@ impl Default for DebugAdapterManager {
             .unwrap_or_else(|| PathBuf::from("."))
             .join("kro_ide")
             .join("bin");
-        
+
         Self::new(bin_dir)
     }
 }

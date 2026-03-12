@@ -2,8 +2,8 @@
 //!
 //! Advanced breakpoint features including conditions and logpoints
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Breakpoint manager
 pub struct BreakpointManager {
@@ -47,7 +47,7 @@ impl HitOperator {
             HitOperator::GreaterThan => current > target,
             HitOperator::GreaterThanOrEqual => current >= target,
             HitOperator::LessThan => current < target,
-            HitOperator::MultipleOf => current % target == 0,
+            HitOperator::MultipleOf => current.is_multiple_of(target),
         }
     }
 }
@@ -59,7 +59,7 @@ impl BreakpointManager {
             id_counter: 0,
         }
     }
-    
+
     /// Add a breakpoint
     pub fn add(&mut self, path: &str, line: u32) -> ManagedBreakpoint {
         self.id_counter += 1;
@@ -75,35 +75,42 @@ impl BreakpointManager {
             verified: false,
             adapter_id: None,
         };
-        
-        self.breakpoints.entry(path.to_string())
+
+        self.breakpoints
+            .entry(path.to_string())
             .or_default()
             .push(bp.clone());
-        
+
         bp
     }
-    
+
     /// Add a conditional breakpoint
     pub fn add_conditional(&mut self, path: &str, line: u32, condition: &str) -> ManagedBreakpoint {
         let mut bp = self.add(path, line);
         bp.condition = Some(condition.to_string());
         bp
     }
-    
+
     /// Add a logpoint
     pub fn add_logpoint(&mut self, path: &str, line: u32, message: &str) -> ManagedBreakpoint {
         let mut bp = self.add(path, line);
         bp.log_message = Some(message.to_string());
         bp
     }
-    
+
     /// Add a hit-conditional breakpoint
-    pub fn add_hit_conditional(&mut self, path: &str, line: u32, operator: HitOperator, count: u32) -> ManagedBreakpoint {
+    pub fn add_hit_conditional(
+        &mut self,
+        path: &str,
+        line: u32,
+        operator: HitOperator,
+        count: u32,
+    ) -> ManagedBreakpoint {
         let mut bp = self.add(path, line);
         bp.hit_condition = Some(HitCondition { count, operator });
         bp
     }
-    
+
     /// Remove a breakpoint
     pub fn remove(&mut self, id: u64) -> Option<ManagedBreakpoint> {
         for (_, bps) in self.breakpoints.iter_mut() {
@@ -113,7 +120,7 @@ impl BreakpointManager {
         }
         None
     }
-    
+
     /// Toggle breakpoint
     pub fn toggle(&mut self, id: u64) -> Option<bool> {
         for (_, bps) in self.breakpoints.iter_mut() {
@@ -124,7 +131,7 @@ impl BreakpointManager {
         }
         None
     }
-    
+
     /// Update breakpoint verification status
     pub fn update_verification(&mut self, id: u64, verified: bool, adapter_id: Option<u64>) {
         for (_, bps) in self.breakpoints.iter_mut() {
@@ -134,71 +141,93 @@ impl BreakpointManager {
             }
         }
     }
-    
+
     /// Get all breakpoints for a file
     pub fn get_for_file(&self, path: &str) -> Vec<&ManagedBreakpoint> {
-        self.breakpoints.get(path)
+        self.breakpoints
+            .get(path)
             .map(|bps| bps.iter().filter(|b| b.enabled).collect())
             .unwrap_or_default()
     }
-    
+
     /// Get all breakpoints
     pub fn get_all(&self) -> Vec<&ManagedBreakpoint> {
-        self.breakpoints.values()
+        self.breakpoints
+            .values()
             .flat_map(|bps| bps.iter())
             .filter(|b| b.enabled)
             .collect()
     }
-    
+
     /// Parse hit condition string
     pub fn parse_hit_condition(s: &str) -> Option<HitCondition> {
         let s = s.trim();
-        
+
         if let Some(count) = s.strip_prefix("==").or_else(|| s.strip_prefix("=")) {
             let count = count.trim().parse().ok()?;
-            Some(HitCondition { count, operator: HitOperator::Equal })
+            Some(HitCondition {
+                count,
+                operator: HitOperator::Equal,
+            })
         } else if let Some(count) = s.strip_prefix('>') {
             let count = count.trim().parse().ok()?;
             if s.starts_with(">=") {
-                Some(HitCondition { count, operator: HitOperator::GreaterThanOrEqual })
+                Some(HitCondition {
+                    count,
+                    operator: HitOperator::GreaterThanOrEqual,
+                })
             } else {
-                Some(HitCondition { count, operator: HitOperator::GreaterThan })
+                Some(HitCondition {
+                    count,
+                    operator: HitOperator::GreaterThan,
+                })
             }
         } else if let Some(count) = s.strip_prefix('<') {
             let count = count.trim().parse().ok()?;
-            Some(HitCondition { count, operator: HitOperator::LessThan })
+            Some(HitCondition {
+                count,
+                operator: HitOperator::LessThan,
+            })
         } else if let Some(count) = s.strip_prefix('%') {
             let count = count.trim().parse().ok()?;
-            Some(HitCondition { count, operator: HitOperator::MultipleOf })
+            Some(HitCondition {
+                count,
+                operator: HitOperator::MultipleOf,
+            })
         } else if let Ok(count) = s.parse() {
-            Some(HitCondition { count, operator: HitOperator::Equal })
+            Some(HitCondition {
+                count,
+                operator: HitOperator::Equal,
+            })
         } else {
             None
         }
     }
-    
+
     /// Clear all breakpoints for a file
     pub fn clear_file(&mut self, path: &str) {
         self.breakpoints.remove(path);
     }
-    
+
     /// Clear all breakpoints
     pub fn clear_all(&mut self) {
         self.breakpoints.clear();
     }
-    
+
     /// Import breakpoints
     pub fn import(&mut self, breakpoints: Vec<ManagedBreakpoint>) {
         for bp in breakpoints {
-            self.breakpoints.entry(bp.path.clone())
+            self.breakpoints
+                .entry(bp.path.clone())
                 .or_default()
                 .push(bp);
         }
     }
-    
+
     /// Export breakpoints
     pub fn export(&self) -> Vec<ManagedBreakpoint> {
-        self.breakpoints.values()
+        self.breakpoints
+            .values()
             .flat_map(|bps| bps.iter().cloned())
             .collect()
     }

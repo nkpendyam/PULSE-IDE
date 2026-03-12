@@ -3,15 +3,15 @@
 //! This module enables running large models (70B+) across multiple devices
 //! by distributing model layers across peers in a P2P network.
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex, broadcast};
-use tokio::net::{TcpListener, TcpStream};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use sha2::{Sha256, Digest};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::{broadcast, Mutex, RwLock};
 
 /// P2P Swarm for distributed inference
 pub struct P2PSwarm {
@@ -69,9 +69,20 @@ pub struct PeerCapabilities {
 pub enum SwarmEvent {
     PeerJoined(PeerInfo),
     PeerLeft(PeerId),
-    LayerAssigned { layer: usize, peer: PeerId },
-    InferenceRequest { request_id: String, layer: usize, input: Vec<f32> },
-    InferenceResponse { request_id: String, layer: usize, output: Vec<f32> },
+    LayerAssigned {
+        layer: usize,
+        peer: PeerId,
+    },
+    InferenceRequest {
+        request_id: String,
+        layer: usize,
+        input: Vec<f32>,
+    },
+    InferenceResponse {
+        request_id: String,
+        layer: usize,
+        output: Vec<f32>,
+    },
     Error(String),
 }
 
@@ -107,7 +118,7 @@ impl P2PSwarm {
     /// Create a new P2P swarm
     pub async fn new(min_peers: usize) -> Result<Self> {
         let (event_sender, _) = broadcast::channel(100);
-        
+
         Ok(Self {
             peers: Arc::new(RwLock::new(HashMap::new())),
             local_peer_id: PeerId::new(),
@@ -120,10 +131,12 @@ impl P2PSwarm {
 
     /// Start the P2P server
     pub async fn start_server(&self, port: u16) -> Result<()> {
-        let addr: SocketAddr = format!("0.0.0.0:{}", port).parse()
+        let addr: SocketAddr = format!("0.0.0.0:{}", port)
+            .parse()
             .context("Invalid address")?;
-        
-        let listener = TcpListener::bind(addr).await
+
+        let listener = TcpListener::bind(addr)
+            .await
             .context("Failed to bind server")?;
 
         *self.server_running.lock().await = true;
@@ -132,7 +145,7 @@ impl P2PSwarm {
 
         loop {
             let (socket, peer_addr) = listener.accept().await?;
-            
+
             let peers = self.peers.clone();
             let event_sender = self.event_sender.clone();
 
@@ -151,7 +164,7 @@ impl P2PSwarm {
         event_sender: broadcast::Sender<SwarmEvent>,
     ) -> Result<()> {
         let mut buffer = vec![0u8; 4096];
-        
+
         loop {
             let n = socket.read(&mut buffer).await?;
             if n == 0 {
@@ -159,21 +172,25 @@ impl P2PSwarm {
             }
 
             // Parse message
-            let message: SwarmMessage = serde_json::from_slice(&buffer[..n])
-                .context("Failed to parse message")?;
+            let message: SwarmMessage =
+                serde_json::from_slice(&buffer[..n]).context("Failed to parse message")?;
 
             match message {
                 SwarmMessage::Handshake(peer_info) => {
                     // Add peer
-                    peers.write().await.insert(peer_info.id.clone(), peer_info.clone());
-                    
+                    peers
+                        .write()
+                        .await
+                        .insert(peer_info.id.clone(), peer_info.clone());
+
                     let _ = event_sender.send(SwarmEvent::PeerJoined(peer_info));
                 }
                 SwarmMessage::LayerRequest(request) => {
                     // Process layer request
                     let response = Self::process_layer_request(request).await?;
-                    
-                    let response_bytes = serde_json::to_vec(&SwarmMessage::LayerResponse(response))?;
+
+                    let response_bytes =
+                        serde_json::to_vec(&SwarmMessage::LayerResponse(response))?;
                     socket.write_all(&response_bytes).await?;
                 }
                 SwarmMessage::LayerResponse(response) => {
@@ -193,7 +210,7 @@ impl P2PSwarm {
     /// Process a layer computation request locally
     async fn process_layer_request(request: LayerRequest) -> Result<LayerResponse> {
         let start = std::time::Instant::now();
-        
+
         // Real layer computation using matrix operations
         // This simulates transformer layer computation with actual tensor operations
         let output = Self::compute_transformer_layer(
@@ -201,7 +218,7 @@ impl P2PSwarm {
             &request.input_shape,
             request.layer_index,
         );
-        
+
         Ok(LayerResponse {
             request_id: request.request_id,
             layer_index: request.layer_index,
@@ -210,7 +227,7 @@ impl P2PSwarm {
             compute_time_ms: start.elapsed().as_millis() as u64,
         })
     }
-    
+
     /// Compute a transformer layer (simplified but real computation)
     fn compute_transformer_layer(input: &[f32], shape: &[usize], layer_idx: usize) -> Vec<f32> {
         // Simulate transformer layer computation:
@@ -218,54 +235,56 @@ impl P2PSwarm {
         // 2. Self-attention (simplified)
         // 3. Feed-forward network
         // 4. Residual connection
-        
+
         let hidden_size = shape.last().copied().unwrap_or(1);
         let seq_len = input.len() / hidden_size;
-        
+
         // Layer normalization parameters (simulated)
-        let gamma: Vec<f32> = (0..hidden_size).map(|i| 1.0 + (i as f32 % 10.0) * 0.01).collect();
+        let gamma: Vec<f32> = (0..hidden_size)
+            .map(|i| 1.0 + (i as f32 % 10.0) * 0.01)
+            .collect();
         let beta: Vec<f32> = (0..hidden_size).map(|i| (i as f32 % 5.0) * 0.001).collect();
-        
+
         // Compute mean and variance for layer norm
         let mut output = Vec::with_capacity(input.len());
-        
+
         for pos in 0..seq_len {
             let start = pos * hidden_size;
             let end = start + hidden_size;
             let slice = &input[start..end.min(input.len())];
-            
+
             // Mean
             let mean: f32 = slice.iter().sum::<f32>() / slice.len() as f32;
-            
+
             // Variance
-            let variance: f32 = slice.iter()
-                .map(|x| (x - mean).powi(2))
-                .sum::<f32>() / slice.len() as f32;
-            
+            let variance: f32 =
+                slice.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / slice.len() as f32;
+
             // Normalize and apply gamma/beta
             for (i, &x) in slice.iter().enumerate() {
                 let normalized = (x - mean) / (variance + 1e-6).sqrt();
-                let scaled = normalized * gamma.get(i).copied().unwrap_or(1.0) 
-                           + beta.get(i).copied().unwrap_or(0.0);
-                
+                let scaled = normalized * gamma.get(i).copied().unwrap_or(1.0)
+                    + beta.get(i).copied().unwrap_or(0.0);
+
                 // Apply position-dependent transformation (simulating attention)
                 let attention_weight = ((pos as f32 + layer_idx as f32) * 0.1).sin() * 0.1 + 1.0;
-                
+
                 // Feed-forward transformation
                 let ff_output = scaled.tanh() * attention_weight;
-                
+
                 // Residual connection
                 output.push(x + ff_output * 0.1); // Residual with small contribution
             }
         }
-        
+
         // Apply ReLU-like nonlinearity to output
         output.into_iter().map(|x| x.max(0.0)).collect()
     }
 
     /// Connect to a peer
     pub async fn connect_to_peer(&self, addr: SocketAddr) -> Result<()> {
-        let socket = TcpStream::connect(addr).await
+        let socket = TcpStream::connect(addr)
+            .await
             .context("Failed to connect to peer")?;
 
         let peer_info = PeerInfo {
@@ -279,8 +298,8 @@ impl P2PSwarm {
 
         let message = SwarmMessage::Handshake(peer_info);
         let bytes = serde_json::to_vec(&message)?;
-        
-        let (mut reader, mut writer) = socket.into_split();
+
+        let (_reader, mut writer) = socket.into_split();
         tokio::spawn(async move {
             let _ = writer.write_all(&bytes).await;
         });
@@ -302,7 +321,7 @@ impl P2PSwarm {
     /// Assign layers to peers
     pub async fn assign_layers(&self, total_layers: usize) -> Result<HashMap<usize, PeerId>> {
         let peers = self.peers.read().await;
-        
+
         if peers.len() < self.min_peers {
             return Err(anyhow::anyhow!(
                 "Not enough peers: need {}, have {}",
@@ -334,33 +353,32 @@ impl P2PSwarm {
                 "Not enough peers for distributed inference"
             ));
         }
-        
+
         // Real distributed inference implementation:
         // 1. Tokenize prompt (simplified - use character-level)
         // 2. Distribute layers across peers
         // 3. Chain outputs through the network
         // 4. Generate tokens autoregressively
-        
+
         let assignments = self.layer_assignments.read().await;
         let total_layers = assignments.len();
-        
+
         if total_layers == 0 {
             // No layer assignments yet, run local inference
             return self.local_inference(prompt, max_tokens).await;
         }
-        
+
         // Convert prompt to tensor (simplified tokenization)
-        let input_tensor: Vec<f32> = prompt.bytes()
-            .map(|b| b as f32 / 255.0)
-            .collect();
+        let input_tensor: Vec<f32> = prompt.bytes().map(|b| b as f32 / 255.0).collect();
         let input_shape = vec![prompt.len()];
-        
+
         // Process through distributed layers
         let mut current_tensor = input_tensor.clone();
-        let mut current_shape = input_shape.clone();
-        
-        for layer_idx in 0..total_layers.min(12) { // Limit to 12 layers for safety
-            if let Some(peer_id) = assignments.get(&layer_idx) {
+        let current_shape = input_shape.clone();
+
+        for layer_idx in 0..total_layers.min(12) {
+            // Limit to 12 layers for safety
+            if let Some(_peer_id) = assignments.get(&layer_idx) {
                 // Send to peer for computation
                 let request = LayerRequest {
                     request_id: uuid::Uuid::new_v4().to_string(),
@@ -368,61 +386,59 @@ impl P2PSwarm {
                     input_tensor: current_tensor.clone(),
                     input_shape: current_shape.clone(),
                 };
-                
+
                 // In production, would send to peer and wait for response
                 // For now, process locally
                 let response = Self::process_layer_request(request).await?;
                 current_tensor = response.output_tensor;
             }
         }
-        
+
         // Generate output tokens (simplified - use tensor statistics)
         let output = self.tensor_to_text(&current_tensor, max_tokens);
-        
+
         Ok(output)
     }
-    
+
     /// Local inference fallback
     async fn local_inference(&self, prompt: &str, max_tokens: u32) -> Result<String> {
         // Simple local inference without distributed processing
         let mut result = String::new();
-        let mut context: Vec<f32> = prompt.bytes()
-            .map(|b| b as f32 / 255.0)
-            .collect();
-        
+        let mut context: Vec<f32> = prompt.bytes().map(|b| b as f32 / 255.0).collect();
+
         for _ in 0..max_tokens {
             // Simple attention-like computation
             let mean = context.iter().sum::<f32>() / context.len() as f32;
-            let variance = context.iter()
-                .map(|x| (x - mean).powi(2))
-                .sum::<f32>() / context.len() as f32;
-            
+            let _variance =
+                context.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / context.len() as f32;
+
             // Generate next token probability distribution
             let prob = (context.last().copied().unwrap_or(0.0) + mean) / 2.0;
-            
+
             // Convert to character
             let byte = ((prob * 255.0).min(255.0).max(0.0)) as u8;
-            if byte >= 32 && byte < 127 {
+            if (32..127).contains(&byte) {
                 result.push(byte as char);
             }
-            
+
             // Update context
             context.push(prob);
             if context.len() > 100 {
                 context.remove(0);
             }
         }
-        
+
         Ok(format!("Generated: {}", result))
     }
-    
+
     /// Convert tensor to text
     fn tensor_to_text(&self, tensor: &[f32], max_len: u32) -> String {
-        tensor.iter()
+        tensor
+            .iter()
             .take(max_len as usize)
             .filter_map(|&v| {
                 let byte = ((v * 255.0).min(255.0).max(0.0)) as u8;
-                if byte >= 32 && byte < 127 {
+                if (32..127).contains(&byte) {
                     Some(byte as char)
                 } else {
                     None
@@ -485,7 +501,7 @@ impl CryptoVerifier {
     /// Sign a computation result
     pub fn sign(&self, data: &[u8]) -> Vec<u8> {
         let mut hasher = Sha256::new();
-        hasher.update(&self.signing_key);
+        hasher.update(self.signing_key);
         hasher.update(data);
         hasher.finalize().to_vec()
     }
@@ -509,7 +525,7 @@ fn rand_key() -> [u8; 32] {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    
+
     let mut key = [0u8; 32];
     let bytes = now.to_le_bytes();
     key[..8].copy_from_slice(&bytes);

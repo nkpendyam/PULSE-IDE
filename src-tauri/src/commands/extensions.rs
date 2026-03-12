@@ -3,8 +3,8 @@
 //! Exposes extension management to the frontend
 
 use crate::extensions::{ExtensionManager, ExtensionMetadata, InstalledExtension};
-use tokio::sync::Mutex;
 use tauri::State;
+use tokio::sync::Mutex;
 
 /// Global extension manager state
 pub struct ExtensionState(pub Mutex<ExtensionManager>);
@@ -26,7 +26,10 @@ pub async fn install_extension_registry(
     extension_id: String,
 ) -> Result<String, String> {
     let mut manager = state.0.lock().await;
-    manager.install(&extension_id).await.map_err(|e| e.to_string())
+    manager
+        .install(&extension_id)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Uninstall extension (registry)

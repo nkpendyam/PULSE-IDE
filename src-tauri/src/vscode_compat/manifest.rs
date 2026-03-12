@@ -2,7 +2,7 @@
 //!
 //! Parses and validates VS Code extension package.json files.
 
-use anyhow::{Result, Context, bail};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -99,16 +99,12 @@ pub struct ExtensionIdentifier {
 /// Extension kind
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ExtensionKind {
     UI,
+    #[default]
     Workspace,
     Web,
-}
-
-impl Default for ExtensionKind {
-    fn default() -> Self {
-        Self::Workspace
-    }
 }
 
 /// Engine requirements
@@ -509,118 +505,127 @@ impl ExtensionManifest {
     /// Load manifest from directory
     pub fn from_dir(dir: &PathBuf) -> Result<Self> {
         let package_json = dir.join("package.json");
-        
+
         if !package_json.exists() {
             bail!("package.json not found in {:?}", dir);
         }
-        
-        let content = std::fs::read_to_string(&package_json)
-            .context("Failed to read package.json")?;
-        
-        let mut manifest: Self = serde_json::from_str(&content)
-            .context("Failed to parse package.json")?;
-        
+
+        let content =
+            std::fs::read_to_string(&package_json).context("Failed to read package.json")?;
+
+        let mut manifest: Self =
+            serde_json::from_str(&content).context("Failed to parse package.json")?;
+
         // Compute identifier
         manifest.identifier = ExtensionIdentifier {
             id: format!("{}.{}", manifest.publisher, manifest.name),
             publisher: manifest.publisher.clone(),
             name: manifest.name.clone(),
         };
-        
+
         // Validate
         manifest.validate()?;
-        
+
         Ok(manifest)
     }
-    
+
     /// Validate manifest
     pub fn validate(&self) -> Result<()> {
         if self.name.is_empty() {
             bail!("Extension name is required");
         }
-        
+
         if self.publisher.is_empty() {
             bail!("Extension publisher is required");
         }
-        
+
         if self.version.is_empty() {
             bail!("Extension version is required");
         }
-        
+
         // Validate version format
         semver::Version::parse(&self.version)
             .map_err(|e| anyhow::anyhow!("Invalid version format: {}", e))?;
-        
+
         // Validate engine compatibility
         if !self.engines.vscode.starts_with('^') && !self.engines.vscode.starts_with('>') {
-            log::warn!("Engine version {} may be too restrictive", self.engines.vscode);
+            log::warn!(
+                "Engine version {} may be too restrictive",
+                self.engines.vscode
+            );
         }
-        
+
         Ok(())
     }
-    
+
     /// Get extension ID
     pub fn id(&self) -> &str {
         &self.identifier.id
     }
-    
+
     /// Check if extension is UI extension
     pub fn is_ui_extension(&self) -> bool {
-        self.extension_kind.as_ref()
+        self.extension_kind
+            .as_ref()
             .map(|k| k.contains(&ExtensionKind::UI))
             .unwrap_or(false)
     }
-    
+
     /// Check if extension is web extension
     pub fn is_web_extension(&self) -> bool {
-        self.extension_kind.as_ref()
+        self.extension_kind
+            .as_ref()
             .map(|k| k.contains(&ExtensionKind::Web))
             .unwrap_or(false)
     }
-    
+
     /// Get activation events
     pub fn get_activation_events(&self) -> &[String] {
         &self.activation_events
     }
-    
+
     /// Check if extension activates on language
     pub fn activates_on_language(&self, language_id: &str) -> bool {
-        self.activation_events.iter().any(|e| {
-            e == "*" || e == &format!("onLanguage:{}", language_id)
-        })
+        self.activation_events
+            .iter()
+            .any(|e| e == "*" || e == &format!("onLanguage:{}", language_id))
     }
-    
+
     /// Check if extension activates on command
     pub fn activates_on_command(&self, command_id: &str) -> bool {
-        self.activation_events.iter().any(|e| {
-            e == "*" || e == &format!("onCommand:{}", command_id)
-        })
+        self.activation_events
+            .iter()
+            .any(|e| e == "*" || e == &format!("onCommand:{}", command_id))
     }
-    
+
     /// Get contributed commands
     pub fn get_commands(&self) -> Vec<&CommandContribution> {
-        self.contributes.as_ref()
+        self.contributes
+            .as_ref()
             .map(|c| c.commands.iter().collect())
             .unwrap_or_default()
     }
-    
+
     /// Get contributed languages
     pub fn get_languages(&self) -> Vec<&LanguageContribution> {
-        self.contributes.as_ref()
+        self.contributes
+            .as_ref()
             .map(|c| c.languages.iter().collect())
             .unwrap_or_default()
     }
-    
+
     /// Get contributed keybindings
     pub fn get_keybindings(&self) -> Vec<&KeybindingContribution> {
-        self.contributes.as_ref()
+        self.contributes
+            .as_ref()
             .map(|c| c.keybindings.iter().collect())
             .unwrap_or_default()
     }
-    
+
     /// Get contributed themes
     pub fn get_themes(&self) -> Vec<&ThemeContribution> {
-        self.contributes.as_ref()
+        self.contributes
+            .as_ref()
             .map(|c| c.themes.iter().collect())
             .unwrap_or_default()
     }
@@ -634,16 +639,19 @@ mod semver {
         pub minor: u32,
         pub patch: u32,
     }
-    
+
     impl Version {
         pub fn parse(s: &str) -> Result<Self, String> {
-            let s = s.trim_start_matches('^').trim_start_matches('~').trim_start_matches('=');
+            let s = s
+                .trim_start_matches('^')
+                .trim_start_matches('~')
+                .trim_start_matches('=');
             let parts: Vec<&str> = s.split('.').collect();
-            
+
             if parts.len() < 2 {
                 return Err("Invalid version format".to_string());
             }
-            
+
             Ok(Self {
                 major: parts[0].parse().map_err(|_| "Invalid major version")?,
                 minor: parts[1].parse().map_err(|_| "Invalid minor version")?,

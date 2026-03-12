@@ -2,14 +2,15 @@
 //!
 //! Client for querying and downloading extensions from VS Code Marketplace.
 
-use anyhow::{Result, Context, bail};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::path::PathBuf;
 
 /// Marketplace API base URL
 const MARKETPLACE_API_URL: &str = "https://marketplace.visualstudio.com/_apis/public/gallery";
-const MARKETPLACE_CDN_URL: &str = "https://marketplace.visualstudio.com/_apis/public/gallery/publishers";
+const MARKETPLACE_CDN_URL: &str =
+    "https://marketplace.visualstudio.com/_apis/public/gallery/publishers";
 
 /// Marketplace client
 #[derive(Debug, Clone)]
@@ -162,7 +163,7 @@ impl MarketplaceClient {
             api_url: MARKETPLACE_API_URL.to_string(),
         }
     }
-    
+
     /// Create with custom API URL (for testing)
     pub fn with_url(api_url: String) -> Self {
         Self {
@@ -170,16 +171,17 @@ impl MarketplaceClient {
             api_url,
         }
     }
-    
+
     /// Search for extensions
     pub async fn search(&self, query: &ExtensionQuery) -> Result<Vec<MarketplaceExtension>> {
         log::info!("Searching marketplace: {:?}", query);
-        
+
         // Build query payload
         let payload = self.build_query_payload(query);
-        
+
         // Send request
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/extensionquery", self.api_url))
             .header("Accept", "application/json;api-version=6.0-preview.1")
             .header("Content-Type", "application/json")
@@ -187,21 +189,23 @@ impl MarketplaceClient {
             .send()
             .await
             .context("Failed to query marketplace")?;
-        
+
         if !response.status().is_success() {
             bail!("Marketplace query failed: {}", response.status());
         }
-        
-        let query_response: QueryResponse = response.json().await
+
+        let query_response: QueryResponse = response
+            .json()
+            .await
             .context("Failed to parse marketplace response")?;
-        
+
         // Parse results
         let extensions = self.parse_query_response(query_response);
-        
+
         log::info!("Found {} extensions", extensions.len());
         Ok(extensions)
     }
-    
+
     /// Get extension by ID
     pub async fn get_extension(&self, extension_id: &str) -> Result<Option<MarketplaceExtension>> {
         let query = ExtensionQuery {
@@ -210,131 +214,135 @@ impl MarketplaceClient {
             include_files: true,
             ..Default::default()
         };
-        
+
         let results = self.search(&query).await?;
         Ok(results.into_iter().next())
     }
-    
+
     /// Download extension VSIX
-    pub async fn download_extension(&self, publisher: &str, name: &str, version: &str) -> Result<PathBuf> {
+    pub async fn download_extension(
+        &self,
+        publisher: &str,
+        name: &str,
+        version: &str,
+    ) -> Result<PathBuf> {
         log::info!("Downloading extension: {}/{}@{}", publisher, name, version);
-        
+
         // Construct download URL
         let url = format!(
             "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/{}/vsextensions/{}/{}?targetPlatform=universal",
             publisher, name, version
         );
-        
-        let response = self.client
+
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/octet-stream")
             .send()
             .await
             .context("Failed to download extension")?;
-        
+
         if !response.status().is_success() {
             bail!("Extension download failed: {}", response.status());
         }
-        
+
         // Save to temp file
         let temp_dir = std::env::temp_dir();
         let vsix_path = temp_dir.join(format!("{}-{}-{}.vsix", publisher, name, version));
-        
+
         let bytes = response.bytes().await?;
         std::fs::write(&vsix_path, bytes)?;
-        
+
         log::info!("Extension downloaded to: {:?}", vsix_path);
         Ok(vsix_path)
     }
-    
+
     /// Get extension readme
-    pub async fn get_readme(&self, publisher: &str, name: &str, version: &str) -> Result<String> {
-        let url = format!(
-            "{}/{}/{}/README.md",
-            MARKETPLACE_CDN_URL, publisher, name
-        );
-        
-        let response = self.client
-            .get(&url)
-            .send()
-            .await?;
-        
+    pub async fn get_readme(&self, publisher: &str, name: &str, _version: &str) -> Result<String> {
+        let url = format!("{}/{}/{}/README.md", MARKETPLACE_CDN_URL, publisher, name);
+
+        let response = self.client.get(&url).send().await?;
+
         if response.status().is_success() {
             Ok(response.text().await?)
         } else {
             Ok("No readme available".to_string())
         }
     }
-    
+
     /// Get popular extensions
     pub async fn get_popular(&self, count: u32) -> Result<Vec<MarketplaceExtension>> {
         let query = ExtensionQuery {
             include_statistics: true,
             ..Default::default()
         };
-        
+
         let mut results = self.search(&query).await?;
         results.sort_by(|a, b| b.install_count.cmp(&a.install_count));
         results.truncate(count as usize);
-        
+
         Ok(results)
     }
-    
+
     /// Get extensions by category
-    pub async fn get_by_category(&self, category: &str, count: u32) -> Result<Vec<MarketplaceExtension>> {
+    pub async fn get_by_category(
+        &self,
+        category: &str,
+        count: u32,
+    ) -> Result<Vec<MarketplaceExtension>> {
         let query = ExtensionQuery {
             category: Some(category.to_string()),
             include_category: true,
             ..Default::default()
         };
-        
+
         let mut results = self.search(&query).await?;
         results.truncate(count as usize);
-        
+
         Ok(results)
     }
-    
+
     /// Build query payload
     fn build_query_payload(&self, query: &ExtensionQuery) -> serde_json::Value {
         let mut filters = vec![];
-        
+
         // Build filter criteria
         let mut criteria = vec![];
-        
+
         if let Some(ref id) = query.extension_id {
             criteria.push(json!({
                 "filterType": 7,
                 "value": id
             }));
         }
-        
+
         if let Some(ref search) = query.search_text {
             criteria.push(json!({
                 "filterType": 8,
                 "value": search
             }));
         }
-        
+
         if let Some(ref category) = query.category {
             criteria.push(json!({
                 "filterType": 5,
                 "value": category
             }));
         }
-        
+
         if let Some(ref target) = query.target {
             criteria.push(json!({
                 "filterType": 15,
                 "value": target
             }));
         }
-        
+
         // Default sort by install count
         criteria.push(json!({
             "filterType": 12,
             "value": "4096"
         }));
-        
+
         // Build flags
         let mut flags = 0x1; // Include versions
         if query.include_files {
@@ -346,7 +354,7 @@ impl MarketplaceClient {
         if query.include_statistics {
             flags |= 0x8;
         }
-        
+
         filters.push(json!({
             "criteria": criteria,
             "pageSize": 100,
@@ -354,62 +362,86 @@ impl MarketplaceClient {
             "sortBy": 4, // Install count
             "sortOrder": 1 // Descending
         }));
-        
+
         json!({
             "filters": filters,
             "assetTypes": [],
             "flags": flags
         })
     }
-    
+
     /// Parse query response
     fn parse_query_response(&self, response: QueryResponse) -> Vec<MarketplaceExtension> {
         let mut extensions = Vec::new();
-        
+
         for result in response.results {
             for ext in result.extensions {
                 let latest_version = ext.versions.first();
-                
-                let install_count = ext.statistics.as_ref()
+
+                let install_count = ext
+                    .statistics
+                    .as_ref()
                     .and_then(|stats| stats.iter().find(|s| s.statistic_name == "install"))
                     .map(|s| s.value)
                     .unwrap_or(0);
-                
-                let download_count = ext.statistics.as_ref()
+
+                let download_count = ext
+                    .statistics
+                    .as_ref()
                     .and_then(|stats| stats.iter().find(|s| s.statistic_name == "downloadCount"))
                     .map(|s| s.value)
                     .unwrap_or(0);
-                
-                let average_rating = ext.statistics.as_ref()
+
+                let average_rating = ext
+                    .statistics
+                    .as_ref()
                     .and_then(|stats| stats.iter().find(|s| s.statistic_name == "averagerating"))
                     .map(|s| s.value as f32);
-                
-                let rating_count = ext.statistics.as_ref()
+
+                let rating_count = ext
+                    .statistics
+                    .as_ref()
                     .and_then(|stats| stats.iter().find(|s| s.statistic_name == "ratingcount"))
                     .map(|s| s.value as u32)
                     .unwrap_or(0);
-                
+
                 let icon_url = latest_version
-                    .and_then(|v| v.files.iter().find(|f| f.asset_type == "Microsoft.VisualStudio.Services.Icons.Default"))
+                    .and_then(|v| {
+                        v.files.iter().find(|f| {
+                            f.asset_type == "Microsoft.VisualStudio.Services.Icons.Default"
+                        })
+                    })
                     .map(|f| f.source.clone());
-                
+
                 let readme_url = latest_version
-                    .and_then(|v| v.files.iter().find(|f| f.asset_type == "Microsoft.VisualStudio.Services.Content.Details"))
+                    .and_then(|v| {
+                        v.files.iter().find(|f| {
+                            f.asset_type == "Microsoft.VisualStudio.Services.Content.Details"
+                        })
+                    })
                     .map(|f| f.source.clone());
-                
+
                 let repository = latest_version
                     .and_then(|v| v.properties.as_ref())
-                    .and_then(|props| props.iter().find(|p| p.key == "Microsoft.VisualStudio.Services.Links.Source"))
+                    .and_then(|props| {
+                        props
+                            .iter()
+                            .find(|p| p.key == "Microsoft.VisualStudio.Services.Links.Source")
+                    })
                     .map(|p| p.value.clone());
-                
+
                 extensions.push(MarketplaceExtension {
                     extension_id: ext.extension_id,
                     extension_name: ext.extension_name,
                     publisher_name: ext.publisher.publisher_name,
                     display_name: ext.display_name,
                     short_description: ext.short_description,
-                    version: latest_version.map(|v| v.version.clone()).unwrap_or_default(),
-                    last_updated: latest_version.map(|v| v.last_updated.clone()).unwrap_or_default(),
+                    version: latest_version
+                        .map(|v| v.version.clone())
+                        .unwrap_or_default(),
+                    last_updated: latest_version
+                        .map(|v| v.last_updated.clone())
+                        .unwrap_or_default(),
                     download_count,
                     install_count,
                     average_rating,
@@ -423,7 +455,7 @@ impl MarketplaceClient {
                 });
             }
         }
-        
+
         extensions
     }
 }
@@ -437,7 +469,7 @@ impl Default for MarketplaceClient {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     #[ignore] // Requires network access
     async fn test_search_extensions() {
@@ -446,11 +478,11 @@ mod tests {
             search_text: Some("python".to_string()),
             ..Default::default()
         };
-        
+
         let results = client.search(&query).await.unwrap();
         assert!(!results.is_empty());
     }
-    
+
     #[test]
     fn test_build_query_payload() {
         let client = MarketplaceClient::new();
@@ -459,7 +491,7 @@ mod tests {
             include_statistics: true,
             ..Default::default()
         };
-        
+
         let payload = client.build_query_payload(&query);
         assert!(payload["filters"].as_array().unwrap().len() > 0);
     }

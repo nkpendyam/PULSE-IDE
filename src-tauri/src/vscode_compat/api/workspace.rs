@@ -19,14 +19,20 @@ pub struct WorkspaceConfiguration {
 
 impl WorkspaceConfiguration {
     pub fn new() -> Self {
-        Self { values: std::collections::HashMap::new() }
+        Self {
+            values: std::collections::HashMap::new(),
+        }
     }
 
     pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.values.get(key).and_then(|v| serde_json::from_value(v.clone()).ok())
+        self.values
+            .get(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
 }
 
 impl Default for WorkspaceConfiguration {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

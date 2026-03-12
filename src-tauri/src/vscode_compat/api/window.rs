@@ -5,7 +5,10 @@ use serde::{Deserialize, Serialize};
 
 /// Status bar item alignment
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum StatusBarAlignment { Left, Right }
+pub enum StatusBarAlignment {
+    Left,
+    Right,
+}
 
 /// Status bar item
 #[derive(Debug, Clone, Serialize, Deserialize)]

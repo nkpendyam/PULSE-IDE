@@ -3,16 +3,15 @@
 //! Implements WebRTC-based peer connections for internet-based collaboration.
 //! Uses tokio-tungstenite for signaling and manages peer connections.
 
-use anyhow::{Result, Context, bail};
+use anyhow::{bail, Context, Result};
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex, mpsc, broadcast};
-use serde::{Deserialize, Serialize};
-use futures_util::{SinkExt, StreamExt};
-use tokio_tungstenite::{WebSocketStream, connect_async, tungstenite::Message as WsMessage};
-use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+use tokio::sync::{broadcast, mpsc, Mutex, RwLock};
+use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
 
-use super::{PeerId, Peer, PeerMessage, StateChange};
+use super::{Peer, PeerId, PeerMessage};
 
 /// WebRTC signaling server URL
 pub const DEFAULT_SIGNALING_SERVER: &str = "wss://signal.kyro.app";
@@ -156,7 +155,7 @@ impl WebRTCManager {
     pub fn new(local_peer_id: PeerId, config: WebRTCConfig) -> (Self, mpsc::Receiver<PeerMessage>) {
         let (message_tx, message_rx) = mpsc::channel(100);
         let (event_tx, _) = broadcast::channel(64);
-        
+
         (
             Self {
                 config,
@@ -170,23 +169,27 @@ impl WebRTCManager {
             message_rx,
         )
     }
-    
+
     /// Connect to signaling server
-    pub async fn connect_signaling(&mut self, display_name: String, public_key: Vec<u8>) -> Result<()> {
+    pub async fn connect_signaling(
+        &mut self,
+        display_name: String,
+        public_key: Vec<u8>,
+    ) -> Result<()> {
         let url = self.config.signaling_server.clone();
         let (ws_stream, _) = connect_async(&url)
             .await
             .context("Failed to connect to signaling server")?;
-        
+
         log::info!("Connected to signaling server: {}", url);
-        
+
         let (write, mut read) = ws_stream.split();
         let write = Arc::new(Mutex::new(write));
-        
+
         // Create signaling channel
         let (tx, mut rx) = mpsc::channel::<SignalingMessage>(64);
         self.signaling_tx = Some(tx);
-        
+
         // Send registration
         let register = SignalingMessage::Register {
             peer_id: self.local_peer_id.clone(),
@@ -194,7 +197,7 @@ impl WebRTCManager {
             public_key,
         };
         self.send_signaling_message(&register).await?;
-        
+
         // Spawn message sender
         let write_clone = write.clone();
         let running = self.running.clone();
@@ -202,30 +205,30 @@ impl WebRTCManager {
             while let Some(msg) = rx.recv().await {
                 let json = serde_json::to_string(&msg).unwrap_or_default();
                 let ws_msg = WsMessage::Text(json);
-                
+
                 if let Err(e) = write_clone.lock().await.send(ws_msg).await {
                     log::error!("Failed to send signaling message: {}", e);
                     break;
                 }
-                
+
                 if !*running.lock().await {
                     break;
                 }
             }
         });
-        
+
         // Spawn message receiver
         let connections = self.connections.clone();
         let event_tx = self.event_tx.clone();
         let message_tx = self.message_tx.clone();
         let running = self.running.clone();
-        
+
         tokio::spawn(async move {
             while let Some(msg_result) = read.next().await {
                 if !*running.lock().await {
                     break;
                 }
-                
+
                 match msg_result {
                     Ok(WsMessage::Text(text)) => {
                         if let Ok(signaling_msg) = serde_json::from_str::<SignalingMessage>(&text) {
@@ -234,7 +237,8 @@ impl WebRTCManager {
                                 &connections,
                                 &event_tx,
                                 &message_tx,
-                            ).await;
+                            )
+                            .await;
                         }
                     }
                     Ok(WsMessage::Ping(data)) => {
@@ -255,33 +259,34 @@ impl WebRTCManager {
                 }
             }
         });
-        
+
         *self.running.lock().await = true;
         let _ = self.event_tx.send(ConnectionEvent::SignalingConnected);
-        
+
         Ok(())
     }
-    
+
     /// Send signaling message
     async fn send_signaling_message(&self, msg: &SignalingMessage) -> Result<()> {
         if let Some(tx) = &self.signaling_tx {
-            tx.send(msg.clone()).await
+            tx.send(msg.clone())
+                .await
                 .context("Failed to send signaling message")?;
         }
         Ok(())
     }
-    
+
     /// Handle incoming signaling message
     async fn handle_signaling_message(
         msg: SignalingMessage,
         connections: &Arc<RwLock<HashMap<PeerId, PeerConnection>>>,
         event_tx: &broadcast::Sender<ConnectionEvent>,
-        message_tx: &mpsc::Sender<PeerMessage>,
+        _message_tx: &mpsc::Sender<PeerMessage>,
     ) {
         match msg {
             SignalingMessage::Offer { from, sdp, .. } => {
                 log::info!("Received offer from peer: {}", from.as_str());
-                
+
                 // Store remote SDP and create answer
                 let mut conns = connections.write().await;
                 if let Some(conn) = conns.get_mut(&from) {
@@ -291,18 +296,20 @@ impl WebRTCManager {
             }
             SignalingMessage::Answer { from, sdp, .. } => {
                 log::info!("Received answer from peer: {}", from.as_str());
-                
+
                 let mut conns = connections.write().await;
                 if let Some(conn) = conns.get_mut(&from) {
                     conn.remote_sdp = Some(sdp);
                     conn.state = ConnectionState::Connected;
                 }
-                
+
                 let _ = event_tx.send(ConnectionEvent::PeerConnected(from));
             }
-            SignalingMessage::IceCandidate { from, candidate, .. } => {
+            SignalingMessage::IceCandidate {
+                from, candidate, ..
+            } => {
                 log::debug!("Received ICE candidate from peer: {}", from.as_str());
-                
+
                 let mut conns = connections.write().await;
                 if let Some(conn) = conns.get_mut(&from) {
                     conn.ice_candidates.push(candidate);
@@ -310,24 +317,27 @@ impl WebRTCManager {
             }
             SignalingMessage::PeerJoined(peer) => {
                 log::info!("Peer joined: {}", peer.name);
-                
+
                 // Create new connection entry
                 let mut conns = connections.write().await;
-                conns.insert(peer.id.clone(), PeerConnection {
-                    peer_id: peer.id.clone(),
-                    state: ConnectionState::New,
-                    local_sdp: None,
-                    remote_sdp: None,
-                    ice_candidates: Vec::new(),
-                    pending_messages: Vec::new(),
-                });
+                conns.insert(
+                    peer.id.clone(),
+                    PeerConnection {
+                        peer_id: peer.id.clone(),
+                        state: ConnectionState::New,
+                        local_sdp: None,
+                        remote_sdp: None,
+                        ice_candidates: Vec::new(),
+                        pending_messages: Vec::new(),
+                    },
+                );
             }
             SignalingMessage::PeerLeft(peer_id) => {
                 log::info!("Peer left: {}", peer_id.as_str());
-                
+
                 let mut conns = connections.write().await;
                 conns.remove(&peer_id);
-                
+
                 let _ = event_tx.send(ConnectionEvent::PeerDisconnected(peer_id));
             }
             SignalingMessage::Error { message } => {
@@ -341,7 +351,7 @@ impl WebRTCManager {
             }
         }
     }
-    
+
     /// Connect to a peer
     pub async fn connect_to_peer(&self, peer_id: PeerId) -> Result<()> {
         // Create new connection
@@ -353,39 +363,42 @@ impl WebRTCManager {
             ice_candidates: Vec::new(),
             pending_messages: Vec::new(),
         };
-        
+
         self.connections.write().await.insert(peer_id.clone(), conn);
-        
+
         // For WebRTC, we would create an offer here
         // Since we're using WebSocket for signaling, we simulate the connection
         log::info!("Initiating connection to peer: {}", peer_id.as_str());
-        
+
         // Simulate offer
         let offer = SessionDescription {
-            sdp: format!("v=0\r\no=- {} 0 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n", 
-                chrono::Utc::now().timestamp()),
+            sdp: format!(
+                "v=0\r\no=- {} 0 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n",
+                chrono::Utc::now().timestamp()
+            ),
             r#type: "offer".to_string(),
         };
-        
+
         self.send_signaling_message(&SignalingMessage::Offer {
             from: self.local_peer_id.clone(),
             to: peer_id,
             sdp: offer,
-        }).await?;
-        
+        })
+        .await?;
+
         Ok(())
     }
-    
+
     /// Send message to peer
     pub async fn send_to(&self, peer_id: &PeerId, message: PeerMessage) -> Result<()> {
         let connections = self.connections.read().await;
-        
+
         match connections.get(peer_id) {
             Some(conn) if conn.state == ConnectionState::Connected => {
                 // Serialize and send via WebSocket
-                let json = serde_json::to_string(&message)
-                    .context("Failed to serialize message")?;
-                
+                let json =
+                    serde_json::to_string(&message).context("Failed to serialize message")?;
+
                 // In a real WebRTC implementation, this would go through data channel
                 // For now, we use the signaling channel for simplicity
                 let signaling_msg = SignalingMessage::Offer {
@@ -396,16 +409,19 @@ impl WebRTCManager {
                         r#type: "data".to_string(),
                     },
                 };
-                
+
                 self.send_signaling_message(&signaling_msg).await?;
                 log::debug!("Sent message to peer {}", peer_id.as_str());
             }
             Some(conn) => {
                 // Queue message for later
-                log::debug!("Peer {} not connected (state: {:?}), queuing message", 
-                    peer_id.as_str(), conn.state);
+                log::debug!(
+                    "Peer {} not connected (state: {:?}), queuing message",
+                    peer_id.as_str(),
+                    conn.state
+                );
                 drop(connections);
-                
+
                 let mut conns = self.connections.write().await;
                 if let Some(c) = conns.get_mut(peer_id) {
                     c.pending_messages.push(message);
@@ -415,10 +431,10 @@ impl WebRTCManager {
                 bail!("No connection to peer {}", peer_id.as_str());
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Broadcast message to all connected peers
     pub async fn broadcast(&self, message: PeerMessage) -> Result<()> {
         let connections = self.connections.read().await;
@@ -428,42 +444,44 @@ impl WebRTCManager {
             .map(|(id, _)| id.clone())
             .collect();
         drop(connections);
-        
+
         for peer_id in &peer_ids {
             self.send_to(peer_id, message.clone()).await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Disconnect from a peer
     pub async fn disconnect(&self, peer_id: &PeerId) -> Result<()> {
         let mut connections = self.connections.write().await;
-        
+
         if let Some(mut conn) = connections.remove(peer_id) {
             conn.state = ConnectionState::Closed;
             log::info!("Disconnected from peer {}", peer_id.as_str());
         }
-        
-        let _ = self.event_tx.send(ConnectionEvent::PeerDisconnected(peer_id.clone()));
-        
+
+        let _ = self
+            .event_tx
+            .send(ConnectionEvent::PeerDisconnected(peer_id.clone()));
+
         Ok(())
     }
-    
+
     /// Disconnect from all peers
     pub async fn disconnect_all(&self) -> Result<()> {
         let mut connections = self.connections.write().await;
-        
+
         for (_, conn) in connections.iter_mut() {
             conn.state = ConnectionState::Closed;
         }
-        
+
         connections.clear();
         log::info!("Disconnected from all peers");
-        
+
         Ok(())
     }
-    
+
     /// Get connected peers
     pub async fn get_connected_peers(&self) -> Vec<PeerId> {
         self.connections
@@ -474,21 +492,17 @@ impl WebRTCManager {
             .map(|(id, _)| id.clone())
             .collect()
     }
-    
+
     /// Get connection state
     pub async fn get_connection_state(&self, peer_id: &PeerId) -> Option<ConnectionState> {
-        self.connections
-            .read()
-            .await
-            .get(peer_id)
-            .map(|c| c.state)
+        self.connections.read().await.get(peer_id).map(|c| c.state)
     }
-    
+
     /// Subscribe to connection events
     pub fn subscribe(&self) -> broadcast::Receiver<ConnectionEvent> {
         self.event_tx.subscribe()
     }
-    
+
     /// Shutdown
     pub async fn shutdown(&self) -> Result<()> {
         *self.running.lock().await = false;
@@ -501,23 +515,23 @@ impl WebRTCManager {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_config_default() {
         let config = WebRTCConfig::default();
         assert!(!config.stun_servers.is_empty());
         assert!(config.ice_gathering);
     }
-    
+
     #[tokio::test]
     async fn test_manager_creation() {
         let peer_id = PeerId::new();
         let (manager, _rx) = WebRTCManager::new(peer_id, WebRTCConfig::default());
-        
+
         let peers = manager.get_connected_peers().await;
         assert!(peers.is_empty());
     }
-    
+
     #[test]
     fn test_signaling_message_serialization() {
         let msg = SignalingMessage::Offer {
@@ -528,10 +542,10 @@ mod tests {
                 r#type: "offer".to_string(),
             },
         };
-        
+
         let json = serde_json::to_string(&msg).unwrap();
         let decoded: SignalingMessage = serde_json::from_str(&json).unwrap();
-        
+
         match decoded {
             SignalingMessage::Offer { .. } => (),
             _ => panic!("Wrong message type"),

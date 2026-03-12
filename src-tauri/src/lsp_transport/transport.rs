@@ -3,15 +3,15 @@
 //! Implements LSP message transport over stdio and TCP sockets.
 //! Based on: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/
 
-use std::io::{self, BufRead, BufReader, Read, Write};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-use std::sync::Arc;
-use std::collections::HashMap;
-use tokio::sync::{mpsc, RwLock, oneshot};
+use anyhow::{Context, Result};
+use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use anyhow::{Result, Context};
-use log::{debug, error, info, warn};
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Read, Write};
+use std::process::{Child, ChildStdin, Command, Stdio};
+use std::sync::Arc;
+use tokio::sync::{mpsc, oneshot, RwLock};
 
 /// LSP Message types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,34 +163,35 @@ impl LspTransport {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        
+
         for (key, value) in &config.env {
             cmd.env(key, value);
         }
-        
+
         if let Some(cwd) = &config.cwd {
             cmd.current_dir(cwd);
         }
-        
-        let mut process = cmd.spawn()
+
+        let mut process = cmd
+            .spawn()
             .with_context(|| format!("Failed to start language server: {}", config.command))?;
-        
+
         let stdin = process.stdin.take().context("Failed to get stdin")?;
         let stdout = process.stdout.take().context("Failed to get stdout")?;
-        
+
         let pending: PendingRequests = Arc::new(RwLock::new(HashMap::new()));
         let capabilities = Arc::new(RwLock::new(None));
         let (shutdown_tx, shutdown_rx) = mpsc::channel(1);
-        
+
         // Spawn reader task
         let pending_clone = pending.clone();
         let capabilities_clone = capabilities.clone();
         tokio::spawn(async move {
             Self::read_loop(stdout, pending_clone, capabilities_clone, shutdown_rx).await;
         });
-        
+
         info!("LSP transport started for {}", config.command);
-        
+
         Ok(Self {
             process: Some(process),
             stdin: Some(stdin),
@@ -200,29 +201,29 @@ impl LspTransport {
             capabilities,
         })
     }
-    
+
     /// Read loop for handling incoming messages
     async fn read_loop(
         stdout: std::process::ChildStdout,
         pending: PendingRequests,
-        capabilities: Arc<RwLock<Option<Value>>>,
+        _capabilities: Arc<RwLock<Option<Value>>>,
         mut shutdown_rx: mpsc::Receiver<()>,
     ) {
         let mut reader = BufReader::new(stdout);
         let mut content_length = 0;
-        
+
         'outer: loop {
             // Check for shutdown
             if shutdown_rx.try_recv().is_ok() {
                 break;
             }
-            
+
             // Read headers
             let mut line = String::new();
             loop {
                 line.clear();
                 match reader.read_line(&mut line) {
-                    Ok(0) => break 'outer,  // EOF
+                    Ok(0) => break 'outer, // EOF
                     Ok(_) => {
                         let l = line.trim().to_string();
                         if l.is_empty() {
@@ -239,21 +240,21 @@ impl LspTransport {
                     }
                 }
             }
-            
+
             if content_length == 0 {
                 continue;
             }
-            
+
             // Read content
             let mut buffer = vec![0u8; content_length];
             if let Err(e) = reader.read_exact(&mut buffer) {
                 error!("Failed to read LSP message: {}", e);
                 break;
             }
-            
+
             let content = String::from_utf8_lossy(&buffer);
             debug!("LSP received: {}", content);
-            
+
             // Parse message
             if let Ok(msg) = serde_json::from_str::<LspMessage>(&content) {
                 match msg {
@@ -261,7 +262,11 @@ impl LspTransport {
                         let mut pending_guard = pending.write().await;
                         if let Some(tx) = pending_guard.remove(&response.id) {
                             let result = if let Some(error) = response.error {
-                                Err(anyhow::anyhow!("LSP error: {} - {}", error.code, error.message))
+                                Err(anyhow::anyhow!(
+                                    "LSP error: {} - {}",
+                                    error.code,
+                                    error.message
+                                ))
                             } else {
                                 Ok(response.result.unwrap_or(Value::Null))
                             };
@@ -278,11 +283,11 @@ impl LspTransport {
                     }
                 }
             }
-            
+
             content_length = 0;
         }
     }
-    
+
     /// Send a request and wait for response
     pub async fn send_request(&mut self, method: &str, params: Option<Value>) -> Result<Value> {
         let id = {
@@ -290,28 +295,28 @@ impl LspTransport {
             *id += 1;
             *id
         };
-        
+
         let request = LspRequest {
             jsonrpc: "2.0".to_string(),
             id,
             method: method.to_string(),
             params,
         };
-        
+
         let (tx, rx) = oneshot::channel();
         {
             let mut pending = self.pending.write().await;
             pending.insert(id, tx);
         }
-        
+
         // Send request
         let content = serde_json::to_string(&request)?;
         self.send_message(&content)?;
-        
+
         // Wait for response
         rx.await.context("Request cancelled")?
     }
-    
+
     /// Send a notification (no response expected)
     pub fn send_notification(&mut self, method: &str, params: Option<Value>) -> Result<()> {
         let notification = LspNotification {
@@ -319,11 +324,11 @@ impl LspTransport {
             method: method.to_string(),
             params,
         };
-        
+
         let content = serde_json::to_string(&notification)?;
         self.send_message(&content)
     }
-    
+
     /// Send raw message with Content-Length header
     fn send_message(&mut self, content: &str) -> Result<()> {
         let stdin = self.stdin.as_mut().context("stdin not available")?;
@@ -334,7 +339,7 @@ impl LspTransport {
         debug!("LSP sent: {}", content);
         Ok(())
     }
-    
+
     /// Initialize the language server
     pub async fn initialize(&mut self, root_uri: &str, capabilities: Value) -> Result<Value> {
         let params = json!({
@@ -343,44 +348,44 @@ impl LspTransport {
             "capabilities": capabilities,
             "trace": "verbose",
         });
-        
+
         let result = self.send_request("initialize", Some(params)).await?;
-        
+
         // Store capabilities
         {
             let mut caps = self.capabilities.write().await;
             *caps = Some(result.clone());
         }
-        
+
         // Send initialized notification
         self.send_notification("initialized", Some(json!({})))?;
-        
+
         info!("LSP initialized: {}", root_uri);
         Ok(result)
     }
-    
+
     /// Shutdown the language server
     pub async fn shutdown(&mut self) -> Result<()> {
         // Send shutdown request
         let _ = self.send_request("shutdown", None).await;
-        
+
         // Send exit notification
         self.send_notification("exit", None)?;
-        
+
         // Signal reader to stop
         if let Some(tx) = self.shutdown_tx.take() {
             let _ = tx.send(()).await;
         }
-        
+
         // Wait for process to exit
         if let Some(mut process) = self.process.take() {
             let _ = process.wait();
         }
-        
+
         info!("LSP transport shutdown complete");
         Ok(())
     }
-    
+
     /// Get server capabilities
     pub async fn get_capabilities(&self) -> Option<Value> {
         self.capabilities.read().await.clone()

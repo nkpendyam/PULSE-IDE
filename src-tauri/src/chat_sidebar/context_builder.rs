@@ -3,8 +3,7 @@
 //! Builds rich context for LLM from code, RAG, and project structure
 
 use super::*;
-use anyhow::{Result, Context};
-use std::path::{Path, PathBuf};
+use anyhow::Result;
 use std::collections::HashSet;
 
 /// Context builder for creating rich prompts
@@ -24,7 +23,7 @@ impl ContextBuilder {
     /// Build context from multiple sources
     pub fn build(
         &self,
-        query: &str,
+        _query: &str,
         current_file: Option<&CodeSnippet>,
         open_files: &[CodeSnippet],
         rag_results: &[RagSource],
@@ -126,16 +125,15 @@ impl ContextBuilder {
 
     /// Format file context
     fn format_file_context(&self, file: &CodeSnippet, is_current: bool) -> String {
-        let header = if is_current { "[CURRENT FILE]" } else { "[OPEN FILE]" };
+        let header = if is_current {
+            "[CURRENT FILE]"
+        } else {
+            "[OPEN FILE]"
+        };
 
         format!(
             "{} {} (lines {}-{})\n```{}\n{}\n```",
-            header,
-            file.file_path,
-            file.start_line,
-            file.end_line,
-            file.language,
-            file.content
+            header, file.file_path, file.start_line, file.end_line, file.language, file.content
         )
     }
 
@@ -153,7 +151,9 @@ impl ContextBuilder {
 
     /// Render context to string
     pub fn render(&self, context: &BuildContext) -> String {
-        context.parts.iter()
+        context
+            .parts
+            .iter()
             .map(|p| match p {
                 ContextPart::ProjectStructure(s) => s.clone(),
                 ContextPart::CurrentFile(s) => s.clone(),
@@ -210,14 +210,20 @@ impl TokenEstimator {
     pub fn estimate(&self, text: &str) -> usize {
         // More accurate for code: count whitespace + punctuation separately
         let char_count = text.chars().count();
-        let word_count = text.split_whitespace().count();
+        let _word_count = text.split_whitespace().count();
 
         // Code typically has more tokens per word due to symbols
         let base_estimate = (char_count as f32 / self.avg_chars_per_token) as usize;
 
         // Adjust for code symbols
-        let symbol_count = text.chars()
-            .filter(|c| matches!(c, '{' | '}' | '(' | ')' | '[' | ']' | ';' | ',' | '.' | ':' | '=' | '<' | '>'))
+        let symbol_count = text
+            .chars()
+            .filter(|c| {
+                matches!(
+                    c,
+                    '{' | '}' | '(' | ')' | '[' | ']' | ';' | ',' | '.' | ':' | '=' | '<' | '>'
+                )
+            })
             .count();
 
         base_estimate + (symbol_count / 2)
@@ -259,13 +265,9 @@ mod tests {
             language: "rust".to_string(),
         };
 
-        let context = builder.build(
-            "what does this code do?",
-            Some(&file),
-            &[],
-            &[],
-            None,
-        ).unwrap();
+        let context = builder
+            .build("what does this code do?", Some(&file), &[], &[], None)
+            .unwrap();
 
         assert!(!context.parts.is_empty());
         assert!(context.included_files.contains(&"test.rs".to_string()));

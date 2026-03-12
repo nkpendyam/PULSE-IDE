@@ -1,5 +1,5 @@
 //! OAuth Integration
-//! 
+//!
 //! OAuth providers for social login (GitHub, Google, GitLab)
 //! Based on standard OAuth 2.0 flows
 
@@ -144,14 +144,18 @@ impl OAuthManager {
     }
 
     async fn exchange_github_code(&self, code: String) -> anyhow::Result<OAuthProfile> {
-        let config = self.config.github.as_ref()
+        let config = self
+            .config
+            .github
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("GitHub OAuth not configured"))?;
 
         // Exchange code for access token
         let token_url = "https://github.com/login/oauth/access_token";
         let client = reqwest::Client::new();
-        
-        let response = client.post(token_url)
+
+        let response = client
+            .post(token_url)
             .header("Accept", "application/json")
             .json(&serde_json::json!({
                 "client_id": config.client_id,
@@ -170,7 +174,8 @@ impl OAuthManager {
         let token: TokenResponse = response.json().await?;
 
         // Get user profile
-        let user_response = client.get("https://api.github.com/user")
+        let user_response = client
+            .get("https://api.github.com/user")
             .header("Authorization", format!("token {}", token.access_token))
             .header("User-Agent", "KYRO-IDE")
             .send()
@@ -198,12 +203,16 @@ impl OAuthManager {
     }
 
     async fn exchange_google_code(&self, code: String) -> anyhow::Result<OAuthProfile> {
-        let config = self.config.google.as_ref()
+        let config = self
+            .config
+            .google
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Google OAuth not configured"))?;
 
         let client = reqwest::Client::new();
-        
-        let response = client.post("https://oauth2.googleapis.com/token")
+
+        let response = client
+            .post("https://oauth2.googleapis.com/token")
             .form(&[
                 ("client_id", config.client_id.as_str()),
                 ("client_secret", config.client_secret.as_str()),
@@ -221,7 +230,8 @@ impl OAuthManager {
 
         let token: TokenResponse = response.json().await?;
 
-        let user_response = client.get("https://www.googleapis.com/oauth2/v2/userinfo")
+        let user_response = client
+            .get("https://www.googleapis.com/oauth2/v2/userinfo")
             .header("Authorization", format!("Bearer {}", token.access_token))
             .send()
             .await?;
@@ -247,13 +257,17 @@ impl OAuthManager {
     }
 
     async fn exchange_gitlab_code(&self, code: String) -> anyhow::Result<OAuthProfile> {
-        let config = self.config.gitlab.as_ref()
+        let config = self
+            .config
+            .gitlab
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("GitLab OAuth not configured"))?;
 
         let client = reqwest::Client::new();
         let token_url = format!("{}/oauth/token", config.gitlab_url);
-        
-        let response = client.post(&token_url)
+
+        let response = client
+            .post(&token_url)
             .form(&[
                 ("client_id", config.client_id.as_str()),
                 ("client_secret", config.client_secret.as_str()),
@@ -272,7 +286,8 @@ impl OAuthManager {
         let token: TokenResponse = response.json().await?;
 
         let user_url = format!("{}/api/v4/user", config.gitlab_url);
-        let user_response = client.get(&user_url)
+        let user_response = client
+            .get(&user_url)
             .header("Authorization", format!("Bearer {}", token.access_token))
             .send()
             .await?;

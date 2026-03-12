@@ -2,11 +2,11 @@
 //!
 //! Real TF-IDF indexing + BM25 search over source code files
 
-use tauri::State;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use tauri::State;
+use tokio::sync::RwLock;
 
 /// RAG index status
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -109,9 +109,9 @@ impl Default for RagState {
 
 /// Source file extensions to index
 const CODE_EXTENSIONS: &[&str] = &[
-    "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "c", "cpp", "h", "hpp",
-    "cs", "rb", "php", "swift", "kt", "scala", "vue", "svelte", "html", "css",
-    "scss", "json", "yaml", "yml", "toml", "md", "sql", "sh", "bash", "ps1",
+    "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php",
+    "swift", "kt", "scala", "vue", "svelte", "html", "css", "scss", "json", "yaml", "yml", "toml",
+    "md", "sql", "sh", "bash", "ps1",
 ];
 
 fn should_index(path: &Path, file_types: &Option<Vec<String>>) -> bool {
@@ -289,9 +289,9 @@ pub async fn index_project(
     }
 
     // Build inverted index
-    let inverted_index = build_inverted_index(&all_chunks);
-    let doc_count = all_chunks.len();
-    let total_chunks = all_chunks.len() as u64;
+    let _inverted_index = build_inverted_index(&all_chunks);
+    let _doc_count = all_chunks.len();
+    let _total_chunks = all_chunks.len() as u64;
 
     // Update state
     let mut rag = state.write().await;
@@ -331,11 +331,18 @@ pub async fn semantic_search(
     }
 
     // Calculate average document length
-    let avg_dl = rag.chunks.iter().map(|c| c.tokens.len() as f32).sum::<f32>()
+    let avg_dl = rag
+        .chunks
+        .iter()
+        .map(|c| c.tokens.len() as f32)
+        .sum::<f32>()
         / rag.doc_count.max(1) as f32;
 
     // Score all chunks
-    let mut scored: Vec<(usize, f32)> = rag.chunks.iter().enumerate()
+    let mut scored: Vec<(usize, f32)> = rag
+        .chunks
+        .iter()
+        .enumerate()
         .map(|(i, chunk)| {
             let score = bm25_score(
                 &query_tokens,
@@ -362,35 +369,42 @@ pub async fn semantic_search(
     scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(max);
 
-    let results: Vec<RagSearchResult> = scored.into_iter().map(|(i, score)| {
-        let chunk = &rag.chunks[i];
-        // Extract 3 lines of context around first query term match
-        let lines: Vec<&str> = chunk.content.lines().collect();
-        let context_line = lines.iter().position(|l| {
-            let lower = l.to_lowercase();
-            request.query.split_whitespace().any(|q| lower.contains(&q.to_lowercase()))
-        }).unwrap_or(0);
-        let ctx_start = context_line.saturating_sub(1);
-        let ctx_end = (context_line + 2).min(lines.len());
-        let context = lines[ctx_start..ctx_end].join("\n");
+    let results: Vec<RagSearchResult> = scored
+        .into_iter()
+        .map(|(i, score)| {
+            let chunk = &rag.chunks[i];
+            // Extract 3 lines of context around first query term match
+            let lines: Vec<&str> = chunk.content.lines().collect();
+            let context_line = lines
+                .iter()
+                .position(|l| {
+                    let lower = l.to_lowercase();
+                    request
+                        .query
+                        .split_whitespace()
+                        .any(|q| lower.contains(&q.to_lowercase()))
+                })
+                .unwrap_or(0);
+            let ctx_start = context_line.saturating_sub(1);
+            let ctx_end = (context_line + 2).min(lines.len());
+            let context = lines[ctx_start..ctx_end].join("\n");
 
-        RagSearchResult {
-            file_path: chunk.file_path.clone(),
-            content: chunk.content.clone(),
-            score,
-            line_start: chunk.line_start,
-            line_end: chunk.line_end,
-            context,
-        }
-    }).collect();
+            RagSearchResult {
+                file_path: chunk.file_path.clone(),
+                content: chunk.content.clone(),
+                score,
+                line_start: chunk.line_start,
+                line_end: chunk.line_end,
+                context,
+            }
+        })
+        .collect();
 
     Ok(results)
 }
 
 #[tauri::command]
-pub async fn clear_rag_index(
-    state: State<'_, Arc<RwLock<RagState>>>,
-) -> Result<(), String> {
+pub async fn clear_rag_index(state: State<'_, Arc<RwLock<RagState>>>) -> Result<(), String> {
     let mut rag = state.write().await;
     rag.status = RagIndexStatus {
         indexed_files: 0,
@@ -407,9 +421,7 @@ pub async fn clear_rag_index(
 }
 
 #[tauri::command]
-pub async fn get_rag_config(
-    state: State<'_, Arc<RwLock<RagState>>>,
-) -> Result<RagConfig, String> {
+pub async fn get_rag_config(state: State<'_, Arc<RwLock<RagState>>>) -> Result<RagConfig, String> {
     let rag = state.read().await;
     Ok(rag.config.clone())
 }
@@ -468,12 +480,26 @@ pub async fn graph_enhanced_semantic_search(
         return Ok(vec![]);
     }
 
-    let avg_dl = rag.chunks.iter().map(|c| c.tokens.len() as f32).sum::<f32>()
+    let avg_dl = rag
+        .chunks
+        .iter()
+        .map(|c| c.tokens.len() as f32)
+        .sum::<f32>()
         / rag.doc_count.max(1) as f32;
 
-    let mut scored: Vec<(usize, f32)> = rag.chunks.iter().enumerate()
+    let mut scored: Vec<(usize, f32)> = rag
+        .chunks
+        .iter()
+        .enumerate()
         .map(|(i, chunk)| {
-            let score = bm25_score(&query_tokens, &rag.inverted_index, rag.doc_count, i, avg_dl, chunk.tokens.len() as f32);
+            let score = bm25_score(
+                &query_tokens,
+                &rag.inverted_index,
+                rag.doc_count,
+                i,
+                avg_dl,
+                chunk.tokens.len() as f32,
+            );
             (i, score)
         })
         .filter(|(_, score)| *score > min_score)
@@ -482,10 +508,20 @@ pub async fn graph_enhanced_semantic_search(
     scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(max * 2); // get extra for graph re-ranking
 
-    let bm25_results: Vec<(String, f32, String, u32, u32, String)> = scored.into_iter().map(|(i, score)| {
-        let chunk = &rag.chunks[i];
-        (chunk.file_path.clone(), score, chunk.content.clone(), chunk.line_start, chunk.line_end, String::new())
-    }).collect();
+    let bm25_results: Vec<(String, f32, String, u32, u32, String)> = scored
+        .into_iter()
+        .map(|(i, score)| {
+            let chunk = &rag.chunks[i];
+            (
+                chunk.file_path.clone(),
+                score,
+                chunk.content.clone(),
+                chunk.line_start,
+                chunk.line_end,
+                String::new(),
+            )
+        })
+        .collect();
 
     // 2. Enhance with dependency graph from RepoWiki engine
     let wiki_arc = super::repowiki::get_wiki_engine();

@@ -1,8 +1,8 @@
 //! Git Manager - Manages Git repositories
 
-use kyro_core::{KyroResult, Service};
 use async_trait::async_trait;
 use dashmap::DashMap;
+use kyro_core::{KyroResult, Service};
 use std::path::{Path, PathBuf};
 
 /// Git Manager service

@@ -43,7 +43,7 @@ impl ExtensionSandbox {
     pub fn new(config: SandboxConfig) -> Self {
         Self { config }
     }
-    
+
     /// Check if operation is allowed
     pub fn check_permission(&self, operation: &str) -> bool {
         match operation {
@@ -53,7 +53,7 @@ impl ExtensionSandbox {
             _ => false,
         }
     }
-    
+
     /// Get config
     pub fn config(&self) -> &SandboxConfig {
         &self.config

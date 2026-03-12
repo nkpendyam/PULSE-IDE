@@ -1,13 +1,13 @@
 //! Agent Memory Persistence
-//! 
+//!
 //! SQLite-backed memory for agent context across sessions.
 
-use rusqlite::{Connection, params, Result as SqliteResult, Error as SqliteError};
+use rusqlite::{params, Connection, Error as SqliteError};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::agents::{WorkInProgress, ToolCall, AgentError};
+use crate::agents::{AgentError, ToolCall, WorkInProgress};
 
 /// Agent memory store
 pub struct AgentMemory {
@@ -33,13 +33,13 @@ impl AgentMemory {
     pub fn new() -> Result<Self, AgentError> {
         Self::with_path("kyro_agent_memory.db")
     }
-    
+
     /// Create with custom path
     pub fn with_path(path: &str) -> Result<Self, AgentError> {
         let db_path = PathBuf::from(path);
-        let db = Connection::open(&db_path)
-            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+        let db =
+            Connection::open(&db_path).map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+
         // Create tables
         db.execute_batch(
             r#"
@@ -73,10 +73,10 @@ impl AgentMemory {
             "#,
         )
         .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+
         Ok(Self { db })
     }
-    
+
     /// Save a conversation turn
     pub fn save_conversation(
         &self,
@@ -91,10 +91,10 @@ impl AgentMemory {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
-        
+
         let tools_json = serde_json::to_string(tools).unwrap_or_default();
         let files_json = serde_json::to_string(files).unwrap_or_default();
-        
+
         self.db.execute(
             r#"
             INSERT INTO conversations 
@@ -104,14 +104,20 @@ impl AgentMemory {
             params![agent_id, session_id, timestamp, user_msg, agent_resp, tools_json, files_json],
         )
         .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+
         Ok(self.db.last_insert_rowid())
     }
-    
+
     /// Get recent conversations for context
-    pub fn get_recent_context(&self, agent_id: &str, limit: usize) -> Result<Vec<Conversation>, AgentError> {
-        let mut stmt = self.db.prepare(
-            r#"
+    pub fn get_recent_context(
+        &self,
+        agent_id: &str,
+        limit: usize,
+    ) -> Result<Vec<Conversation>, AgentError> {
+        let mut stmt = self
+            .db
+            .prepare(
+                r#"
             SELECT id, agent_id, session_id, timestamp, user_message, agent_response, 
                    tool_calls, context_summary, files_modified
             FROM conversations 
@@ -119,14 +125,14 @@ impl AgentMemory {
             ORDER BY timestamp DESC 
             LIMIT ?2
             "#,
-        )
-        .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+            )
+            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+
         let conversations = stmt
             .query_map(params![agent_id, limit as i64], |row| {
                 let tool_calls_json: String = row.get(6)?;
                 let files_json: String = row.get(8)?;
-                
+
                 Ok(Conversation {
                     id: row.get(0)?,
                     agent_id: row.get(1)?,
@@ -142,35 +148,35 @@ impl AgentMemory {
             .map_err(|e| AgentError::DatabaseError(e.to_string()))?
             .filter_map(Result::ok)
             .collect();
-        
+
         Ok(conversations)
     }
-    
+
     /// Generate condensed context summary for agent
     pub fn get_context_summary(&self, agent_id: &str) -> Result<String, AgentError> {
         let conversations = self.get_recent_context(agent_id, 5)?;
-        
+
         if conversations.is_empty() {
             return Ok("No previous context available.".to_string());
         }
-        
+
         let mut summary = String::from("Recent activity:\n");
-        
+
         for conv in conversations.iter().rev() {
             summary.push_str(&format!(
                 "- User: {}\n  Agent: {}\n",
                 &conv.user_message.chars().take(100).collect::<String>(),
                 &conv.agent_response.chars().take(100).collect::<String>()
             ));
-            
+
             if !conv.files_modified.is_empty() {
                 summary.push_str(&format!("  Files: {}\n", conv.files_modified.join(", ")));
             }
         }
-        
+
         Ok(summary)
     }
-    
+
     /// Save work in progress
     pub fn save_wip(
         &self,
@@ -183,33 +189,36 @@ impl AgentMemory {
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0);
-        
-        self.db.execute(
-            r#"
+
+        self.db
+            .execute(
+                r#"
             INSERT INTO work_in_progress 
             (agent_id, task_description, current_file, line_number, status, last_updated)
             VALUES (?1, ?2, ?3, ?4, 'in_progress', ?5)
             "#,
-            params![agent_id, task, file, line as i64, timestamp],
-        )
-        .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+                params![agent_id, task, file, line as i64, timestamp],
+            )
+            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+
         Ok(())
     }
-    
+
     /// Get current work in progress
     pub fn get_wip(&self, agent_id: &str) -> Result<Option<WorkInProgress>, AgentError> {
-        let mut stmt = self.db.prepare(
-            r#"
+        let mut stmt = self
+            .db
+            .prepare(
+                r#"
             SELECT task_description, current_file, line_number, status 
             FROM work_in_progress 
             WHERE agent_id = ?1 AND status = 'in_progress'
             ORDER BY last_updated DESC 
             LIMIT 1
             "#,
-        )
-        .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+            )
+            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+
         let wip = match stmt.query_row(params![agent_id], |row| {
             Ok(WorkInProgress {
                 task: row.get(0)?,
@@ -222,25 +231,26 @@ impl AgentMemory {
             Err(SqliteError::QueryReturnedNoRows) => None,
             Err(e) => return Err(AgentError::DatabaseError(e.to_string())),
         };
-        
+
         Ok(wip)
     }
-    
+
     /// Mark work as completed
     pub fn complete_wip(&self, agent_id: &str) -> Result<(), AgentError> {
-        self.db.execute(
-            r#"
+        self.db
+            .execute(
+                r#"
             UPDATE work_in_progress 
             SET status = 'completed' 
             WHERE agent_id = ?1 AND status = 'in_progress'
             "#,
-            params![agent_id],
-        )
-        .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+                params![agent_id],
+            )
+            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+
         Ok(())
     }
-    
+
     /// Clear old conversations (keep last N days)
     pub fn cleanup_old_conversations(&self, days: u64) -> Result<usize, AgentError> {
         let cutoff = SystemTime::now()
@@ -248,13 +258,15 @@ impl AgentMemory {
             .map(|d| d.as_secs() as i64)
             .unwrap_or(0)
             - (days * 86400) as i64;
-        
-        let affected = self.db.execute(
-            "DELETE FROM conversations WHERE timestamp < ?1",
-            params![cutoff],
-        )
-        .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
-        
+
+        let affected = self
+            .db
+            .execute(
+                "DELETE FROM conversations WHERE timestamp < ?1",
+                params![cutoff],
+            )
+            .map_err(|e| AgentError::DatabaseError(e.to_string()))?;
+
         Ok(affected)
     }
 }
@@ -262,20 +274,14 @@ impl AgentMemory {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_memory_persistence() {
         let mem = AgentMemory::with_path(":memory:").unwrap();
-        
-        mem.save_conversation(
-            "test-agent",
-            "session-1",
-            "Hello",
-            "Hi there!",
-            &[],
-            &[],
-        ).unwrap();
-        
+
+        mem.save_conversation("test-agent", "session-1", "Hello", "Hi there!", &[], &[])
+            .unwrap();
+
         let ctx = mem.get_recent_context("test-agent", 10).unwrap();
         assert_eq!(ctx.len(), 1);
     }

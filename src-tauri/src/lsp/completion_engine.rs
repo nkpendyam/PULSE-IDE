@@ -8,15 +8,14 @@
 //! - Merge and return: 5ms
 //! Total budget: 100ms
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use parking_lot::RwLock;
 use tokio::sync::Mutex as AsyncMutex;
-use futures_util::future::join_all;
 
-use super::{Symbol, SymbolKind, CompletionItem, CompletionKind, MolecularLsp};
+use super::{CompletionItem, CompletionKind, MolecularLsp, Symbol, SymbolKind};
 
 /// Performance budget in milliseconds
 pub const PERFORMANCE_BUDGET_MS: u64 = 100;
@@ -53,7 +52,7 @@ pub struct CompletionContext {
 /// How completion was triggered
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CompletionTriggerKind {
-    Invoked,      // Ctrl+Space
+    Invoked,          // Ctrl+Space
     TriggerCharacter, // . or ::
     TriggerForIncompleteCompletions,
 }
@@ -144,7 +143,7 @@ impl AiCompletionEngine {
             ai_client: None,
             stats: Arc::new(RwLock::new(CompletionStats::default())),
         };
-        
+
         engine.load_default_patterns();
         engine
     }
@@ -157,7 +156,7 @@ impl AiCompletionEngine {
     /// Load default code patterns and snippets
     fn load_default_patterns(&mut self) {
         let mut cache = self.pattern_cache.write();
-        
+
         // Fibonacci patterns
         cache.patterns.insert("fibonacci".to_string(), vec![
             CompletionPattern {
@@ -207,110 +206,118 @@ impl AiCompletionEngine {
         ]);
 
         // Loop patterns
-        cache.patterns.insert("loop".to_string(), vec![
-            CompletionPattern {
-                name: "for_each".to_string(),
-                pattern_type: PatternType::LoopPattern,
-                template: "for item in items.iter() {\n    $1\n}".to_string(),
-                description: "For each loop".to_string(),
-                languages: vec!["rust".to_string()],
-                score_boost: 0.80,
-            },
-            CompletionPattern {
-                name: "enumerate".to_string(),
-                pattern_type: PatternType::LoopPattern,
-                template: "for (i, item) in items.iter().enumerate() {\n    $1\n}".to_string(),
-                description: "Enumerate loop".to_string(),
-                languages: vec!["rust".to_string()],
-                score_boost: 0.75,
-            },
-        ]);
+        cache.patterns.insert(
+            "loop".to_string(),
+            vec![
+                CompletionPattern {
+                    name: "for_each".to_string(),
+                    pattern_type: PatternType::LoopPattern,
+                    template: "for item in items.iter() {\n    $1\n}".to_string(),
+                    description: "For each loop".to_string(),
+                    languages: vec!["rust".to_string()],
+                    score_boost: 0.80,
+                },
+                CompletionPattern {
+                    name: "enumerate".to_string(),
+                    pattern_type: PatternType::LoopPattern,
+                    template: "for (i, item) in items.iter().enumerate() {\n    $1\n}".to_string(),
+                    description: "Enumerate loop".to_string(),
+                    languages: vec!["rust".to_string()],
+                    score_boost: 0.75,
+                },
+            ],
+        );
 
         // Rust snippets
-        cache.snippets.insert("rust".to_string(), vec![
-            Snippet {
-                label: "fn".to_string(),
-                prefix: "fn".to_string(),
-                body: "fn ${1:name}(${2:params}) -> ${3:ReturnType} {\n    ${4:todo!()}\n}".to_string(),
-                description: "Function definition".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "pfn".to_string(),
-                prefix: "pfn".to_string(),
-                body: "pub fn ${1:name}(${2:params}) -> ${3:ReturnType} {\n    ${4:todo!()}\n}".to_string(),
-                description: "Public function".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "struct".to_string(),
-                prefix: "struct".to_string(),
-                body: "struct ${1:Name} {\n    ${2:field: Type},\n}".to_string(),
-                description: "Struct definition".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "impl".to_string(),
-                prefix: "impl".to_string(),
-                body: "impl ${1:Type} {\n    ${2:fn method(&self) {\\n        todo!()\\n    }}\n}".to_string(),
-                description: "Implementation block".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "test".to_string(),
-                prefix: "test".to_string(),
-                body: "#[test]\nfn ${1:test_name}() {\n    ${2:assert!(true);}\n}".to_string(),
-                description: "Test function".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "derive".to_string(),
-                prefix: "derive".to_string(),
-                body: "#[derive(${1:Debug, Clone})]".to_string(),
-                description: "Derive macro".to_string(),
-                scope: None,
-            },
-        ]);
+        cache.snippets.insert(
+            "rust".to_string(),
+            vec![
+                Snippet {
+                    label: "fn".to_string(),
+                    prefix: "fn".to_string(),
+                    body: "fn ${1:name}(${2:params}) -> ${3:ReturnType} {\n    ${4:todo!()}\n}"
+                        .to_string(),
+                    description: "Function definition".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "pfn".to_string(),
+                    prefix: "pfn".to_string(),
+                    body: "pub fn ${1:name}(${2:params}) -> ${3:ReturnType} {\n    ${4:todo!()}\n}"
+                        .to_string(),
+                    description: "Public function".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "struct".to_string(),
+                    prefix: "struct".to_string(),
+                    body: "struct ${1:Name} {\n    ${2:field: Type},\n}".to_string(),
+                    description: "Struct definition".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "impl".to_string(),
+                    prefix: "impl".to_string(),
+                    body:
+                        "impl ${1:Type} {\n    ${2:fn method(&self) {\\n        todo!()\\n    }}\n}"
+                            .to_string(),
+                    description: "Implementation block".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "test".to_string(),
+                    prefix: "test".to_string(),
+                    body: "#[test]\nfn ${1:test_name}() {\n    ${2:assert!(true);}\n}".to_string(),
+                    description: "Test function".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "derive".to_string(),
+                    prefix: "derive".to_string(),
+                    body: "#[derive(${1:Debug, Clone})]".to_string(),
+                    description: "Derive macro".to_string(),
+                    scope: None,
+                },
+            ],
+        );
 
         // TypeScript snippets
-        cache.snippets.insert("typescript".to_string(), vec![
-            Snippet {
-                label: "interface".to_string(),
-                prefix: "interface".to_string(),
-                body: "interface ${1:Name} {\n    ${2:property}: ${3:type};\n}".to_string(),
-                description: "Interface definition".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "type".to_string(),
-                prefix: "type".to_string(),
-                body: "type ${1:Name} = ${2:type};".to_string(),
-                description: "Type alias".to_string(),
-                scope: None,
-            },
-            Snippet {
-                label: "arrow".to_string(),
-                prefix: "arrow".to_string(),
-                body: "const ${1:name} = (${2:params}): ${3:ReturnType} => {\n    ${4}\n};".to_string(),
-                description: "Arrow function".to_string(),
-                scope: None,
-            },
-        ]);
+        cache.snippets.insert(
+            "typescript".to_string(),
+            vec![
+                Snippet {
+                    label: "interface".to_string(),
+                    prefix: "interface".to_string(),
+                    body: "interface ${1:Name} {\n    ${2:property}: ${3:type};\n}".to_string(),
+                    description: "Interface definition".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "type".to_string(),
+                    prefix: "type".to_string(),
+                    body: "type ${1:Name} = ${2:type};".to_string(),
+                    description: "Type alias".to_string(),
+                    scope: None,
+                },
+                Snippet {
+                    label: "arrow".to_string(),
+                    prefix: "arrow".to_string(),
+                    body: "const ${1:name} = (${2:params}): ${3:ReturnType} => {\n    ${4}\n};"
+                        .to_string(),
+                    description: "Arrow function".to_string(),
+                    scope: None,
+                },
+            ],
+        );
     }
 
     /// Get completions with parallel source fetching
     pub async fn get_completions(&self, context: CompletionContext) -> CompletionResponse {
         let start = Instant::now();
         let mut sources_used = Vec::new();
-        
+
         // Run all completion sources in parallel using the `join!` macro.
-        let (
-            symbol_result,
-            pattern_result,
-            keyword_result,
-            snippet_result,
-            ai_result,
-        ) = futures::join!(
+        let (symbol_result, pattern_result, keyword_result, snippet_result, ai_result) = futures::join!(
             self.get_symbol_completions(&context),
             self.get_pattern_completions(&context),
             self.get_keyword_completions(&context),
@@ -358,7 +365,11 @@ impl AiCompletionEngine {
         }
 
         // Sort by score (descending)
-        all_items.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        all_items.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // Deduplicate by label
         let mut seen = std::collections::HashSet::new();
@@ -368,10 +379,13 @@ impl AiCompletionEngine {
         all_items.truncate(50);
 
         let total_latency = start.elapsed().as_millis() as u64;
-        
+
         // Performance warning if over budget
         let performance_warning = if total_latency > PERFORMANCE_BUDGET_MS {
-            Some(format!("Completion took {}ms (budget: {}ms)", total_latency, PERFORMANCE_BUDGET_MS))
+            Some(format!(
+                "Completion took {}ms (budget: {}ms)",
+                total_latency, PERFORMANCE_BUDGET_MS
+            ))
         } else {
             None
         };
@@ -380,7 +394,9 @@ impl AiCompletionEngine {
         {
             let mut stats = self.stats.write();
             stats.total_requests += 1;
-            stats.avg_latency_ms = (stats.avg_latency_ms * (stats.total_requests - 1) as f32 + total_latency as f32) / stats.total_requests as f32;
+            stats.avg_latency_ms = (stats.avg_latency_ms * (stats.total_requests - 1) as f32
+                + total_latency as f32)
+                / stats.total_requests as f32;
         }
 
         CompletionResponse {
@@ -393,9 +409,12 @@ impl AiCompletionEngine {
     }
 
     /// Get completions from symbol table (target: 1ms)
-    async fn get_symbol_completions(&self, context: &CompletionContext) -> Option<CompletionSourceResult> {
+    async fn get_symbol_completions(
+        &self,
+        context: &CompletionContext,
+    ) -> Option<CompletionSourceResult> {
         let start = Instant::now();
-        
+
         let symbol_table = self.symbol_table.read();
         let mut items = Vec::new();
 
@@ -425,7 +444,7 @@ impl AiCompletionEngine {
         }
 
         let latency = start.elapsed().as_micros() as u64;
-        
+
         if items.is_empty() {
             None
         } else {
@@ -438,15 +457,18 @@ impl AiCompletionEngine {
     }
 
     /// Get completions from pattern cache (target: 5ms)
-    async fn get_pattern_completions(&self, context: &CompletionContext) -> Option<CompletionSourceResult> {
+    async fn get_pattern_completions(
+        &self,
+        context: &CompletionContext,
+    ) -> Option<CompletionSourceResult> {
         let start = Instant::now();
-        
+
         let pattern_cache = self.pattern_cache.read();
         let mut items = Vec::new();
 
         // Match prefix to patterns
         let prefix_lower = context.prefix.to_lowercase();
-        
+
         for (pattern_name, patterns) in &pattern_cache.patterns {
             if prefix_lower.contains(pattern_name) || pattern_name.contains(&prefix_lower) {
                 for pattern in patterns {
@@ -481,15 +503,18 @@ impl AiCompletionEngine {
     }
 
     /// Get keyword completions (target: 1ms)
-    async fn get_keyword_completions(&self, context: &CompletionContext) -> Option<CompletionSourceResult> {
+    async fn get_keyword_completions(
+        &self,
+        context: &CompletionContext,
+    ) -> Option<CompletionSourceResult> {
         let start = Instant::now();
-        
+
         let lsp = self.lsp.read();
         let config = lsp.get_config(&context.language)?;
-        
+
         let mut items = Vec::new();
         let prefix_lower = context.prefix.to_lowercase();
-        
+
         for keyword in &config.keywords {
             if keyword.starts_with(&prefix_lower) || prefix_lower.is_empty() {
                 items.push(ScoredCompletion {
@@ -516,15 +541,18 @@ impl AiCompletionEngine {
     }
 
     /// Get snippet completions (target: 5ms)
-    async fn get_snippet_completions(&self, context: &CompletionContext) -> Option<CompletionSourceResult> {
+    async fn get_snippet_completions(
+        &self,
+        context: &CompletionContext,
+    ) -> Option<CompletionSourceResult> {
         let start = Instant::now();
-        
+
         let pattern_cache = self.pattern_cache.read();
         let snippets = pattern_cache.snippets.get(&context.language)?;
-        
+
         let mut items = Vec::new();
         let prefix_lower = context.prefix.to_lowercase();
-        
+
         for snippet in snippets {
             if snippet.prefix.starts_with(&prefix_lower) || prefix_lower.is_empty() {
                 items.push(ScoredCompletion {
@@ -551,9 +579,12 @@ impl AiCompletionEngine {
     }
 
     /// Get AI-powered completions (target: 50ms)
-    async fn get_ai_completions(&self, context: &CompletionContext) -> Option<CompletionSourceResult> {
+    async fn get_ai_completions(
+        &self,
+        context: &CompletionContext,
+    ) -> Option<CompletionSourceResult> {
         let start = Instant::now();
-        
+
         // Only call AI for complex contexts
         if context.trigger_kind != CompletionTriggerKind::Invoked {
             return None;
@@ -561,20 +592,27 @@ impl AiCompletionEngine {
 
         // Check if AI client is available
         let ai_client = self.ai_client.as_ref()?;
-        let mut client = ai_client.lock().await;
-        
+        let client = ai_client.lock().await;
+
         // Check if AI is available
         if !client.is_available().await {
             return None;
         }
 
         // Build prompt for AI completion
-        let code_context: String = context.code.lines()
-            .take(context.line.saturating_add(10).min(context.code.lines().count()))
+        let code_context: String = context
+            .code
+            .lines()
+            .take(
+                context
+                    .line
+                    .saturating_add(10)
+                    .min(context.code.lines().count()),
+            )
             .skip(context.line.saturating_sub(5))
             .collect::<Vec<_>>()
             .join("\n");
-            
+
         let prompt = format!(
             "Complete this {} code at line {}. Current prefix: '{}'\n\nCode context:\n{}\n\nProvide only the completion text, no explanation:",
             context.language,
@@ -595,7 +633,8 @@ impl AiCompletionEngine {
             }
         });
 
-        let response = client.client
+        let response = client
+            .client
             .post(format!("{}/api/generate", client.base_url))
             .json(&request_body)
             .timeout(Duration::from_millis(45)) // Leave 5ms for processing
@@ -603,26 +642,27 @@ impl AiCompletionEngine {
             .await;
 
         let latency = start.elapsed().as_millis() as u64;
-        
+
         match response {
             Ok(resp) if resp.status().is_success() => {
                 if let Ok(json) = resp.json::<serde_json::Value>().await {
                     if let Some(completion_text) = json.get("response").and_then(|r| r.as_str()) {
                         let completion_text = completion_text.trim();
                         if !completion_text.is_empty() {
-                            let items = vec![
-                                ScoredCompletion {
-                                    item: CompletionItem {
-                                        label: format!("{}...", context.prefix),
-                                        kind: CompletionKind::Snippet,
-                                        detail: Some("AI-generated completion".to_string()),
-                                        documentation: Some(completion_text.to_string()),
-                                        insert_text: Some(format!("{}{}", context.prefix, completion_text)),
-                                    },
-                                    score: 0.95,
-                                    source: "ai_hints".to_string(),
+                            let items = vec![ScoredCompletion {
+                                item: CompletionItem {
+                                    label: format!("{}...", context.prefix),
+                                    kind: CompletionKind::Snippet,
+                                    detail: Some("AI-generated completion".to_string()),
+                                    documentation: Some(completion_text.to_string()),
+                                    insert_text: Some(format!(
+                                        "{}{}",
+                                        context.prefix, completion_text
+                                    )),
                                 },
-                            ];
+                                score: 0.95,
+                                source: "ai_hints".to_string(),
+                            }];
 
                             return Some(CompletionSourceResult {
                                 source: "ai_hints".to_string(),
@@ -634,7 +674,10 @@ impl AiCompletionEngine {
                 }
             }
             _ => {
-                log::debug!("AI completion request failed or timed out after {}ms", latency);
+                log::debug!(
+                    "AI completion request failed or timed out after {}ms",
+                    latency
+                );
             }
         }
 
@@ -650,11 +693,11 @@ impl AiCompletionEngine {
 
         None
     }
-    
+
     /// Generate context-based completions when AI is unavailable
     fn generate_context_completions(&self, context: &CompletionContext) -> Vec<ScoredCompletion> {
         let mut items = Vec::new();
-        
+
         // Generate completions based on language patterns
         match context.language.as_str() {
             "rust" => {
@@ -711,7 +754,7 @@ impl AiCompletionEngine {
             }
             _ => {}
         }
-        
+
         items
     }
 
@@ -719,9 +762,11 @@ impl AiCompletionEngine {
     pub fn update_symbols(&self, file_path: &str, code: &str, language: &str) {
         let lsp = self.lsp.read();
         let symbols = lsp.extract_symbols(language, code);
-        
+
         let mut symbol_table = self.symbol_table.write();
-        symbol_table.file_symbols.insert(file_path.to_string(), symbols);
+        symbol_table
+            .file_symbols
+            .insert(file_path.to_string(), symbols);
     }
 
     /// Get completion statistics
@@ -769,7 +814,7 @@ mod tests {
     async fn test_completion_performance() {
         let lsp = Arc::new(RwLock::new(MolecularLsp::new()));
         let engine = AiCompletionEngine::new(lsp);
-        
+
         let context = CompletionContext {
             file_path: "test.rs".to_string(),
             language: "rust".to_string(),
@@ -782,7 +827,7 @@ mod tests {
         };
 
         let response = engine.get_completions(context).await;
-        
+
         // Should complete within budget
         assert!(response.total_latency_ms < PERFORMANCE_BUDGET_MS * 2); // Allow some slack
         assert!(!response.items.is_empty());

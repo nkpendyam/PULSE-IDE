@@ -3,13 +3,13 @@
 //! Automatically detects project type and starts appropriate language servers.
 //! Bundles common servers for "batteries included" experience.
 
-use anyhow::{Result, Context, bail};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Child};
+use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 /// LSP Server configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,7 +59,7 @@ impl LspManager {
     /// Create a new LSP manager
     pub fn new(bin_dir: PathBuf) -> Self {
         let mut servers = HashMap::new();
-        
+
         // Register known language servers
         servers.insert("rust-analyzer".to_string(), LspServerConfig {
             name: "rust-analyzer".to_string(),
@@ -71,45 +71,74 @@ impl LspManager {
             bundled: false,
         });
 
-        servers.insert("typescript-language-server".to_string(), LspServerConfig {
-            name: "typescript-language-server".to_string(),
-            command: "typescript-language-server".to_string(),
-            args: vec!["--stdio".to_string()],
-            detect_patterns: vec!["package.json".to_string(), "tsconfig.json".to_string()],
-            extensions: vec!["ts".to_string(), "tsx".to_string(), "js".to_string(), "jsx".to_string()],
-            download_url: None,
-            bundled: false,
-        });
+        servers.insert(
+            "typescript-language-server".to_string(),
+            LspServerConfig {
+                name: "typescript-language-server".to_string(),
+                command: "typescript-language-server".to_string(),
+                args: vec!["--stdio".to_string()],
+                detect_patterns: vec!["package.json".to_string(), "tsconfig.json".to_string()],
+                extensions: vec![
+                    "ts".to_string(),
+                    "tsx".to_string(),
+                    "js".to_string(),
+                    "jsx".to_string(),
+                ],
+                download_url: None,
+                bundled: false,
+            },
+        );
 
-        servers.insert("pylsp".to_string(), LspServerConfig {
-            name: "pylsp".to_string(),
-            command: "pylsp".to_string(),
-            args: vec![],
-            detect_patterns: vec!["requirements.txt".to_string(), "pyproject.toml".to_string(), "setup.py".to_string()],
-            extensions: vec!["py".to_string()],
-            download_url: None,
-            bundled: false,
-        });
+        servers.insert(
+            "pylsp".to_string(),
+            LspServerConfig {
+                name: "pylsp".to_string(),
+                command: "pylsp".to_string(),
+                args: vec![],
+                detect_patterns: vec![
+                    "requirements.txt".to_string(),
+                    "pyproject.toml".to_string(),
+                    "setup.py".to_string(),
+                ],
+                extensions: vec!["py".to_string()],
+                download_url: None,
+                bundled: false,
+            },
+        );
 
-        servers.insert("gopls".to_string(), LspServerConfig {
-            name: "gopls".to_string(),
-            command: "gopls".to_string(),
-            args: vec!["serve".to_string()],
-            detect_patterns: vec!["go.mod".to_string()],
-            extensions: vec!["go".to_string()],
-            download_url: None,
-            bundled: false,
-        });
+        servers.insert(
+            "gopls".to_string(),
+            LspServerConfig {
+                name: "gopls".to_string(),
+                command: "gopls".to_string(),
+                args: vec!["serve".to_string()],
+                detect_patterns: vec!["go.mod".to_string()],
+                extensions: vec!["go".to_string()],
+                download_url: None,
+                bundled: false,
+            },
+        );
 
-        servers.insert("clangd".to_string(), LspServerConfig {
-            name: "clangd".to_string(),
-            command: "clangd".to_string(),
-            args: vec![],
-            detect_patterns: vec!["compile_commands.json".to_string(), "CMakeLists.txt".to_string()],
-            extensions: vec!["c".to_string(), "cpp".to_string(), "h".to_string(), "hpp".to_string()],
-            download_url: None,
-            bundled: false,
-        });
+        servers.insert(
+            "clangd".to_string(),
+            LspServerConfig {
+                name: "clangd".to_string(),
+                command: "clangd".to_string(),
+                args: vec![],
+                detect_patterns: vec![
+                    "compile_commands.json".to_string(),
+                    "CMakeLists.txt".to_string(),
+                ],
+                extensions: vec![
+                    "c".to_string(),
+                    "cpp".to_string(),
+                    "h".to_string(),
+                    "hpp".to_string(),
+                ],
+                download_url: None,
+                bundled: false,
+            },
+        );
 
         Self {
             servers,
@@ -121,7 +150,7 @@ impl LspManager {
     /// Detect project type from root directory
     pub fn detect_project_types(&self, project_root: &Path) -> Vec<String> {
         let mut detected = Vec::new();
-        
+
         for (name, config) in &self.servers {
             for pattern in &config.detect_patterns {
                 if project_root.join(pattern).exists() {
@@ -130,13 +159,14 @@ impl LspManager {
                 }
             }
         }
-        
+
         detected
     }
 
     /// Get server for file extension
     pub fn get_server_for_extension(&self, ext: &str) -> Option<&LspServerConfig> {
-        self.servers.values()
+        self.servers
+            .values()
             .find(|s| s.extensions.iter().any(|e| e == ext))
     }
 
@@ -148,7 +178,7 @@ impl LspManager {
             if bundled_path.exists() {
                 return true;
             }
-            
+
             // Check system PATH
             which::which(&config.command).is_ok()
         } else {
@@ -158,11 +188,15 @@ impl LspManager {
 
     /// Download a language server
     pub async fn download_server(&self, server_name: &str) -> Result<PathBuf> {
-        let config = self.servers.get(server_name)
+        let config = self
+            .servers
+            .get(server_name)
             .ok_or_else(|| anyhow::anyhow!("Unknown server: {}", server_name))?
             .clone();
 
-        let url = config.download_url.as_ref()
+        let url = config
+            .download_url
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No download URL for {}", server_name))?;
 
         // Replace platform placeholder
@@ -183,7 +217,7 @@ impl LspManager {
         if url.ends_with(".gz") {
             use flate2::read::GzDecoder;
             use std::io::Read;
-            
+
             let mut decoder = GzDecoder::new(&bytes[..]);
             let mut decompressed = Vec::new();
             decoder.read_to_end(&mut decompressed)?;
@@ -228,7 +262,9 @@ impl LspManager {
 
     /// Start a language server for a project
     pub async fn start_server(&self, server_name: &str, project_root: PathBuf) -> Result<()> {
-        let config = self.servers.get(server_name)
+        let config = self
+            .servers
+            .get(server_name)
             .ok_or_else(|| anyhow::anyhow!("Unknown server: {}", server_name))?
             .clone();
 
@@ -259,7 +295,11 @@ impl LspManager {
             which::which(&config.command)?
         };
 
-        log::info!("Starting LSP server: {} from {:?}", server_name, command_path);
+        log::info!(
+            "Starting LSP server: {} from {:?}",
+            server_name,
+            command_path
+        );
 
         // Start process
         let mut cmd = Command::new(&command_path);
@@ -269,7 +309,8 @@ impl LspManager {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
 
-        let child = cmd.spawn()
+        let child = cmd
+            .spawn()
             .with_context(|| format!("Failed to start {}", server_name))?;
 
         // Store instance
@@ -290,35 +331,35 @@ impl LspManager {
     /// Stop a language server
     pub async fn stop_server(&self, server_name: &str) -> Result<()> {
         let mut instances = self.instances.write().await;
-        
+
         if let Some(mut instance) = instances.remove(server_name) {
             if let Some(mut child) = instance.process.take() {
                 child.kill()?;
                 log::info!("Stopped LSP server {}", server_name);
             }
         }
-        
+
         Ok(())
     }
 
     /// Stop all servers
     pub async fn stop_all(&self) -> Result<()> {
         let mut instances = self.instances.write().await;
-        
+
         for (name, mut instance) in instances.drain() {
             if let Some(mut child) = instance.process.take() {
                 let _ = child.kill();
                 log::info!("Stopped LSP server {}", name);
             }
         }
-        
+
         Ok(())
     }
 
     /// Get server status
     pub async fn get_status(&self, server_name: &str) -> ServerStatus {
         let instances = self.instances.read().await;
-        
+
         if let Some(instance) = instances.get(server_name) {
             instance.status.clone()
         } else if self.is_server_installed(server_name) {
@@ -340,7 +381,7 @@ impl Default for LspManager {
             .unwrap_or_else(|| PathBuf::from("."))
             .join("kro_ide")
             .join("bin");
-        
+
         Self::new(bin_dir)
     }
 }
@@ -348,16 +389,19 @@ impl Default for LspManager {
 /// Auto-start appropriate LSP servers based on project
 pub async fn auto_start_lsp_servers(project_root: &Path) -> Result<Arc<LspManager>> {
     let manager = Arc::new(LspManager::default());
-    
+
     let project_types = manager.detect_project_types(project_root);
     log::info!("Detected project types: {:?}", project_types);
-    
+
     for server_name in project_types {
-        match manager.start_server(&server_name, project_root.to_path_buf()).await {
+        match manager
+            .start_server(&server_name, project_root.to_path_buf())
+            .await
+        {
             Ok(_) => log::info!("Started {}", server_name),
             Err(e) => log::warn!("Failed to start {}: {}", server_name, e),
         }
     }
-    
+
     Ok(manager)
 }

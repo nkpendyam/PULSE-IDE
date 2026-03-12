@@ -3,7 +3,6 @@
 //! Per-project settings stored in `.kyro/config.json` inside the project root.
 //! Overrides global settings for project-specific preferences.
 
-use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::command;
 
@@ -38,12 +37,10 @@ fn read_project_config(project_path: &str) -> serde_json::Value {
 
     if path.exists() {
         match std::fs::read_to_string(&path) {
-            Ok(content) => {
-                match serde_json::from_str::<serde_json::Value>(&content) {
-                    Ok(saved) => merge_json(&defaults, &saved),
-                    Err(_) => defaults,
-                }
-            }
+            Ok(content) => match serde_json::from_str::<serde_json::Value>(&content) {
+                Ok(saved) => merge_json(&defaults, &saved),
+                Err(_) => defaults,
+            },
             Err(_) => defaults,
         }
     } else {
@@ -55,7 +52,8 @@ fn read_project_config(project_path: &str) -> serde_json::Value {
 fn write_project_config(project_path: &str, config: &serde_json::Value) -> Result<(), String> {
     let path = project_config_path(project_path);
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create .kyro dir: {}", e))?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create .kyro dir: {}", e))?;
     }
     let json = serde_json::to_string_pretty(config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
@@ -97,7 +95,11 @@ pub fn get_project_config(project_path: String) -> Result<serde_json::Value, Str
 
 /// Set a single key in the project config
 #[command]
-pub fn set_project_config(project_path: String, key: String, value: serde_json::Value) -> Result<serde_json::Value, String> {
+pub fn set_project_config(
+    project_path: String,
+    key: String,
+    value: serde_json::Value,
+) -> Result<serde_json::Value, String> {
     let mut config = read_project_config(&project_path);
     if let serde_json::Value::Object(ref mut map) = config {
         map.insert(key, value);

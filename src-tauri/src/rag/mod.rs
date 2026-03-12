@@ -2,18 +2,18 @@
 //!
 //! Local vector database for code semantic search and context retrieval
 
-pub mod indexer;
 pub mod embedder;
-pub mod retriever;
-pub mod vector_store;
 pub mod embeddings;
 pub mod file_watcher;
 pub mod graph_rag;
+pub mod indexer;
+pub mod retriever;
+pub mod vector_store;
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::collections::HashMap;
-use anyhow::{Result, Context};
+use std::path::PathBuf;
 
 /// RAG configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,7 +111,7 @@ pub struct RAGManager {
 impl RAGManager {
     pub fn new(config: RAGConfig) -> Result<Self> {
         std::fs::create_dir_all(&config.db_path)?;
-        
+
         Ok(Self {
             config,
             index: HashMap::new(),
@@ -119,12 +119,12 @@ impl RAGManager {
             is_indexing: false,
         })
     }
-    
+
     /// Index a project directory
     pub async fn index_project(&mut self, project_path: &PathBuf) -> Result<usize> {
         self.is_indexing = true;
         let mut indexed_count = 0;
-        
+
         // Walk directory and index files
         for entry in walkdir::WalkDir::new(project_path)
             .follow_links(false)
@@ -132,66 +132,66 @@ impl RAGManager {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            
+
             // Check if file matches patterns
             if !self.should_index(path) {
                 continue;
             }
-            
+
             // Index file
             match self.index_file(path).await {
                 Ok(count) => indexed_count += count,
                 Err(e) => log::warn!("Failed to index {:?}: {}", path, e),
             }
         }
-        
+
         self.is_indexing = false;
         log::info!("Indexed {} chunks", indexed_count);
         Ok(indexed_count)
     }
-    
+
     /// Index a single file
     pub async fn index_file(&mut self, path: &std::path::Path) -> Result<usize> {
         let content = std::fs::read_to_string(path)?;
         let language = self.detect_language(path);
-        
+
         // Split into chunks
         let chunks = self.chunk_code(&content, path.to_string_lossy().to_string(), &language);
-        
+
         // Generate embeddings for each chunk
         for mut chunk in chunks {
             let embedding = self.generate_embedding(&chunk.content).await?;
             chunk.embedding = Some(embedding.clone());
-            
+
             let id = chunk.id.clone();
             self.index.insert(id.clone(), chunk);
             self.embeddings.insert(id, embedding);
         }
-        
+
         Ok(self.index.len())
     }
-    
+
     /// Check if file should be indexed
     fn should_index(&self, path: &std::path::Path) -> bool {
         let path_str = path.to_string_lossy();
-        
+
         // Check exclude patterns first
         for pattern in &self.config.exclude_patterns {
             if glob_match::glob_match(pattern, &path_str) {
                 return false;
             }
         }
-        
+
         // Check include patterns
         for pattern in &self.config.include_patterns {
             if glob_match::glob_match(pattern, &path_str) {
                 return true;
             }
         }
-        
+
         false
     }
-    
+
     /// Split code into AST-aware chunks using tree-sitter.
     /// Extracts functions, classes, impl blocks, and struct definitions as individual chunks.
     /// Falls back to line-based chunking for unsupported languages.
@@ -209,15 +209,15 @@ impl RAGManager {
     /// AST-aware chunking via tree-sitter
     fn ast_chunk(&self, content: &str, file_path: &str, language: &str) -> Option<Vec<CodeChunk>> {
         let ts_lang = match language {
-            "rust"       => tree_sitter_rust::LANGUAGE,
+            "rust" => tree_sitter_rust::LANGUAGE,
             "typescript" => tree_sitter_typescript::LANGUAGE_TYPESCRIPT,
             "javascript" => tree_sitter_typescript::LANGUAGE_TSX,
-            "python"     => tree_sitter_python::LANGUAGE,
-            "go"         => tree_sitter_go::LANGUAGE,
-            "java"       => tree_sitter_java::LANGUAGE,
-            "c"          => tree_sitter_c::LANGUAGE,
-            "cpp"        => tree_sitter_cpp::LANGUAGE,
-            _            => return None,
+            "python" => tree_sitter_python::LANGUAGE,
+            "go" => tree_sitter_go::LANGUAGE,
+            "java" => tree_sitter_java::LANGUAGE,
+            "c" => tree_sitter_c::LANGUAGE,
+            "cpp" => tree_sitter_cpp::LANGUAGE,
+            _ => return None,
         };
 
         let mut parser = tree_sitter::Parser::new();
@@ -229,16 +229,56 @@ impl RAGManager {
 
         // Node kinds that represent top-level semantic units per language
         let semantic_kinds: &[&str] = match language {
-            "rust"       => &["function_item", "impl_item", "struct_item", "enum_item", "trait_item", "mod_item", "macro_definition"],
-            "typescript" | "javascript" => &["function_declaration", "class_declaration", "lexical_declaration", "export_statement", "interface_declaration", "type_alias_declaration"],
-            "python"     => &["function_definition", "class_definition", "decorated_definition"],
-            "go"         => &["function_declaration", "method_declaration", "type_declaration"],
-            "java"       => &["class_declaration", "method_declaration", "interface_declaration", "enum_declaration"],
-            "c" | "cpp"  => &["function_definition", "struct_specifier", "class_specifier", "enum_specifier"],
-            _            => &[],
+            "rust" => &[
+                "function_item",
+                "impl_item",
+                "struct_item",
+                "enum_item",
+                "trait_item",
+                "mod_item",
+                "macro_definition",
+            ],
+            "typescript" | "javascript" => &[
+                "function_declaration",
+                "class_declaration",
+                "lexical_declaration",
+                "export_statement",
+                "interface_declaration",
+                "type_alias_declaration",
+            ],
+            "python" => &[
+                "function_definition",
+                "class_definition",
+                "decorated_definition",
+            ],
+            "go" => &[
+                "function_declaration",
+                "method_declaration",
+                "type_declaration",
+            ],
+            "java" => &[
+                "class_declaration",
+                "method_declaration",
+                "interface_declaration",
+                "enum_declaration",
+            ],
+            "c" | "cpp" => &[
+                "function_definition",
+                "struct_specifier",
+                "class_specifier",
+                "enum_specifier",
+            ],
+            _ => &[],
         };
 
-        self.collect_semantic_nodes(root, bytes, file_path, language, semantic_kinds, &mut chunks);
+        self.collect_semantic_nodes(
+            root,
+            bytes,
+            file_path,
+            language,
+            semantic_kinds,
+            &mut chunks,
+        );
 
         // If file has content outside semantic chunks (imports, top-level statements), add them
         if chunks.is_empty() {
@@ -278,8 +318,13 @@ impl RAGManager {
                 _ => Some(kind.to_string()),
             };
 
-            let id = format!("{}:{}:{}:{}", file_path, start_line, end_line,
-                             symbol_name.as_deref().unwrap_or("anon"));
+            let id = format!(
+                "{}:{}:{}:{}",
+                file_path,
+                start_line,
+                end_line,
+                symbol_name.as_deref().unwrap_or("anon")
+            );
 
             // If chunk exceeds max size, split it
             if content.lines().count() > self.config.chunk_size * 2 {
@@ -311,7 +356,14 @@ impl RAGManager {
         let child_count = node.child_count();
         for i in 0..child_count {
             if let Some(child) = node.child(i) {
-                self.collect_semantic_nodes(child, source, file_path, language, semantic_kinds, chunks);
+                self.collect_semantic_nodes(
+                    child,
+                    source,
+                    file_path,
+                    language,
+                    semantic_kinds,
+                    chunks,
+                );
             }
         }
     }
@@ -321,7 +373,11 @@ impl RAGManager {
         for i in 0..node.named_child_count() {
             if let Some(child) = node.named_child(i) {
                 let kind = child.kind();
-                if kind == "identifier" || kind == "name" || kind == "type_identifier" || kind == "property_identifier" {
+                if kind == "identifier"
+                    || kind == "name"
+                    || kind == "type_identifier"
+                    || kind == "property_identifier"
+                {
                     let text = &source[child.start_byte()..child.end_byte()];
                     return Some(String::from_utf8_lossy(text).to_string());
                 }
@@ -355,13 +411,15 @@ impl RAGManager {
                 embedding: None,
             });
 
-            if end >= lines.len() { break; }
+            if end >= lines.len() {
+                break;
+            }
             start = end.saturating_sub(overlap);
         }
 
         chunks
     }
-    
+
     /// Detect language from file extension
     fn detect_language(&self, path: &std::path::Path) -> String {
         path.extension()
@@ -382,7 +440,7 @@ impl RAGManager {
             .unwrap_or("plaintext")
             .to_string()
     }
-    
+
     /// Generate embedding for text via Ollama /api/embeddings
     async fn generate_embedding(&self, text: &str) -> Result<Vec<f32>> {
         let client = reqwest::Client::new();
@@ -403,16 +461,24 @@ impl RAGManager {
                 struct EmbeddingResponse {
                     embedding: Vec<f32>,
                 }
-                let parsed: EmbeddingResponse = r.json().await
+                let parsed: EmbeddingResponse = r
+                    .json()
+                    .await
                     .context("Failed to parse Ollama embedding response")?;
                 Ok(parsed.embedding)
             }
             Ok(r) => {
-                log::warn!("Ollama embeddings returned {}, falling back to hash-based", r.status());
+                log::warn!(
+                    "Ollama embeddings returned {}, falling back to hash-based",
+                    r.status()
+                );
                 Ok(self.hash_embedding(text))
             }
             Err(e) => {
-                log::warn!("Ollama not reachable ({}), falling back to hash-based embedding", e);
+                log::warn!(
+                    "Ollama not reachable ({}), falling back to hash-based embedding",
+                    e
+                );
                 Ok(self.hash_embedding(text))
             }
         }
@@ -425,7 +491,7 @@ impl RAGManager {
         let dim = 384;
         let mut embedding = vec![0.0f32; dim];
         // Produce a crude but deterministic vector from token trigrams
-        for (i, word) in text.split_whitespace().enumerate() {
+        for word in text.split_whitespace() {
             let mut hasher = DefaultHasher::new();
             word.to_lowercase().hash(&mut hasher);
             let h = hasher.finish();
@@ -438,28 +504,33 @@ impl RAGManager {
         // L2-normalize
         let mag: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
         if mag > 0.0 {
-            for v in &mut embedding { *v /= mag; }
+            for v in &mut embedding {
+                *v /= mag;
+            }
         }
         embedding
     }
-    
+
     /// Search for similar code
     pub async fn search(&self, query: &str, n_results: usize) -> Result<Vec<SearchResult>> {
         let query_embedding = self.generate_embedding(query).await?;
-        
+
         // Calculate similarity with all chunks
-        let mut results: Vec<(String, f32)> = self.embeddings.iter()
+        let mut results: Vec<(String, f32)> = self
+            .embeddings
+            .iter()
             .map(|(id, embedding)| {
                 let score = self.cosine_similarity(&query_embedding, embedding);
                 (id.clone(), score)
             })
             .collect();
-        
+
         // Sort by similarity
         results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Return top N
-        results.into_iter()
+        results
+            .into_iter()
             .take(n_results)
             .filter_map(|(id, score)| {
                 self.index.get(&id).map(|chunk| SearchResult {
@@ -473,53 +544,57 @@ impl RAGManager {
             .map(Ok)
             .collect()
     }
-    
+
     /// Calculate cosine similarity
     fn cosine_similarity(&self, a: &[f32], b: &[f32]) -> f32 {
         if a.len() != b.len() {
             return 0.0;
         }
-        
+
         let dot: f32 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
         let mag_a: f32 = a.iter().map(|x| x * x).sum::<f32>().sqrt();
         let mag_b: f32 = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-        
+
         if mag_a == 0.0 || mag_b == 0.0 {
             return 0.0;
         }
-        
+
         dot / (mag_a * mag_b)
     }
-    
+
     /// Get chunk by ID
     pub fn get_chunk(&self, id: &str) -> Option<&CodeChunk> {
         self.index.get(id)
     }
-    
+
     /// Remove file from index
     pub fn remove_file(&mut self, file_path: &str) {
-        let ids_to_remove: Vec<String> = self.index.iter()
+        let ids_to_remove: Vec<String> = self
+            .index
+            .iter()
             .filter(|(_, chunk)| chunk.file_path == file_path)
             .map(|(id, _)| id.clone())
             .collect();
-        
+
         for id in ids_to_remove {
             self.index.remove(&id);
             self.embeddings.remove(&id);
         }
     }
-    
+
     /// Clear entire index
     pub fn clear_index(&mut self) {
         self.index.clear();
         self.embeddings.clear();
     }
-    
+
     /// Get index statistics
     pub fn stats(&self) -> RAGStats {
         RAGStats {
             total_chunks: self.index.len(),
-            total_files: self.index.values()
+            total_files: self
+                .index
+                .values()
                 .map(|c| c.file_path.clone())
                 .collect::<std::collections::HashSet<_>>()
                 .len(),

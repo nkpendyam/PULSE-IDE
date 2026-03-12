@@ -6,8 +6,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use sha2::{Digest, Sha256};
 use std::time::{Duration, Instant};
-use sha2::{Sha256, Digest};
 
 /// Cache entry with metadata
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ impl KVCache {
     /// Get a cached response
     pub fn get(&self, prompt: &str) -> Option<String> {
         let key = Self::hash_prompt(prompt);
-        
+
         if let Some(entry) = self.entries.get(&key) {
             // Check if entry is still valid
             if entry.created_at.elapsed() < self.max_age {
@@ -92,10 +92,10 @@ impl KVCache {
     }
 
     /// Get with prefix matching (for similar prompts)
-    pub fn get_fuzzy(&self, prompt: &str, similarity_threshold: f32) -> Option<String> {
+    pub fn get_fuzzy(&self, prompt: &str, _similarity_threshold: f32) -> Option<String> {
         // Hash prefix for fuzzy matching
         let prefix = Self::hash_prefix(prompt);
-        
+
         for entry in self.entries.values() {
             if entry.prompt_hash.starts_with(&prefix) {
                 return Some(entry.response.clone());
@@ -121,16 +121,17 @@ impl KVCache {
             0.0
         };
 
-        let total_tokens: usize = self.entries.values()
-            .map(|e| e.token_count)
-            .sum();
+        let total_tokens: usize = self.entries.values().map(|e| e.token_count).sum();
 
         // Estimate memory usage (rough: 4 bytes per character + overhead)
         let memory_usage = total_tokens * 8; // Rough estimate
 
-        let avg_age = self.entries.values()
+        let avg_age = self
+            .entries
+            .values()
             .map(|e| e.created_at.elapsed().as_secs() as f64)
-            .sum::<f64>() / self.entries.len().max(1) as f64;
+            .sum::<f64>()
+            / self.entries.len().max(1) as f64;
 
         CacheStats {
             total_entries: self.entries.len(),
@@ -166,11 +167,13 @@ impl KVCache {
     fn evict_oldest(&mut self) {
         // Find and remove the oldest 10% of entries
         let to_remove = (self.max_entries as f32 * 0.1) as usize;
-        
-        let mut entries: Vec<_> = self.entries.iter()
+
+        let mut entries: Vec<_> = self
+            .entries
+            .iter()
             .map(|(k, e)| (k.clone(), e.last_accessed))
             .collect();
-        
+
         entries.sort_by_key(|(_, last_accessed)| *last_accessed);
 
         for (key, _) in entries.into_iter().take(to_remove) {
@@ -199,9 +202,8 @@ impl KVCache {
 
     /// Prune expired entries
     pub fn prune_expired(&mut self) {
-        self.entries.retain(|_, entry| {
-            entry.created_at.elapsed() < self.max_age
-        });
+        self.entries
+            .retain(|_, entry| entry.created_at.elapsed() < self.max_age);
     }
 }
 

@@ -1,13 +1,13 @@
 //! Agent Resource Guardrails
-//! 
+//!
 //! Enforces memory, CPU, and runtime limits on agent processes.
 
-use std::time::{Duration, Instant};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
+use std::time::{Duration, Instant};
 
-use crate::agents::{AgentError, AgentConfig};
+use crate::agents::{AgentConfig, AgentError};
 
 /// Resource monitor for agent processes
 pub struct AgentGuardrails {
@@ -27,7 +27,7 @@ impl AgentGuardrails {
             monitoring_active: Arc::new(AtomicBool::new(false)),
         }
     }
-    
+
     /// Create with default limits (2GB, 50% CPU, 10min)
     pub fn default_limits() -> Self {
         Self {
@@ -37,7 +37,7 @@ impl AgentGuardrails {
             monitoring_active: Arc::new(AtomicBool::new(false)),
         }
     }
-    
+
     /// Check if a process is within resource limits
     pub fn check_limits(&self, memory_usage: usize, cpu_usage: f32) -> Result<(), AgentError> {
         // Memory check
@@ -47,44 +47,42 @@ impl AgentGuardrails {
                 limit: self.max_memory,
             });
         }
-        
+
         // CPU check (warning only, don't error)
         if cpu_usage > self.max_cpu {
             log::warn!(
                 "Agent CPU usage {:.1}% exceeds limit {:.1}%",
-                cpu_usage, self.max_cpu
+                cpu_usage,
+                self.max_cpu
             );
         }
-        
+
         Ok(())
     }
-    
+
     /// Start monitoring a process
     pub fn start_monitoring(&self, start_time: Instant) -> Arc<AtomicBool> {
         let active = Arc::new(AtomicBool::new(true));
         let active_clone = active.clone();
         let max_duration = self.max_duration;
-        
+
         thread::spawn(move || {
             while active_clone.load(Ordering::Relaxed) {
                 let elapsed = start_time.elapsed();
-                
+
                 if elapsed > max_duration {
-                    log::error!(
-                        "Agent runtime exceeded: {:?} > {:?}",
-                        elapsed, max_duration
-                    );
+                    log::error!("Agent runtime exceeded: {:?} > {:?}", elapsed, max_duration);
                     active_clone.store(false, Ordering::Relaxed);
                     break;
                 }
-                
+
                 thread::sleep(Duration::from_secs(1));
             }
         });
-        
+
         active
     }
-    
+
     /// Check if runtime has been exceeded
     pub fn check_runtime(&self, start_time: Instant) -> Result<(), AgentError> {
         let elapsed = start_time.elapsed();
@@ -96,27 +94,27 @@ impl AgentGuardrails {
         }
         Ok(())
     }
-    
+
     /// Stop monitoring
     pub fn stop_monitoring(&self) {
         self.monitoring_active.store(false, Ordering::Relaxed);
     }
-    
+
     /// Get memory limit in bytes
     pub fn memory_limit(&self) -> usize {
         self.max_memory
     }
-    
+
     /// Get CPU limit as percentage
     pub fn cpu_limit(&self) -> f32 {
         self.max_cpu
     }
-    
+
     /// Get runtime limit
     pub fn runtime_limit(&self) -> Duration {
         self.max_duration
     }
-    
+
     /// Format limits for display
     pub fn format_limits(&self) -> String {
         format!(
@@ -142,7 +140,7 @@ impl ResourceUsage {
         guardrails.check_limits(self.memory_bytes, self.cpu_percent)?;
         guardrails.check_runtime(Instant::now() - Duration::from_secs(self.runtime_secs))
     }
-    
+
     /// Format for display
     pub fn format(&self) -> String {
         format!(
@@ -157,21 +155,21 @@ impl ResourceUsage {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_default_limits() {
         let guardrails = AgentGuardrails::default_limits();
         assert_eq!(guardrails.memory_limit(), 2 * 1024 * 1024 * 1024);
         assert_eq!(guardrails.cpu_limit(), 50.0);
     }
-    
+
     #[test]
     fn test_memory_limit_exceeded() {
         let guardrails = AgentGuardrails::default_limits();
         let result = guardrails.check_limits(3 * 1024 * 1024 * 1024, 30.0);
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_within_limits() {
         let guardrails = AgentGuardrails::default_limits();

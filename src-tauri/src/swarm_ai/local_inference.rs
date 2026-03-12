@@ -3,12 +3,12 @@
 //! This module provides direct local LLM inference without Ollama dependency.
 //! It uses the GGUF format models with quantization support (Q4_K_M, Q5_K_M, etc.)
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
-use sha2::Digest;
 
 /// Local inference engine that manages llama.cpp processes
 pub struct LocalInferenceEngine {
@@ -72,7 +72,8 @@ impl LocalInferenceEngine {
             .join("models");
 
         // Ensure models directory exists
-        tokio::fs::create_dir_all(&models_dir).await
+        tokio::fs::create_dir_all(&models_dir)
+            .await
             .context("Failed to create models directory")?;
 
         // Try to find llama.cpp binary
@@ -129,7 +130,7 @@ impl LocalInferenceEngine {
 
         // Check if model file exists locally
         let model_path = self.get_model_path(model_name);
-        
+
         if !model_path.exists() {
             // Download model
             self.download_model(model_name).await?;
@@ -167,23 +168,22 @@ impl LocalInferenceEngine {
     /// Get the local path for a model
     fn get_model_path(&self, model_name: &str) -> PathBuf {
         // Convert model name to filename
-        let filename = model_name
-            .replace("/", "--")
-            .replace(":", "-");
+        let filename = model_name.replace("/", "--").replace(":", "-");
         self.models_dir.join(format!("{}.gguf", filename))
     }
 
     /// Download a model from HuggingFace
     async fn download_model(&self, model_name: &str) -> Result<()> {
         let model_path = self.get_model_path(model_name);
-        
+
         // Parse model name to get HuggingFace URL
         let url = self.get_huggingface_url(model_name)?;
-        
+
         println!("Downloading model from: {}", url);
 
         // Use reqwest to download
-        let response = reqwest::get(&url).await
+        let response = reqwest::get(&url)
+            .await
             .context("Failed to start download")?;
 
         let total_size = response.content_length().unwrap_or(0);
@@ -198,7 +198,7 @@ impl LocalInferenceEngine {
             let chunk = chunk.context("Failed to read chunk")?;
             file.write_all(&chunk).await?;
             downloaded += chunk.len() as u64;
-            
+
             if total_size > 0 {
                 let pct = (downloaded as f32 / total_size as f32) * 100.0;
                 println!("Downloaded: {:.1}%", pct);
@@ -235,7 +235,8 @@ impl LocalInferenceEngine {
     /// Verify model file integrity
     async fn verify_model(&self, model_path: &PathBuf) -> Result<()> {
         // Check file exists and is not empty
-        let metadata = tokio::fs::metadata(model_path).await
+        let metadata = tokio::fs::metadata(model_path)
+            .await
             .context("Model file not found")?;
 
         if metadata.len() < 1_000_000 {
@@ -265,10 +266,11 @@ impl LocalInferenceEngine {
         let memory_usage_gb = (size as f32 * 1.3) / (1024.0 * 1024.0 * 1024.0);
 
         // Extract quantization from filename
-        let filename = model_path.file_name()
+        let filename = model_path
+            .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("");
-        
+
         let quantization = if filename.contains("Q4_K_M") {
             "Q4_K_M"
         } else if filename.contains("Q5_K_M") {
@@ -277,7 +279,8 @@ impl LocalInferenceEngine {
             "Q8_0"
         } else {
             "Unknown"
-        }.to_string();
+        }
+        .to_string();
 
         Ok(ModelLoadInfo {
             context_length: 4096, // Default, should be read from GGUF
@@ -290,7 +293,9 @@ impl LocalInferenceEngine {
     pub async fn complete(&mut self, prompt: &str, max_tokens: u32) -> Result<String> {
         // If llama.cpp is available, use it directly
         if let Some(ref llama_path) = self.llama_cpp_path {
-            return self.complete_with_llama_cpp(llama_path, prompt, max_tokens).await;
+            return self
+                .complete_with_llama_cpp(llama_path, prompt, max_tokens)
+                .await;
         }
 
         // Fall back to Ollama
@@ -298,23 +303,40 @@ impl LocalInferenceEngine {
     }
 
     /// Complete using llama.cpp binary
-    async fn complete_with_llama_cpp(&self, llama_path: &PathBuf, prompt: &str, max_tokens: u32) -> Result<String> {
+    async fn complete_with_llama_cpp(
+        &self,
+        llama_path: &PathBuf,
+        prompt: &str,
+        max_tokens: u32,
+    ) -> Result<String> {
         // Find a loaded model
-        let model = self.loaded_models.values().next()
+        let model = self
+            .loaded_models
+            .values()
+            .next()
             .ok_or_else(|| anyhow::anyhow!("No model loaded"))?;
 
         let params = InferenceParams::default();
 
         let output = Command::new(llama_path)
-            .arg("-m").arg(&model.path)
-            .arg("-p").arg(prompt)
-            .arg("-n").arg(max_tokens.to_string())
-            .arg("--temp").arg(params.temperature.to_string())
-            .arg("--top-p").arg(params.top_p.to_string())
-            .arg("--top-k").arg(params.top_k.to_string())
-            .arg("--repeat-penalty").arg(params.repeat_penalty.to_string())
-            .arg("-t").arg(params.threads.to_string())
-            .arg("-ngl").arg(params.n_gpu_layers.to_string())
+            .arg("-m")
+            .arg(&model.path)
+            .arg("-p")
+            .arg(prompt)
+            .arg("-n")
+            .arg(max_tokens.to_string())
+            .arg("--temp")
+            .arg(params.temperature.to_string())
+            .arg("--top-p")
+            .arg(params.top_p.to_string())
+            .arg("--top-k")
+            .arg(params.top_k.to_string())
+            .arg("--repeat-penalty")
+            .arg(params.repeat_penalty.to_string())
+            .arg("-t")
+            .arg(params.threads.to_string())
+            .arg("-ngl")
+            .arg(params.n_gpu_layers.to_string())
             .arg("--no-display-prompt")
             .output()
             .context("Failed to run llama.cpp")?;
@@ -368,7 +390,9 @@ impl LocalInferenceEngine {
             response: String,
         }
 
-        let data: OllamaResponse = response.json().await
+        let data: OllamaResponse = response
+            .json()
+            .await
             .context("Failed to parse Ollama response")?;
 
         Ok(data.response)
@@ -378,7 +402,7 @@ impl LocalInferenceEngine {
     pub async fn complete_stream(
         &mut self,
         prompt: &str,
-        max_tokens: u32,
+        _max_tokens: u32,
         mut callback: impl FnMut(String) + Send + 'static,
     ) -> Result<String> {
         // Use Ollama streaming for now

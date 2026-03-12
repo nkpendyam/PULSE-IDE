@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::repowiki::{RepoWikiConfig, RepoWikiEngine, WikiPhase, WikiStatus};
+use crate::repowiki::{RepoWikiConfig, RepoWikiEngine, WikiStatus};
 
 lazy_static! {
     static ref WIKI_ENGINE: Arc<Mutex<Option<RepoWikiEngine>>> = Arc::new(Mutex::new(None));
@@ -100,7 +100,11 @@ pub async fn repowiki_start_sync(project_path: String) -> Result<String, String>
     let engine_arc = WIKI_ENGINE.clone();
     let config = {
         let guard = engine_arc.lock().await;
-        guard.as_ref().ok_or("Engine not initialized")?.config.clone()
+        guard
+            .as_ref()
+            .ok_or("Engine not initialized")?
+            .config
+            .clone()
     };
 
     let (rx, watcher) = crate::repowiki::sync::start_watching(&config)?;

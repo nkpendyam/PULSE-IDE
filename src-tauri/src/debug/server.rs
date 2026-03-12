@@ -2,11 +2,11 @@
 //!
 //! Server-side debug adapter implementation for hosting debug sessions
 
+use anyhow::Result;
+use log::debug;
+use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::broadcast;
-use serde_json::json;
-use anyhow::Result;
-use log::{debug, info};
 
 use super::types::*;
 
@@ -34,11 +34,25 @@ pub enum DebugSessionStatus {
 
 #[derive(Debug, Clone)]
 pub enum DebugServerEvent {
-    SessionCreated { session_id: String },
-    SessionTerminated { session_id: String },
-    BreakpointHit { session_id: String, breakpoint_id: u64 },
-    StepComplete { session_id: String, thread_id: u64 },
-    Output { session_id: String, category: String, text: String },
+    SessionCreated {
+        session_id: String,
+    },
+    SessionTerminated {
+        session_id: String,
+    },
+    BreakpointHit {
+        session_id: String,
+        breakpoint_id: u64,
+    },
+    StepComplete {
+        session_id: String,
+        thread_id: u64,
+    },
+    Output {
+        session_id: String,
+        category: String,
+        text: String,
+    },
 }
 
 impl DebugAdapterServer {
@@ -49,11 +63,11 @@ impl DebugAdapterServer {
             event_tx,
         }
     }
-    
+
     /// Handle incoming DAP request
     pub async fn handle_request(&mut self, request: Request) -> Result<Response> {
         debug!("Handling DAP request: {}", request.command);
-        
+
         let result = match request.command.as_str() {
             "initialize" => self.handle_initialize(&request).await?,
             "launch" => self.handle_launch(&request).await?,
@@ -77,7 +91,7 @@ impl DebugAdapterServer {
             "restart" => self.handle_restart(&request).await?,
             _ => json!({}),
         };
-        
+
         Ok(Response {
             seq: request.seq + 1,
             request_seq: request.seq,
@@ -87,8 +101,8 @@ impl DebugAdapterServer {
             body: Some(result),
         })
     }
-    
-    async fn handle_initialize(&mut self, request: &Request) -> Result<serde_json::Value> {
+
+    async fn handle_initialize(&mut self, _request: &Request) -> Result<serde_json::Value> {
         let capabilities = Capabilities {
             supports_configuration_done_request: Some(true),
             supports_function_breakpoints: Some(true),
@@ -113,94 +127,108 @@ impl DebugAdapterServer {
             supports_instruction_breakpoints: Some(false),
             ..Default::default()
         };
-        
+
         Ok(serde_json::to_value(capabilities)?)
     }
-    
-    async fn handle_launch(&mut self, request: &Request) -> Result<serde_json::Value> {
+
+    async fn handle_launch(&mut self, _request: &Request) -> Result<serde_json::Value> {
         let session_id = uuid::Uuid::new_v4().to_string();
-        
-        self.sessions.insert(session_id.clone(), DebugSessionInfo {
-            id: session_id.clone(),
-            status: DebugSessionStatus::Running,
-            threads: vec![Thread { id: 1, name: "main".to_string() }],
-            breakpoints: HashMap::new(),
-        });
-        
-        let _ = self.event_tx.send(DebugServerEvent::SessionCreated { session_id });
-        
+
+        self.sessions.insert(
+            session_id.clone(),
+            DebugSessionInfo {
+                id: session_id.clone(),
+                status: DebugSessionStatus::Running,
+                threads: vec![Thread {
+                    id: 1,
+                    name: "main".to_string(),
+                }],
+                breakpoints: HashMap::new(),
+            },
+        );
+
+        let _ = self
+            .event_tx
+            .send(DebugServerEvent::SessionCreated { session_id });
+
         Ok(json!({}))
     }
-    
+
     async fn handle_attach(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_disconnect(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_set_breakpoints(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "breakpoints": []
         }))
     }
-    
-    async fn handle_set_function_breakpoints(&mut self, _request: &Request) -> Result<serde_json::Value> {
+
+    async fn handle_set_function_breakpoints(
+        &mut self,
+        _request: &Request,
+    ) -> Result<serde_json::Value> {
         Ok(json!({
             "breakpoints": []
         }))
     }
-    
-    async fn handle_set_exception_breakpoints(&mut self, _request: &Request) -> Result<serde_json::Value> {
+
+    async fn handle_set_exception_breakpoints(
+        &mut self,
+        _request: &Request,
+    ) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_configuration_done(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_continue(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "allThreadsContinued": true
         }))
     }
-    
+
     async fn handle_next(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_step_in(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_step_out(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_pause(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     async fn handle_stack_trace(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "stackFrames": [],
             "totalFrames": 0
         }))
     }
-    
+
     async fn handle_scopes(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "scopes": []
         }))
     }
-    
+
     async fn handle_variables(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "variables": []
         }))
     }
-    
+
     async fn handle_threads(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "threads": [
@@ -208,24 +236,24 @@ impl DebugAdapterServer {
             ]
         }))
     }
-    
+
     async fn handle_evaluate(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "result": "",
             "variablesReference": 0
         }))
     }
-    
+
     async fn handle_completions(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({
             "targets": []
         }))
     }
-    
+
     async fn handle_restart(&mut self, _request: &Request) -> Result<serde_json::Value> {
         Ok(json!({}))
     }
-    
+
     /// Subscribe to server events
     pub fn subscribe(&self) -> broadcast::Receiver<DebugServerEvent> {
         self.event_tx.subscribe()

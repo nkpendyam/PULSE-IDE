@@ -3,8 +3,8 @@
 //! Prompt templates for consistent AI agent behavior
 
 use super::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 /// Prompt template
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,36 +31,36 @@ impl PromptTemplate {
             template: template.into(),
         }
     }
-    
+
     /// Render the prompt with arguments
     pub fn render(&self, args: &HashMap<String, String>) -> anyhow::Result<GetPromptResult> {
         let mut rendered = self.template.clone();
-        
+
         // Simple template substitution
         for (key, value) in args {
             // Replace {{key}}
             rendered = rendered.replace(&format!("{{{{{}}}}}", key), value);
-            
+
             // Replace {{#if key}}...{{/if}}
             let if_pattern = regex::Regex::new(&format!(
-                r"\{{{{#if {}\}}}}(.*?)\{{{{/if\}}}}", 
+                r"\{{{{#if {}\}}}}(.*?)\{{{{/if\}}}}",
                 regex::escape(key)
             ))?;
-            
+
             if value.is_empty() {
                 rendered = if_pattern.replace_all(&rendered, "").to_string();
             } else {
                 rendered = if_pattern.replace_all(&rendered, "$1").to_string();
             }
         }
-        
+
         // Check for missing required arguments
         for arg in &self.arguments {
             if arg.required && !args.contains_key(&arg.name) {
                 anyhow::bail!("Missing required argument: {}", arg.name);
             }
         }
-        
+
         Ok(GetPromptResult {
             description: Some(self.description.clone()),
             messages: vec![PromptMessage {
@@ -82,41 +82,47 @@ impl PromptRegistry {
             prompts: HashMap::new(),
         }
     }
-    
+
     /// Register a prompt
     pub fn register(&mut self, prompt: PromptTemplate) {
         self.prompts.insert(prompt.name.clone(), prompt);
     }
-    
+
     /// Unregister a prompt
     pub fn unregister(&mut self, name: &str) -> Option<PromptTemplate> {
         self.prompts.remove(name)
     }
-    
+
     /// List all prompts
     pub fn list(&self) -> Vec<&PromptTemplate> {
         self.prompts.values().collect()
     }
-    
+
     /// Get a prompt by name
     pub fn get(&self, name: &str) -> Option<&PromptTemplate> {
         self.prompts.get(name)
     }
-    
+
     /// Render a prompt with arguments
     pub fn get_rendered(
-        &self, 
-        name: &str, 
-        args: HashMap<String, String>
+        &self,
+        name: &str,
+        args: HashMap<String, String>,
     ) -> anyhow::Result<GetPromptResult> {
-        let prompt = self.prompts.get(name)
+        let prompt = self
+            .prompts
+            .get(name)
             .ok_or_else(|| anyhow::anyhow!("Prompt not found: {}", name))?;
-        
+
         prompt.render(&args)
     }
-    
+
     /// Get a rendered prompt with arguments
-    pub fn get_rendered_prompt(&self, name: &str, args: HashMap<String, String>) -> anyhow::Result<GetPromptResult> {
+    pub fn get_rendered_prompt(
+        &self,
+        name: &str,
+        args: HashMap<String, String>,
+    ) -> anyhow::Result<GetPromptResult> {
         self.get_rendered(name, args)
     }
 }
@@ -161,7 +167,6 @@ Include:
 - Documentation comments
 - Example usage"#,
         ),
-        
         // Code review prompts
         PromptTemplate::new(
             "security_review",
@@ -194,18 +199,15 @@ Check for:
 
 Rate each finding as Critical/High/Medium/Low and provide fixes."#,
         ),
-        
         // Refactoring prompts
         PromptTemplate::new(
             "refactor_clean",
             "Refactor code for cleanliness and maintainability",
-            vec![
-                PromptArgument {
-                    name: "code".to_string(),
-                    description: Some("Code to refactor".to_string()),
-                    required: true,
-                },
-            ],
+            vec![PromptArgument {
+                name: "code".to_string(),
+                description: Some("Code to refactor".to_string()),
+                required: true,
+            }],
             r#"Refactor this code for better cleanliness and maintainability:
 
 ```
@@ -221,7 +223,6 @@ Apply these principles:
 
 Show the refactored code with explanations of changes."#,
         ),
-        
         // Test generation prompts
         PromptTemplate::new(
             "generate_unit_tests",
@@ -253,7 +254,6 @@ Include tests for:
 
 Use descriptive test names and include assertions with meaningful error messages."#,
         ),
-        
         // Documentation prompts
         PromptTemplate::new(
             "document_api",
@@ -292,7 +292,7 @@ Include:
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_prompt_render() {
         let prompt = PromptTemplate::new(
@@ -305,14 +305,19 @@ mod tests {
             }],
             "Hello, {{name}}!",
         );
-        
+
         let mut args = HashMap::new();
         args.insert("name".to_string(), "World".to_string());
-        
+
         let result = prompt.render(&args).unwrap();
-        assert_eq!(result.messages[0].content, ContentBlock::Text { text: "Hello, World!".to_string() });
+        assert_eq!(
+            result.messages[0].content,
+            ContentBlock::Text {
+                text: "Hello, World!".to_string()
+            }
+        );
     }
-    
+
     #[test]
     fn test_missing_required_arg() {
         let prompt = PromptTemplate::new(
@@ -325,7 +330,7 @@ mod tests {
             }],
             "Value: {{required}}",
         );
-        
+
         let args = HashMap::new();
         let result = prompt.render(&args);
         assert!(result.is_err());

@@ -5,6 +5,9 @@ edition = "2021"
 license = "MIT"
 description = "CRDT collaboration engine for Kyro IDE"
 
+[lints]
+workspace = true
+
 [dependencies]
 # Core
 kyro-core = { path = "../kyro-core" }

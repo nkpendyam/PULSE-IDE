@@ -3,10 +3,13 @@
 //! These commands provide direct access to the embedded LLM engine
 //! without requiring Ollama installation.
 
-use crate::embedded_llm::{EmbeddedLLMEngine, EmbeddedLLMConfig, InferenceRequest, InferenceResponse, HardwareCapabilities, ModelStatus};
-use tauri::command;
+use crate::embedded_llm::{
+    EmbeddedLLMConfig, EmbeddedLLMEngine, HardwareCapabilities, InferenceRequest,
+    InferenceResponse, ModelStatus,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
 
 /// Embedded LLM state wrapper
@@ -82,10 +85,12 @@ impl Default for CompletionOptions {
 
 /// Get hardware capabilities
 #[command]
-pub async fn get_hardware_info(state: tauri::State<'_, Arc<RwLock<EmbeddedLLMState>>>) -> Result<HardwareInfo, String> {
+pub async fn get_hardware_info(
+    state: tauri::State<'_, Arc<RwLock<EmbeddedLLMState>>>,
+) -> Result<HardwareInfo, String> {
     let state = state.read().await;
     let hw = &state.hardware;
-    
+
     Ok(HardwareInfo {
         gpu_name: hw.gpu_name.clone(),
         vram_gb: hw.vram_bytes as f32 / (1024.0 * 1024.0 * 1024.0),
@@ -93,7 +98,9 @@ pub async fn get_hardware_info(state: tauri::State<'_, Arc<RwLock<EmbeddedLLMSta
         cpu_cores: hw.cpu_cores,
         backend: hw.recommended_backend.clone(),
         memory_tier: format!("{:?}", hw.recommended_tier),
-        recommended_model: hw.recommended_tier.recommended_models()
+        recommended_model: hw
+            .recommended_tier
+            .recommended_models()
             .first()
             .map(|s| s.to_string())
             .unwrap_or_else(|| "phi-2b-q4_k_m".to_string()),
@@ -107,14 +114,17 @@ pub async fn init_embedded_llm(
     model_name: Option<String>,
 ) -> Result<String, String> {
     let mut state = state.write().await;
-    
+
     let model = model_name.unwrap_or_else(|| {
-        state.hardware.recommended_tier.recommended_models()
+        state
+            .hardware
+            .recommended_tier
+            .recommended_models()
             .first()
             .map(|s| s.to_string())
             .unwrap_or_else(|| "phi-2b-q4_k_m".to_string())
     });
-    
+
     let config = EmbeddedLLMConfig {
         default_model: model.clone(),
         max_vram_mb: (state.hardware.vram_bytes / (1024 * 1024)) * 80 / 100,
@@ -122,7 +132,7 @@ pub async fn init_embedded_llm(
         n_gpu_layers: state.hardware.recommended_tier.gpu_layers(),
         ..Default::default()
     };
-    
+
     match EmbeddedLLMEngine::new(config).await {
         Ok(engine) => {
             state.engine = Some(Arc::new(RwLock::new(engine)));
@@ -142,25 +152,33 @@ pub async fn load_model(
     model_name: String,
 ) -> Result<String, String> {
     let state = state.read().await;
-    
+
     if let Some(ref engine) = state.engine {
         // Step 1: Ensure model is downloaded (needs read lock on engine, but internal write lock on manager)
         {
             let engine_guard = engine.read().await;
             let window_clone = window.clone();
             let name_clone = model_name.clone();
-            
-            engine_guard.ensure_model_downloaded(&model_name, move |p| {
-                let _ = window_clone.emit("model-download-progress", serde_json::json!({
-                    "model": name_clone,
-                    "progress": p
-                }));
-            }).await.map_err(|e| format!("Failed to download model: {}", e))?;
+
+            engine_guard
+                .ensure_model_downloaded(&model_name, move |p| {
+                    let _ = window_clone.emit(
+                        "model-download-progress",
+                        serde_json::json!({
+                            "model": name_clone,
+                            "progress": p
+                        }),
+                    );
+                })
+                .await
+                .map_err(|e| format!("Failed to download model: {}", e))?;
         }
 
         // Step 2: Load model (needs write lock on engine)
-        let mut engine_write = engine.write().await;
-        engine_write.load_model(&model_name).await
+        let engine_write = engine.write().await;
+        engine_write
+            .load_model(&model_name)
+            .await
             .map(|_| format!("Model {} loaded successfully", model_name))
             .map_err(|e| format!("Failed to load model: {}", e))
     } else {
@@ -175,10 +193,12 @@ pub async fn unload_model(
     model_name: String,
 ) -> Result<String, String> {
     let state = state.read().await;
-    
+
     if let Some(ref engine) = state.engine {
-        let mut engine = engine.write().await;
-        engine.unload_model(&model_name).await
+        let engine = engine.write().await;
+        engine
+            .unload_model(&model_name)
+            .await
             .map(|_| format!("Model {} unloaded", model_name))
             .map_err(|e| format!("Failed to unload model: {}", e))
     } else {
@@ -192,38 +212,42 @@ pub async fn list_local_models(
     state: tauri::State<'_, Arc<RwLock<EmbeddedLLMState>>>,
 ) -> Result<Vec<LocalModelInfo>, String> {
     let state = state.read().await;
-    
+
     if let Some(ref engine) = state.engine {
         let engine = engine.read().await;
         let loaded = engine.loaded_models().await;
-        
+
         // Return recommended models for the memory tier
         let recommended = state.hardware.recommended_tier.recommended_models();
-        
-        Ok(recommended.iter().map(|name| {
-            let is_loaded = loaded.iter().any(|m| &m.name == name);
-            LocalModelInfo {
-                name: name.to_string(),
-                size_mb: estimate_model_size(name),
-                downloaded: true, // Would check actual download status
-                loaded: is_loaded,
-                quantization: "Q4_K_M".to_string(),
-                min_memory_tier: get_min_tier(name),
-            }
-        }).collect())
+
+        Ok(recommended
+            .iter()
+            .map(|name| {
+                let is_loaded = loaded.iter().any(|m| &m.name == name);
+                LocalModelInfo {
+                    name: name.to_string(),
+                    size_mb: estimate_model_size(name),
+                    downloaded: true, // Would check actual download status
+                    loaded: is_loaded,
+                    quantization: "Q4_K_M".to_string(),
+                    min_memory_tier: get_min_tier(name),
+                }
+            })
+            .collect())
     } else {
         // Return default models without loaded status
         let recommended = state.hardware.recommended_tier.recommended_models();
-        Ok(recommended.iter().map(|name| {
-            LocalModelInfo {
+        Ok(recommended
+            .iter()
+            .map(|name| LocalModelInfo {
                 name: name.to_string(),
                 size_mb: estimate_model_size(name),
                 downloaded: false,
                 loaded: false,
                 quantization: "Q4_K_M".to_string(),
                 min_memory_tier: get_min_tier(name),
-            }
-        }).collect())
+            })
+            .collect())
     }
 }
 
@@ -235,12 +259,12 @@ pub async fn embedded_complete(
     options: Option<CompletionOptions>,
 ) -> Result<InferenceResponse, String> {
     let state = state.read().await;
-    
+
     let opts = options.unwrap_or_default();
-    
+
     if let Some(ref engine) = state.engine {
         let mut engine = engine.write().await;
-        
+
         let request = InferenceRequest {
             prompt,
             max_tokens: opts.max_tokens.unwrap_or(512),
@@ -253,8 +277,10 @@ pub async fn embedded_complete(
             system_prompt: None,
             history: vec![],
         };
-        
-        engine.complete(&request).await
+
+        engine
+            .complete(&request)
+            .await
             .map_err(|e| format!("Completion failed: {}", e))
     } else {
         Err("Embedded LLM not initialized. Call init_embedded_llm first.".to_string())
@@ -270,17 +296,17 @@ pub async fn embedded_chat(
 ) -> Result<String, String> {
     let state = state.read().await;
     let opts = options.unwrap_or_default();
-    
+
     if let Some(ref engine) = state.engine {
         let mut engine = engine.write().await;
-        
+
         // Convert messages to prompt
         let mut prompt = String::new();
         for msg in messages {
             prompt.push_str(&format!("{}: {}\n", msg.role.to_uppercase(), msg.content));
         }
         prompt.push_str("ASSISTANT:");
-        
+
         let request = InferenceRequest {
             prompt,
             max_tokens: opts.max_tokens.unwrap_or(512),
@@ -288,15 +314,19 @@ pub async fn embedded_chat(
             top_p: opts.top_p.unwrap_or(0.9),
             top_k: opts.top_k.unwrap_or(40),
             repeat_penalty: 1.1,
-            stop_sequences: opts.stop_sequences.unwrap_or_else(|| vec!["USER:".to_string()]),
+            stop_sequences: opts
+                .stop_sequences
+                .unwrap_or_else(|| vec!["USER:".to_string()]),
             stream: false,
             system_prompt: None,
             history: vec![],
         };
-        
-        let response = engine.complete(&request).await
+
+        let response = engine
+            .complete(&request)
+            .await
             .map_err(|e| format!("Chat completion failed: {}", e))?;
-        
+
         Ok(response.text)
     } else {
         Err("Embedded LLM not initialized. Call init_embedded_llm first.".to_string())
@@ -313,21 +343,21 @@ pub async fn embedded_code_complete(
     options: Option<CompletionOptions>,
 ) -> Result<String, String> {
     let opts = options.unwrap_or_default();
-    
+
     let system_prompt = "You are an expert code completion AI. Complete the code following best practices. Only output the completion, not the entire code.";
-    
+
     let prompt = format!(
         "Complete this {} code at cursor position {}:\n\n```\n{}\n```\n\nCompletion:",
         language,
         cursor_position.unwrap_or(code.len()),
         code
     );
-    
+
     let state = state.read().await;
-    
+
     if let Some(ref engine) = state.engine {
         let mut engine = engine.write().await;
-        
+
         let request = InferenceRequest {
             prompt,
             max_tokens: opts.max_tokens.unwrap_or(256),
@@ -340,10 +370,12 @@ pub async fn embedded_code_complete(
             system_prompt: Some(system_prompt.to_string()),
             history: vec![],
         };
-        
-        let response = engine.complete(&request).await
+
+        let response = engine
+            .complete(&request)
+            .await
             .map_err(|e| format!("Code completion failed: {}", e))?;
-        
+
         Ok(response.text.trim().to_string())
     } else {
         Err("Embedded LLM not initialized".to_string())
@@ -365,7 +397,7 @@ pub async fn get_loaded_models(
     state: tauri::State<'_, Arc<RwLock<EmbeddedLLMState>>>,
 ) -> Result<Vec<ModelStatus>, String> {
     let state = state.read().await;
-    
+
     if let Some(ref engine) = state.engine {
         let engine = engine.read().await;
         Ok(engine.loaded_models().await)

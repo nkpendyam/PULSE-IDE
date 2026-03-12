@@ -1,8 +1,8 @@
 // VS Code Compatibility Tauri Commands — Self-contained implementation
-use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
 
 lazy_static::lazy_static! {
@@ -14,9 +14,17 @@ pub struct ExtensionState {
     installed: HashMap<String, ExtensionInfo>,
 }
 
+impl Default for ExtensionState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExtensionState {
     pub fn new() -> Self {
-        Self { installed: HashMap::new() }
+        Self {
+            installed: HashMap::new(),
+        }
     }
 }
 
@@ -51,31 +59,59 @@ pub async fn search_extensions(query: String, page: Option<usize>) -> Result<Sea
     let page = page.unwrap_or(0);
     let url = format!(
         "https://open-vsx.org/api/-/search?query={}&offset={}&size=20",
-        urlencoding::encode(&query), page * 20
+        urlencoding::encode(&query),
+        page * 20
     );
     match client.get(&url).send().await {
         Ok(resp) => {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
-                let extensions = data["extensions"].as_array()
-                    .map(|arr| arr.iter().filter_map(|e| {
-                        Some(ExtensionInfo {
-                            id: format!("{}.{}", e["namespace"].as_str()?, e["name"].as_str()?),
-                            name: e["name"].as_str()?.to_string(),
-                            display_name: e["displayName"].as_str().unwrap_or(e["name"].as_str()?).to_string(),
-                            version: e["version"].as_str().unwrap_or("0.0.0").to_string(),
-                            description: e["description"].as_str().map(|s| s.to_string()),
-                            publisher: e["namespace"].as_str()?.to_string(),
-                            enabled: false, installed: false, state: "available".to_string(),
-                            icon_url: e["files"].get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                            download_count: e["downloadCount"].as_u64(),
-                            rating: e["averageRating"].as_f64().map(|f| f as f32),
-                        })
-                    }).collect::<Vec<_>>())
+                let extensions = data["extensions"]
+                    .as_array()
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|e| {
+                                Some(ExtensionInfo {
+                                    id: format!(
+                                        "{}.{}",
+                                        e["namespace"].as_str()?,
+                                        e["name"].as_str()?
+                                    ),
+                                    name: e["name"].as_str()?.to_string(),
+                                    display_name: e["displayName"]
+                                        .as_str()
+                                        .unwrap_or(e["name"].as_str()?)
+                                        .to_string(),
+                                    version: e["version"].as_str().unwrap_or("0.0.0").to_string(),
+                                    description: e["description"].as_str().map(|s| s.to_string()),
+                                    publisher: e["namespace"].as_str()?.to_string(),
+                                    enabled: false,
+                                    installed: false,
+                                    state: "available".to_string(),
+                                    icon_url: e["files"]
+                                        .get("icon")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string()),
+                                    download_count: e["downloadCount"].as_u64(),
+                                    rating: e["averageRating"].as_f64().map(|f| f as f32),
+                                })
+                            })
+                            .collect::<Vec<_>>()
+                    })
                     .unwrap_or_default();
                 let total = data["totalSize"].as_u64().unwrap_or(0) as usize;
-                Ok(SearchResult { extensions, total, page, page_size: 20 })
+                Ok(SearchResult {
+                    extensions,
+                    total,
+                    page,
+                    page_size: 20,
+                })
             } else {
-                Ok(SearchResult { extensions: vec![], total: 0, page, page_size: 20 })
+                Ok(SearchResult {
+                    extensions: vec![],
+                    total: 0,
+                    page,
+                    page_size: 20,
+                })
             }
         }
         Err(e) => Err(format!("Search failed: {}", e)),
@@ -85,14 +121,19 @@ pub async fn search_extensions(query: String, page: Option<usize>) -> Result<Sea
 #[command]
 pub async fn get_extension_details(extension_id: String) -> Result<ExtensionInfo, String> {
     let parts: Vec<&str> = extension_id.split('.').collect();
-    if parts.len() != 2 { return Err("Invalid extension ID (expected publisher.name)".to_string()); }
+    if parts.len() != 2 {
+        return Err("Invalid extension ID (expected publisher.name)".to_string());
+    }
     let (namespace, name) = (parts[0], parts[1]);
-    
+
     // Fetch real details from Open VSX API
     let client = reqwest::Client::new();
-    let url = format!("https://open-vsx.org/api/{}/{}", 
-        urlencoding::encode(namespace), urlencoding::encode(name));
-    
+    let url = format!(
+        "https://open-vsx.org/api/{}/{}",
+        urlencoding::encode(namespace),
+        urlencoding::encode(name)
+    );
+
     match client.get(&url).send().await {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
@@ -109,12 +150,18 @@ pub async fn get_extension_details(extension_id: String) -> Result<ExtensionInfo
                         state.installed.contains_key(&extension_id)
                     },
                     state: "available".to_string(),
-                    icon_url: data["files"].get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                    icon_url: data["files"]
+                        .get("icon")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string()),
                     download_count: data["downloadCount"].as_u64(),
                     rating: data["averageRating"].as_f64().map(|f| f as f32),
                 })
             } else {
-                Err(format!("Failed to parse extension details for {}", extension_id))
+                Err(format!(
+                    "Failed to parse extension details for {}",
+                    extension_id
+                ))
             }
         }
         Ok(resp) => Err(format!("Extension not found: HTTP {}", resp.status())),
@@ -125,25 +172,33 @@ pub async fn get_extension_details(extension_id: String) -> Result<ExtensionInfo
 #[command]
 pub async fn install_extension(extension_id: String) -> Result<ExtensionInfo, String> {
     // Fetch real extension details from Open VSX before installing
-    let details = get_extension_details(extension_id.clone()).await
+    let details = get_extension_details(extension_id.clone())
+        .await
         .unwrap_or_else(|_| {
             let parts: Vec<&str> = extension_id.split('.').collect();
             ExtensionInfo {
                 id: extension_id.clone(),
                 name: parts.last().unwrap_or(&"ext").to_string(),
                 display_name: parts.last().unwrap_or(&"ext").to_string(),
-                version: "0.0.0".to_string(), description: None,
+                version: "0.0.0".to_string(),
+                description: None,
                 publisher: parts.first().unwrap_or(&"unknown").to_string(),
-                enabled: true, installed: true, state: "installed".to_string(),
-                icon_url: None, download_count: None, rating: None,
+                enabled: true,
+                installed: true,
+                state: "installed".to_string(),
+                icon_url: None,
+                download_count: None,
+                rating: None,
             }
         });
-    
+
     let ext = ExtensionInfo {
-        enabled: true, installed: true, state: "installed".to_string(),
+        enabled: true,
+        installed: true,
+        state: "installed".to_string(),
         ..details
     };
-    
+
     let mut state = EXTENSION_STATE.write().await;
     state.installed.insert(extension_id, ext.clone());
     Ok(ext)
@@ -159,14 +214,18 @@ pub async fn uninstall_extension(extension_id: String) -> Result<(), String> {
 #[command]
 pub async fn enable_extension(extension_id: String) -> Result<(), String> {
     let mut state = EXTENSION_STATE.write().await;
-    if let Some(ext) = state.installed.get_mut(&extension_id) { ext.enabled = true; }
+    if let Some(ext) = state.installed.get_mut(&extension_id) {
+        ext.enabled = true;
+    }
     Ok(())
 }
 
 #[command]
 pub async fn disable_extension(extension_id: String) -> Result<(), String> {
     let mut state = EXTENSION_STATE.write().await;
-    if let Some(ext) = state.installed.get_mut(&extension_id) { ext.enabled = false; }
+    if let Some(ext) = state.installed.get_mut(&extension_id) {
+        ext.enabled = false;
+    }
     Ok(())
 }
 
@@ -179,7 +238,11 @@ pub async fn list_installed_extensions() -> Result<Vec<ExtensionInfo>, String> {
 #[command]
 pub async fn get_extension_status(extension_id: String) -> Result<ExtensionInfo, String> {
     let state = EXTENSION_STATE.read().await;
-    state.installed.get(&extension_id).cloned().ok_or_else(|| "Extension not found".to_string())
+    state
+        .installed
+        .get(&extension_id)
+        .cloned()
+        .ok_or_else(|| "Extension not found".to_string())
 }
 
 #[command]
@@ -201,13 +264,15 @@ pub async fn get_extension_recommendations() -> Result<Vec<ExtensionInfo>, Strin
         "golang.go",
         "bradlc.vscode-tailwindcss",
     ];
-    
+
     let client = reqwest::Client::new();
     let mut results = Vec::new();
-    
+
     for ext_id in &recommended_ids {
         let parts: Vec<&str> = ext_id.split('.').collect();
-        if parts.len() != 2 { continue; }
+        if parts.len() != 2 {
+            continue;
+        }
         let url = format!("https://open-vsx.org/api/{}/{}", parts[0], parts[1]);
         if let Ok(resp) = client.get(&url).send().await {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
@@ -219,8 +284,13 @@ pub async fn get_extension_recommendations() -> Result<Vec<ExtensionInfo>, Strin
                         version: data["version"].as_str().unwrap_or("0.0.0").to_string(),
                         description: data["description"].as_str().map(|s| s.to_string()),
                         publisher: parts[0].to_string(),
-                        enabled: false, installed: false, state: "recommended".to_string(),
-                        icon_url: data["files"].get("icon").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                        enabled: false,
+                        installed: false,
+                        state: "recommended".to_string(),
+                        icon_url: data["files"]
+                            .get("icon")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
                         download_count: data["downloadCount"].as_u64(),
                         rating: data["averageRating"].as_f64().map(|f| f as f32),
                     });
@@ -228,17 +298,22 @@ pub async fn get_extension_recommendations() -> Result<Vec<ExtensionInfo>, Strin
             }
         }
     }
-    
+
     Ok(results)
 }
 
 #[command]
 pub async fn get_popular_extensions() -> Result<Vec<ExtensionInfo>, String> {
-    search_extensions("popular".to_string(), Some(0)).await.map(|r| r.extensions)
+    search_extensions("popular".to_string(), Some(0))
+        .await
+        .map(|r| r.extensions)
 }
 
 #[command]
-pub async fn search_extensions_unified(query: String, page: Option<usize>) -> Result<SearchResult, String> {
+pub async fn search_extensions_unified(
+    query: String,
+    page: Option<usize>,
+) -> Result<SearchResult, String> {
     search_extensions(query, page).await
 }
 
@@ -249,35 +324,45 @@ pub async fn install_extension_unified(extension_id: String) -> Result<Extension
 
 #[command]
 pub async fn get_openvsx_popular() -> Result<Vec<ExtensionInfo>, String> {
-    search_extensions("sort:downloadCount".to_string(), Some(0)).await.map(|r| r.extensions)
+    search_extensions("sort:downloadCount".to_string(), Some(0))
+        .await
+        .map(|r| r.extensions)
 }
 
 #[command]
 pub async fn get_extension_readme(extension_id: String) -> Result<String, String> {
     let parts: Vec<&str> = extension_id.split('.').collect();
-    if parts.len() != 2 { return Err("Invalid extension ID".to_string()); }
-    
+    if parts.len() != 2 {
+        return Err("Invalid extension ID".to_string());
+    }
+
     // Fetch README from Open VSX API
     let client = reqwest::Client::new();
     let url = format!("https://open-vsx.org/api/{}/{}/readme", parts[0], parts[1]);
-    
+
     match client.get(&url).send().await {
-        Ok(resp) if resp.status().is_success() => {
-            resp.text().await.map_err(|e| format!("Failed to read readme: {}", e))
-        }
+        Ok(resp) if resp.status().is_success() => resp
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read readme: {}", e)),
         _ => {
             // Fallback: try the main API endpoint which may include readme
             let url2 = format!("https://open-vsx.org/api/{}/{}", parts[0], parts[1]);
             match client.get(&url2).send().await {
                 Ok(resp) if resp.status().is_success() => {
                     if let Ok(data) = resp.json::<serde_json::Value>().await {
-                        if let Some(readme_url) = data["files"].get("readme").and_then(|v| v.as_str()) {
+                        if let Some(readme_url) =
+                            data["files"].get("readme").and_then(|v| v.as_str())
+                        {
                             match client.get(readme_url).send().await {
                                 Ok(r) => r.text().await.map_err(|e| e.to_string()),
                                 Err(e) => Err(format!("Failed to fetch readme: {}", e)),
                             }
                         } else {
-                            Ok(data["description"].as_str().unwrap_or("No README available.").to_string())
+                            Ok(data["description"]
+                                .as_str()
+                                .unwrap_or("No README available.")
+                                .to_string())
                         }
                     } else {
                         Ok("No README available.".to_string())

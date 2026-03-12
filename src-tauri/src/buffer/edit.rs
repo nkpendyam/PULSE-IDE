@@ -33,9 +33,9 @@ impl Edit {
             deleted: None,
         }
     }
-    
+
     /// Create a delete edit
-    pub fn delete(start: usize, end: usize, deleted: String) -> Self {
+    pub fn delete(start: usize, _end: usize, deleted: String) -> Self {
         Self {
             kind: EditKind::Delete,
             start,
@@ -44,9 +44,9 @@ impl Edit {
             deleted: Some(deleted),
         }
     }
-    
+
     /// Create a replace edit
-    pub fn replace(start: usize, end: usize, text: String, deleted: String) -> Self {
+    pub fn replace(start: usize, _end: usize, text: String, deleted: String) -> Self {
         Self {
             kind: EditKind::Replace,
             start,
@@ -55,7 +55,7 @@ impl Edit {
             deleted: Some(deleted),
         }
     }
-    
+
     /// Get the inverse edit for undo
     pub fn inverse(&self) -> Self {
         match self.kind {
@@ -95,7 +95,7 @@ impl EditResult {
     pub fn is_success(&self) -> bool {
         matches!(self, EditResult::Success(_))
     }
-    
+
     pub fn edit(&self) -> Option<&Edit> {
         match self {
             EditResult::Success(edit) => Some(edit),
@@ -123,25 +123,25 @@ impl EditBatch {
             description: None,
         }
     }
-    
+
     pub fn with_description(mut self, desc: &str) -> Self {
         self.description = Some(desc.to_string());
         self
     }
-    
+
     /// Get inverse batch for undo
     pub fn inverse(&self) -> Self {
         let mut inverted: Vec<Edit> = self.edits.iter().rev().map(|e| e.inverse()).collect();
-        
+
         // Adjust positions for sequential undos
         if !inverted.is_empty() {
-            let mut offset = 0i64;
+            let offset = 0i64;
             for edit in &mut inverted {
                 edit.start = ((edit.start as i64) + offset) as usize;
                 edit.end = ((edit.end as i64) + offset) as usize;
             }
         }
-        
+
         Self {
             edits: inverted,
             timestamp: self.timestamp,

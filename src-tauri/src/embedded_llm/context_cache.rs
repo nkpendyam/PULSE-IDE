@@ -33,7 +33,7 @@ impl ContextCache {
             misses: 0,
         }
     }
-    
+
     /// Get cached result
     pub fn get(&mut self, key: &str) -> Option<CachedContext> {
         let cached_clone = if let Some(cached) = self.cache.get(key) {
@@ -58,7 +58,7 @@ impl ContextCache {
         self.misses += 1;
         None
     }
-    
+
     /// Insert into cache
     pub fn insert(&mut self, key: String, context: CachedContext) {
         // Remove oldest if at capacity
@@ -68,28 +68,28 @@ impl ContextCache {
                 self.lru_order.remove(0);
             }
         }
-        
+
         // Remove old key if exists
         if self.cache.contains_key(&key) {
             self.lru_order.retain(|k| k != &key);
         }
-        
+
         self.cache.insert(key.clone(), context);
         self.lru_order.push(key);
     }
-    
+
     /// Touch an entry (move to end of LRU)
     fn touch(&mut self, key: &str) {
         self.lru_order.retain(|k| k != key);
         self.lru_order.push(key.to_string());
     }
-    
+
     /// Clear cache
     pub fn clear(&mut self) {
         self.cache.clear();
         self.lru_order.clear();
     }
-    
+
     /// Get cache statistics
     pub fn stats(&self) -> CacheStats {
         CacheStats {
@@ -104,12 +104,10 @@ impl ContextCache {
             },
         }
     }
-    
+
     /// Get total cached size
     pub fn total_size(&self) -> usize {
-        self.cache.values()
-            .map(|c| c.response.len())
-            .sum()
+        self.cache.values().map(|c| c.response.len()).sum()
     }
 }
 
@@ -126,48 +124,60 @@ pub struct CacheStats {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_cache_insert_get() {
         let mut cache = ContextCache::new(10);
-        
-        cache.insert("key1".to_string(), CachedContext {
-            response: "test response".to_string(),
-            tokens: 5,
-            model: "test".to_string(),
-            timestamp: SystemTime::now(),
-        });
-        
+
+        cache.insert(
+            "key1".to_string(),
+            CachedContext {
+                response: "test response".to_string(),
+                tokens: 5,
+                model: "test".to_string(),
+                timestamp: SystemTime::now(),
+            },
+        );
+
         let cached = cache.get("key1");
         assert!(cached.is_some());
         assert_eq!(cached.unwrap().response, "test response");
     }
-    
+
     #[test]
     fn test_cache_lru_eviction() {
         let mut cache = ContextCache::new(2);
-        
-        cache.insert("key1".to_string(), CachedContext {
-            response: "r1".to_string(),
-            tokens: 1,
-            model: "test".to_string(),
-            timestamp: SystemTime::now(),
-        });
-        
-        cache.insert("key2".to_string(), CachedContext {
-            response: "r2".to_string(),
-            tokens: 2,
-            model: "test".to_string(),
-            timestamp: SystemTime::now(),
-        });
-        
-        cache.insert("key3".to_string(), CachedContext {
-            response: "r3".to_string(),
-            tokens: 3,
-            model: "test".to_string(),
-            timestamp: SystemTime::now(),
-        });
-        
+
+        cache.insert(
+            "key1".to_string(),
+            CachedContext {
+                response: "r1".to_string(),
+                tokens: 1,
+                model: "test".to_string(),
+                timestamp: SystemTime::now(),
+            },
+        );
+
+        cache.insert(
+            "key2".to_string(),
+            CachedContext {
+                response: "r2".to_string(),
+                tokens: 2,
+                model: "test".to_string(),
+                timestamp: SystemTime::now(),
+            },
+        );
+
+        cache.insert(
+            "key3".to_string(),
+            CachedContext {
+                response: "r3".to_string(),
+                tokens: 3,
+                model: "test".to_string(),
+                timestamp: SystemTime::now(),
+            },
+        );
+
         // key1 should be evicted
         assert!(cache.get("key1").is_none());
         assert!(cache.get("key2").is_some());

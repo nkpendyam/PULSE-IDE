@@ -1,8 +1,8 @@
 // MCP Tauri Commands — Real agent execution via Ollama
-use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
 
 lazy_static::lazy_static! {
@@ -15,6 +15,12 @@ pub struct McpState {
     tools: HashMap<String, ToolInfo>,
     resources: HashMap<String, ResourceInfo>,
     ollama_url: String,
+}
+
+impl Default for McpState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl McpState {
@@ -66,7 +72,12 @@ fn system_prompt_for_agent(name: &str) -> String {
     )
 }
 
-async fn call_ollama(model: &str, system: &str, prompt: &str, ollama_url: &str) -> Result<String, String> {
+async fn call_ollama(
+    model: &str,
+    system: &str,
+    prompt: &str,
+    ollama_url: &str,
+) -> Result<String, String> {
     let client = reqwest::Client::new();
     let body = serde_json::json!({
         "model": model,
@@ -81,9 +92,12 @@ async fn call_ollama(model: &str, system: &str, prompt: &str, ollama_url: &str) 
         .send()
         .await
         .map_err(|e| format!("Ollama request failed: {}. Is Ollama running?", e))?;
-    let json: serde_json::Value = resp.json().await
+    let json: serde_json::Value = resp
+        .json()
+        .await
         .map_err(|e| format!("Ollama response parse error: {}", e))?;
-    json["response"].as_str()
+    json["response"]
+        .as_str()
         .map(|s| s.to_string())
         .ok_or_else(|| "No response field from Ollama".to_string())
 }
@@ -113,7 +127,11 @@ pub async fn create_agent(name: String, model: Option<String>) -> Result<AgentIn
 pub async fn run_agent(agent_id: String, prompt: String) -> Result<String, String> {
     let (agent, ollama_url) = {
         let state = MCP_STATE.read().await;
-        let agent = state.agents.get(&agent_id).ok_or("Agent not found")?.clone();
+        let agent = state
+            .agents
+            .get(&agent_id)
+            .ok_or("Agent not found")?
+            .clone();
         (agent, state.ollama_url.clone())
     };
     // Update status to running
@@ -138,7 +156,11 @@ pub async fn run_agent(agent_id: String, prompt: String) -> Result<String, Strin
 #[command]
 pub async fn get_agent_status(agent_id: String) -> Result<AgentInfo, String> {
     let state = MCP_STATE.read().await;
-    state.agents.get(&agent_id).cloned().ok_or_else(|| "Agent not found".to_string())
+    state
+        .agents
+        .get(&agent_id)
+        .cloned()
+        .ok_or_else(|| "Agent not found".to_string())
 }
 
 #[command]
@@ -155,37 +177,65 @@ pub async fn list_mcp_tools() -> Result<Vec<ToolInfo>, String> {
 }
 
 #[command]
-pub async fn execute_tool(tool_name: String, args: serde_json::Value) -> Result<ToolResult, String> {
+pub async fn execute_tool(
+    tool_name: String,
+    args: serde_json::Value,
+) -> Result<ToolResult, String> {
     // Built-in tools are dispatched directly — no LLM round-trip needed
     match tool_name.as_str() {
         "read_file" => {
-            let path = args["path"].as_str().ok_or("read_file requires 'path' argument")?;
+            let path = args["path"]
+                .as_str()
+                .ok_or("read_file requires 'path' argument")?;
             match tokio::fs::read_to_string(path).await {
                 Ok(content) => Ok(ToolResult {
                     success: true,
                     output: serde_json::json!({ "content": content }),
                     error: None,
                 }),
-                Err(e) => Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some(e.to_string()) }),
+                Err(e) => Ok(ToolResult {
+                    success: false,
+                    output: serde_json::Value::Null,
+                    error: Some(e.to_string()),
+                }),
             }
         }
         "write_file" => {
-            let path = args["path"].as_str().ok_or("write_file requires 'path' argument")?;
-            let content = args["content"].as_str().ok_or("write_file requires 'content' argument")?;
+            let path = args["path"]
+                .as_str()
+                .ok_or("write_file requires 'path' argument")?;
+            let content = args["content"]
+                .as_str()
+                .ok_or("write_file requires 'content' argument")?;
             match tokio::fs::write(path, content).await {
                 Ok(()) => Ok(ToolResult {
                     success: true,
                     output: serde_json::json!({ "written": path }),
                     error: None,
                 }),
-                Err(e) => Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some(e.to_string()) }),
+                Err(e) => Ok(ToolResult {
+                    success: false,
+                    output: serde_json::Value::Null,
+                    error: Some(e.to_string()),
+                }),
             }
         }
         "search_project" => {
-            let query = args["query"].as_str().ok_or("search_project requires 'query' argument")?;
+            let query = args["query"]
+                .as_str()
+                .ok_or("search_project requires 'query' argument")?;
             let dir = args["directory"].as_str().unwrap_or(".");
             let output = tokio::process::Command::new("grep")
-                .args(["-rn", "--include=*.rs", "--include=*.ts", "--include=*.tsx", "--include=*.js", "--include=*.json", query, dir])
+                .args([
+                    "-rn",
+                    "--include=*.rs",
+                    "--include=*.ts",
+                    "--include=*.tsx",
+                    "--include=*.js",
+                    "--include=*.json",
+                    query,
+                    dir,
+                ])
                 .output()
                 .await
                 .map_err(|e| format!("search failed: {}", e))?;
@@ -197,15 +247,30 @@ pub async fn execute_tool(tool_name: String, args: serde_json::Value) -> Result<
             })
         }
         "run_command" => {
-            let command = args["command"].as_str().ok_or("run_command requires 'command' argument")?;
+            let command = args["command"]
+                .as_str()
+                .ok_or("run_command requires 'command' argument")?;
             let cwd = args["cwd"].as_str().unwrap_or(".");
             // Only allow safe commands — reject shell metacharacters
-            if command.contains(';') || command.contains('|') || command.contains('&') || command.contains('`') || command.contains('$') {
-                return Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some("Shell metacharacters not allowed".to_string()) });
+            if command.contains(';')
+                || command.contains('|')
+                || command.contains('&')
+                || command.contains('`')
+                || command.contains('$')
+            {
+                return Ok(ToolResult {
+                    success: false,
+                    output: serde_json::Value::Null,
+                    error: Some("Shell metacharacters not allowed".to_string()),
+                });
             }
             let parts: Vec<&str> = command.split_whitespace().collect();
             if parts.is_empty() {
-                return Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some("Empty command".to_string()) });
+                return Ok(ToolResult {
+                    success: false,
+                    output: serde_json::Value::Null,
+                    error: Some("Empty command".to_string()),
+                });
             }
             let output = tokio::process::Command::new(parts[0])
                 .args(&parts[1..])
@@ -220,7 +285,11 @@ pub async fn execute_tool(tool_name: String, args: serde_json::Value) -> Result<
                     "stderr": String::from_utf8_lossy(&output.stderr),
                     "exit_code": output.status.code(),
                 }),
-                error: if output.status.success() { None } else { Some("Non-zero exit code".to_string()) },
+                error: if output.status.success() {
+                    None
+                } else {
+                    Some("Non-zero exit code".to_string())
+                },
             })
         }
         "git_status" => {
@@ -251,9 +320,17 @@ pub async fn execute_tool(tool_name: String, args: serde_json::Value) -> Result<
                             "is_dir": meta.as_ref().map(|m| m.is_dir()).unwrap_or(false),
                         }));
                     }
-                    Ok(ToolResult { success: true, output: serde_json::json!({ "entries": files }), error: None })
+                    Ok(ToolResult {
+                        success: true,
+                        output: serde_json::json!({ "entries": files }),
+                        error: None,
+                    })
                 }
-                Err(e) => Ok(ToolResult { success: false, output: serde_json::Value::Null, error: Some(e.to_string()) }),
+                Err(e) => Ok(ToolResult {
+                    success: false,
+                    output: serde_json::Value::Null,
+                    error: Some(e.to_string()),
+                }),
             }
         }
         _ => {
@@ -297,7 +374,8 @@ pub async fn read_mcp_resource(uri: String) -> Result<String, String> {
     // Read file resources from disk
     if uri.starts_with("file://") {
         let path = uri.strip_prefix("file://").unwrap_or(&uri);
-        tokio::fs::read_to_string(path).await
+        tokio::fs::read_to_string(path)
+            .await
             .map_err(|e| format!("Failed to read resource: {}", e))
     } else {
         Ok(format!("Resource: {} ({})", resource.name, resource.uri))
@@ -307,7 +385,11 @@ pub async fn read_mcp_resource(uri: String) -> Result<String, String> {
 #[command]
 pub async fn register_tool(name: String, description: String) -> Result<ToolInfo, String> {
     let mut state = MCP_STATE.write().await;
-    let tool = ToolInfo { name: name.clone(), description, input_schema: serde_json::json!({}) };
+    let tool = ToolInfo {
+        name: name.clone(),
+        description,
+        input_schema: serde_json::json!({}),
+    };
     state.tools.insert(name, tool.clone());
     Ok(tool)
 }

@@ -136,6 +136,7 @@ pub struct GrammarContribution {
 }
 
 /// VS Code Extension API (subset)
+#[derive(Default)]
 pub struct ExtensionApi {
     /// Window API
     pub window: WindowApi,
@@ -152,31 +153,41 @@ pub struct WindowApi {
     _private: (),
 }
 
+impl Default for WindowApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WindowApi {
     pub fn new() -> Self {
         Self { _private: () }
     }
-    
+
     /// Show information message
     pub async fn show_information_message(&self, _message: &str) -> Option<String> {
         // Would show UI notification
         None
     }
-    
+
     /// Show error message
     pub async fn show_error_message(&self, _message: &str) -> Option<String> {
         // Would show UI error notification
         None
     }
-    
+
     /// Show input box
     pub async fn show_input_box(&self, _options: InputBoxOptions) -> Option<String> {
         // Would show input dialog
         None
     }
-    
+
     /// Show quick pick
-    pub async fn show_quick_pick(&self, _items: Vec<String>, _options: QuickPickOptions) -> Option<String> {
+    pub async fn show_quick_pick(
+        &self,
+        _items: Vec<String>,
+        _options: QuickPickOptions,
+    ) -> Option<String> {
         // Would show quick pick dialog
         None
     }
@@ -203,26 +214,32 @@ pub struct WorkspaceApi {
     _private: (),
 }
 
+impl Default for WorkspaceApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WorkspaceApi {
     pub fn new() -> Self {
         Self { _private: () }
     }
-    
+
     /// Get workspace folders
     pub fn workspace_folders(&self) -> Vec<WorkspaceFolder> {
         vec![]
     }
-    
+
     /// Get workspace root
     pub fn root_path(&self) -> Option<String> {
         None
     }
-    
+
     /// Get configuration
     pub fn get_configuration(&self, _section: &str) -> Configuration {
         Configuration::new()
     }
-    
+
     /// Open text document
     pub async fn open_text_document(&self, _path: &str) -> Option<TextDocument> {
         None
@@ -249,12 +266,14 @@ impl Configuration {
             values: HashMap::new(),
         }
     }
-    
+
     /// Get configuration value
     pub fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Option<T> {
-        self.values.get(key).and_then(|v| serde_json::from_value(v.clone()).ok())
+        self.values
+            .get(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
     }
-    
+
     /// Update configuration value
     pub fn update(&mut self, key: &str, value: serde_json::Value) {
         self.values.insert(key.to_string(), value);
@@ -291,12 +310,12 @@ impl CommandsApi {
             commands: HashMap::new(),
         }
     }
-    
+
     /// Register command
     pub fn register_command(&mut self, id: &str, handler: Box<dyn Fn() + Send + Sync>) {
         self.commands.insert(id.to_string(), handler);
     }
-    
+
     /// Execute command
     pub async fn execute_command(&self, id: &str) -> anyhow::Result<()> {
         if let Some(handler) = self.commands.get(id) {
@@ -317,38 +336,37 @@ pub struct LanguagesApi {
     _private: (),
 }
 
+impl Default for LanguagesApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LanguagesApi {
     pub fn new() -> Self {
         Self { _private: () }
     }
-    
+
     /// Get document selector
     pub fn get_languages(&self) -> Vec<String> {
-        vec!["rust".to_string(), "typescript".to_string(), "javascript".to_string()]
-    }
-}
-
-impl Default for ExtensionApi {
-    fn default() -> Self {
-        Self {
-            window: WindowApi::new(),
-            workspace: WorkspaceApi::new(),
-            commands: CommandsApi::new(),
-            languages: LanguagesApi::new(),
-        }
+        vec![
+            "rust".to_string(),
+            "typescript".to_string(),
+            "javascript".to_string(),
+        ]
     }
 }
 
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_extension_api_creation() {
         let api = ExtensionApi::default();
         assert!(api.window.show_information_message("").await.is_none());
     }
-    
+
     #[test]
     fn test_configuration() {
         let mut config = Configuration::new();

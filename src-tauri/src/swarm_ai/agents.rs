@@ -10,10 +10,10 @@
 //! - DOCS: Documentation
 //! - BROWSER: Web interaction
 
+use super::SwarmAIEngine;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::SwarmAIEngine;
 
 /// Agent types available in KYRO
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -103,7 +103,7 @@ impl AgentOrchestrator {
             agents: HashMap::new(),
             conversation_history: HashMap::new(),
         };
-        
+
         orchestrator.register_default_agents();
         orchestrator
     }
@@ -111,32 +111,37 @@ impl AgentOrchestrator {
     /// Register default agents
     fn register_default_agents(&mut self) {
         // CODEGEN Agent
-        self.agents.insert(AgentType::CodeGen, AgentConfig {
-            agent_type: AgentType::CodeGen,
-            name: "KYRO-CODEGEN".to_string(),
-            description: "Expert code generation agent. Creates clean, efficient, well-documented code.".to_string(),
-            system_prompt: include_str!("prompts/codegen.txt").to_string(),
-            preferred_model: "codellama-7b-instruct-q4".to_string(),
-            temperature: 0.3,
-            max_tokens: 2048,
-            tools: vec![
-                AgentTool {
-                    name: "read_file".to_string(),
-                    description: "Read a file from the project".to_string(),
-                    parameters: serde_json::json!({"path": "string"}),
-                },
-                AgentTool {
-                    name: "write_file".to_string(),
-                    description: "Write content to a file".to_string(),
-                    parameters: serde_json::json!({"path": "string", "content": "string"}),
-                },
-                AgentTool {
-                    name: "run_command".to_string(),
-                    description: "Run a shell command".to_string(),
-                    parameters: serde_json::json!({"command": "string"}),
-                },
-            ],
-        });
+        self.agents.insert(
+            AgentType::CodeGen,
+            AgentConfig {
+                agent_type: AgentType::CodeGen,
+                name: "KYRO-CODEGEN".to_string(),
+                description:
+                    "Expert code generation agent. Creates clean, efficient, well-documented code."
+                        .to_string(),
+                system_prompt: include_str!("prompts/codegen.txt").to_string(),
+                preferred_model: "codellama-7b-instruct-q4".to_string(),
+                temperature: 0.3,
+                max_tokens: 2048,
+                tools: vec![
+                    AgentTool {
+                        name: "read_file".to_string(),
+                        description: "Read a file from the project".to_string(),
+                        parameters: serde_json::json!({"path": "string"}),
+                    },
+                    AgentTool {
+                        name: "write_file".to_string(),
+                        description: "Write content to a file".to_string(),
+                        parameters: serde_json::json!({"path": "string", "content": "string"}),
+                    },
+                    AgentTool {
+                        name: "run_command".to_string(),
+                        description: "Run a shell command".to_string(),
+                        parameters: serde_json::json!({"command": "string"}),
+                    },
+                ],
+            },
+        );
 
         // REVIEW Agent
         self.agents.insert(AgentType::Review, AgentConfig {
@@ -151,145 +156,175 @@ impl AgentOrchestrator {
         });
 
         // TEST Agent
-        self.agents.insert(AgentType::Test, AgentConfig {
-            agent_type: AgentType::Test,
-            name: "KYRO-TEST".to_string(),
-            description: "Test engineering expert. Generates comprehensive tests with high coverage.".to_string(),
-            system_prompt: include_str!("prompts/test.txt").to_string(),
-            preferred_model: "codellama-7b-instruct-q4".to_string(),
-            temperature: 0.4,
-            max_tokens: 2048,
-            tools: vec![
-                AgentTool {
+        self.agents.insert(
+            AgentType::Test,
+            AgentConfig {
+                agent_type: AgentType::Test,
+                name: "KYRO-TEST".to_string(),
+                description:
+                    "Test engineering expert. Generates comprehensive tests with high coverage."
+                        .to_string(),
+                system_prompt: include_str!("prompts/test.txt").to_string(),
+                preferred_model: "codellama-7b-instruct-q4".to_string(),
+                temperature: 0.4,
+                max_tokens: 2048,
+                tools: vec![AgentTool {
                     name: "run_tests".to_string(),
                     description: "Run test suite and get results".to_string(),
                     parameters: serde_json::json!({"test_file": "string"}),
-                },
-            ],
-        });
+                }],
+            },
+        );
 
         // DEBUG Agent
-        self.agents.insert(AgentType::Debug, AgentConfig {
-            agent_type: AgentType::Debug,
-            name: "KYRO-DEBUG".to_string(),
-            description: "Debugging expert. Analyzes errors, traces execution, and suggests fixes.".to_string(),
-            system_prompt: include_str!("prompts/debug.txt").to_string(),
-            preferred_model: "deepseek-coder-6.7b-instruct-q4".to_string(),
-            temperature: 0.3,
-            max_tokens: 1024,
-            tools: vec![
-                AgentTool {
-                    name: "analyze_stack_trace".to_string(),
-                    description: "Analyze a stack trace for root cause".to_string(),
-                    parameters: serde_json::json!({"trace": "string"}),
-                },
-                AgentTool {
-                    name: "debug_breakpoint".to_string(),
-                    description: "Set a debug breakpoint".to_string(),
-                    parameters: serde_json::json!({"file": "string", "line": "number"}),
-                },
-            ],
-        });
+        self.agents.insert(
+            AgentType::Debug,
+            AgentConfig {
+                agent_type: AgentType::Debug,
+                name: "KYRO-DEBUG".to_string(),
+                description:
+                    "Debugging expert. Analyzes errors, traces execution, and suggests fixes."
+                        .to_string(),
+                system_prompt: include_str!("prompts/debug.txt").to_string(),
+                preferred_model: "deepseek-coder-6.7b-instruct-q4".to_string(),
+                temperature: 0.3,
+                max_tokens: 1024,
+                tools: vec![
+                    AgentTool {
+                        name: "analyze_stack_trace".to_string(),
+                        description: "Analyze a stack trace for root cause".to_string(),
+                        parameters: serde_json::json!({"trace": "string"}),
+                    },
+                    AgentTool {
+                        name: "debug_breakpoint".to_string(),
+                        description: "Set a debug breakpoint".to_string(),
+                        parameters: serde_json::json!({"file": "string", "line": "number"}),
+                    },
+                ],
+            },
+        );
 
         // DEPLOY Agent
-        self.agents.insert(AgentType::Deploy, AgentConfig {
-            agent_type: AgentType::Deploy,
-            name: "KYRO-DEPLOY".to_string(),
-            description: "Deployment specialist. Helps with CI/CD, Docker, and infrastructure.".to_string(),
-            system_prompt: include_str!("prompts/deploy.txt").to_string(),
-            preferred_model: "mistral-7b-instruct-q4".to_string(),
-            temperature: 0.3,
-            max_tokens: 1024,
-            tools: vec![
-                AgentTool {
-                    name: "build_docker".to_string(),
-                    description: "Build a Docker image".to_string(),
-                    parameters: serde_json::json!({"tag": "string", "dockerfile": "string"}),
-                },
-                AgentTool {
-                    name: "deploy_container".to_string(),
-                    description: "Deploy a container".to_string(),
-                    parameters: serde_json::json!({"image": "string", "name": "string"}),
-                },
-            ],
-        });
+        self.agents.insert(
+            AgentType::Deploy,
+            AgentConfig {
+                agent_type: AgentType::Deploy,
+                name: "KYRO-DEPLOY".to_string(),
+                description: "Deployment specialist. Helps with CI/CD, Docker, and infrastructure."
+                    .to_string(),
+                system_prompt: include_str!("prompts/deploy.txt").to_string(),
+                preferred_model: "mistral-7b-instruct-q4".to_string(),
+                temperature: 0.3,
+                max_tokens: 1024,
+                tools: vec![
+                    AgentTool {
+                        name: "build_docker".to_string(),
+                        description: "Build a Docker image".to_string(),
+                        parameters: serde_json::json!({"tag": "string", "dockerfile": "string"}),
+                    },
+                    AgentTool {
+                        name: "deploy_container".to_string(),
+                        description: "Deploy a container".to_string(),
+                        parameters: serde_json::json!({"image": "string", "name": "string"}),
+                    },
+                ],
+            },
+        );
 
         // VERIFY Agent
-        self.agents.insert(AgentType::Verify, AgentConfig {
-            agent_type: AgentType::Verify,
-            name: "KYRO-VERIFY".to_string(),
-            description: "Verification expert. Uses formal methods to prove code correctness.".to_string(),
-            system_prompt: include_str!("prompts/verify.txt").to_string(),
-            preferred_model: "mistral-7b-instruct-q4".to_string(),
-            temperature: 0.1,
-            max_tokens: 2048,
-            tools: vec![
-                AgentTool {
-                    name: "run_kani".to_string(),
-                    description: "Run Kani verification on a function".to_string(),
-                    parameters: serde_json::json!({"function": "string"}),
-                },
-                AgentTool {
-                    name: "generate_invariants".to_string(),
-                    description: "Generate loop invariants".to_string(),
-                    parameters: serde_json::json!({"code": "string"}),
-                },
-            ],
-        });
+        self.agents.insert(
+            AgentType::Verify,
+            AgentConfig {
+                agent_type: AgentType::Verify,
+                name: "KYRO-VERIFY".to_string(),
+                description: "Verification expert. Uses formal methods to prove code correctness."
+                    .to_string(),
+                system_prompt: include_str!("prompts/verify.txt").to_string(),
+                preferred_model: "mistral-7b-instruct-q4".to_string(),
+                temperature: 0.1,
+                max_tokens: 2048,
+                tools: vec![
+                    AgentTool {
+                        name: "run_kani".to_string(),
+                        description: "Run Kani verification on a function".to_string(),
+                        parameters: serde_json::json!({"function": "string"}),
+                    },
+                    AgentTool {
+                        name: "generate_invariants".to_string(),
+                        description: "Generate loop invariants".to_string(),
+                        parameters: serde_json::json!({"code": "string"}),
+                    },
+                ],
+            },
+        );
 
         // DOCS Agent
-        self.agents.insert(AgentType::Docs, AgentConfig {
-            agent_type: AgentType::Docs,
-            name: "KYRO-DOCS".to_string(),
-            description: "Documentation specialist. Creates clear, comprehensive documentation.".to_string(),
-            system_prompt: include_str!("prompts/docs.txt").to_string(),
-            preferred_model: "mistral-7b-instruct-q4".to_string(),
-            temperature: 0.4,
-            max_tokens: 2048,
-            tools: vec![],
-        });
+        self.agents.insert(
+            AgentType::Docs,
+            AgentConfig {
+                agent_type: AgentType::Docs,
+                name: "KYRO-DOCS".to_string(),
+                description:
+                    "Documentation specialist. Creates clear, comprehensive documentation."
+                        .to_string(),
+                system_prompt: include_str!("prompts/docs.txt").to_string(),
+                preferred_model: "mistral-7b-instruct-q4".to_string(),
+                temperature: 0.4,
+                max_tokens: 2048,
+                tools: vec![],
+            },
+        );
 
         // BROWSER Agent
-        self.agents.insert(AgentType::Browser, AgentConfig {
-            agent_type: AgentType::Browser,
-            name: "KYRO-BROWSER".to_string(),
-            description: "Web interaction agent. Searches web, reads documentation, downloads resources.".to_string(),
-            system_prompt: include_str!("prompts/browser.txt").to_string(),
-            preferred_model: "mistral-7b-instruct-q4".to_string(),
-            temperature: 0.3,
-            max_tokens: 1024,
-            tools: vec![
-                AgentTool {
-                    name: "web_search".to_string(),
-                    description: "Search the web for information".to_string(),
-                    parameters: serde_json::json!({"query": "string"}),
-                },
-                AgentTool {
-                    name: "fetch_url".to_string(),
-                    description: "Fetch content from a URL".to_string(),
-                    parameters: serde_json::json!({"url": "string"}),
-                },
-                AgentTool {
-                    name: "download_file".to_string(),
-                    description: "Download a file from URL".to_string(),
-                    parameters: serde_json::json!({"url": "string", "destination": "string"}),
-                },
-            ],
-        });
+        self.agents.insert(
+            AgentType::Browser,
+            AgentConfig {
+                agent_type: AgentType::Browser,
+                name: "KYRO-BROWSER".to_string(),
+                description:
+                    "Web interaction agent. Searches web, reads documentation, downloads resources."
+                        .to_string(),
+                system_prompt: include_str!("prompts/browser.txt").to_string(),
+                preferred_model: "mistral-7b-instruct-q4".to_string(),
+                temperature: 0.3,
+                max_tokens: 1024,
+                tools: vec![
+                    AgentTool {
+                        name: "web_search".to_string(),
+                        description: "Search the web for information".to_string(),
+                        parameters: serde_json::json!({"query": "string"}),
+                    },
+                    AgentTool {
+                        name: "fetch_url".to_string(),
+                        description: "Fetch content from a URL".to_string(),
+                        parameters: serde_json::json!({"url": "string"}),
+                    },
+                    AgentTool {
+                        name: "download_file".to_string(),
+                        description: "Download a file from URL".to_string(),
+                        parameters: serde_json::json!({"url": "string", "destination": "string"}),
+                    },
+                ],
+            },
+        );
     }
 
     /// Run an agent
-    pub async fn run(&self, agent_type: &str, input: &str, engine: &SwarmAIEngine) -> Result<String> {
+    pub async fn run(
+        &self,
+        agent_type: &str,
+        input: &str,
+        engine: &SwarmAIEngine,
+    ) -> Result<String> {
         let agent_type = Self::parse_agent_type(agent_type)?;
-        
-        let config = self.agents.get(&agent_type)
+
+        let config = self
+            .agents
+            .get(&agent_type)
             .ok_or_else(|| anyhow::anyhow!("Agent not found: {}", agent_type))?;
 
         // Build prompt with system message
-        let full_prompt = format!(
-            "[SYSTEM]\n{}\n\n[USER]\n{}",
-            config.system_prompt, input
-        );
+        let full_prompt = format!("[SYSTEM]\n{}\n\n[USER]\n{}", config.system_prompt, input);
 
         // Run inference
         let start = std::time::Instant::now();

@@ -5,7 +5,7 @@ use super::{
     ExportInfo, FileEntry, ImportInfo, RepoWikiConfig, SymbolInfo, SymbolKind, Visibility,
 };
 use sha2::{Digest, Sha256};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use walkdir::WalkDir;
 
 // ─── Public API ─────────────────────────────────────────────────────────
@@ -143,7 +143,14 @@ fn extract_ast(
     let mut imports = Vec::new();
     let mut exports = Vec::new();
 
-    collect_nodes(root, bytes, language, &mut symbols, &mut imports, &mut exports);
+    collect_nodes(
+        root,
+        bytes,
+        language,
+        &mut symbols,
+        &mut imports,
+        &mut exports,
+    );
     (symbols, imports, exports)
 }
 
@@ -157,7 +164,7 @@ fn collect_nodes(
     imports: &mut Vec<ImportInfo>,
     exports: &mut Vec<ExportInfo>,
 ) {
-    let kind = node.kind();
+    let _kind = node.kind();
 
     // ── Symbols ─────────────────────────────────────────────
     if let Some(sym) = try_extract_symbol(node, source, language) {
@@ -519,7 +526,6 @@ fn parse_js_import(text: &str, line: usize) -> Option<ImportInfo> {
         // default import
         let name = items_part
             .trim_start_matches("import ")
-            .trim()
             .split_whitespace()
             .next()
             .unwrap_or("");
@@ -545,7 +551,14 @@ fn parse_python_import(text: &str, line: usize) -> Option<ImportInfo> {
             let module = parts[0].trim_start_matches("from ").trim().to_string();
             let items: Vec<String> = parts[1]
                 .split(',')
-                .map(|s| s.trim().split(" as ").next().unwrap_or("").trim().to_string())
+                .map(|s| {
+                    s.trim()
+                        .split(" as ")
+                        .next()
+                        .unwrap_or("")
+                        .trim()
+                        .to_string()
+                })
                 .filter(|s| !s.is_empty())
                 .collect();
             return Some(ImportInfo {

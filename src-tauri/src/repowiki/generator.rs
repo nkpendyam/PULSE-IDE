@@ -1,9 +1,7 @@
 //! Generator — feeds file metadata + dependency graph to an Ollama LLM
 //! and produces structured wiki pages in Markdown with Mermaid diagrams.
 
-use super::{
-    graph, DependencyGraph, FileEntry, RepoWikiConfig, SymbolKind, Visibility, WikiPage,
-};
+use super::{graph, DependencyGraph, FileEntry, RepoWikiConfig, Visibility, WikiPage};
 use std::collections::HashMap;
 
 // ─── Public API ─────────────────────────────────────────────────────────
@@ -92,7 +90,10 @@ Keep it factual and based on the data provided. Do NOT guess features that aren'
 
     // Build the page
     let mermaid = if config.mermaid_diagrams {
-        format!("\n## Dependency Graph\n\n{}\n", graph::graph_to_mermaid(dep_graph))
+        format!(
+            "\n## Dependency Graph\n\n{}\n",
+            graph::graph_to_mermaid(dep_graph)
+        )
     } else {
         String::new()
     };
@@ -135,7 +136,9 @@ async fn generate_getting_started(
         setup_hints.push("- **Rust/Cargo**: `cargo build` to compile, `cargo test` to run tests");
     }
     if has_package_json {
-        setup_hints.push("- **Node.js**: `npm install` to install deps, `npm run dev` to start dev server");
+        setup_hints.push(
+            "- **Node.js**: `npm install` to install deps, `npm run dev` to start dev server",
+        );
     }
     if has_go_mod {
         setup_hints.push("- **Go**: `go build ./...` to compile, `go test ./...` to run tests");
@@ -307,10 +310,7 @@ fn generate_api_reference(files: &[FileEntry], _config: &RepoWikiConfig) -> Wiki
         content.push_str(&format!("## `{}`\n\n", file.rel_path));
 
         for sym in &public_symbols {
-            let sig_display = sym
-                .signature
-                .as_deref()
-                .unwrap_or(&sym.name);
+            let sig_display = sym.signature.as_deref().unwrap_or(&sym.name);
             content.push_str(&format!(
                 "### `{}` ({})\n\n```\n{}\n```\n\n",
                 sym.name, sym.kind, sig_display,

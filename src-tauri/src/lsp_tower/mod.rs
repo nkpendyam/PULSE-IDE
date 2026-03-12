@@ -1,11 +1,9 @@
 //! Tower-LSP Integration for KYRO IDE
-//! 
+//!
 //! Based on tower-lsp (https://github.com/ebkalderon/tower-lsp)
 //! Provides a standards-compliant LSP server implementation
 
 pub mod backend;
-
-pub use backend::KyroLspBackend;
 
 use serde::{Deserialize, Serialize};
 use tower_lsp::lsp_types::*;

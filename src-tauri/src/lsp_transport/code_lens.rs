@@ -78,7 +78,7 @@ impl CodeLensType {
             _ => CodeLensType::Custom,
         }
     }
-    
+
     pub fn icon(&self) -> &'static str {
         match self {
             CodeLensType::References => "🔗",
@@ -91,7 +91,7 @@ impl CodeLensType {
             CodeLensType::Custom => "•",
         }
     }
-    
+
     pub fn css_class(&self) -> &'static str {
         match self {
             CodeLensType::References => "codelens-references",
@@ -109,40 +109,47 @@ impl CodeLensType {
 /// Parse code lenses from LSP response
 pub fn parse_code_lenses(value: &Value) -> Vec<DecodedCodeLens> {
     let lenses = value.as_array().cloned().unwrap_or_default();
-    
-    lenses.iter().filter_map(|lens| {
-        let range = lens.get("range")?;
-        let start = range.get("start")?;
-        let end = range.get("end")?;
-        
-        let line = start.get("line")?.as_u64()? as u32;
-        let start_character = start.get("character")?.as_u64()? as u32;
-        let end_character = end.get("character")?.as_u64()? as u32;
-        
-        let command = lens.get("command");
-        let title = command.and_then(|c| c.get("title")?.as_str())
-            .unwrap_or("...")
-            .to_string();
-        
-        let cmd_name = command.and_then(|c| c.get("command")?.as_str()).map(|s| s.to_string());
-        let arguments = command.and_then(|c| c.get("arguments")?.as_array().cloned());
-        
-        let is_resolved = command.is_some();
-        let lens_type = cmd_name.as_ref()
-            .map(|c| CodeLensType::from_command(c))
-            .unwrap_or(CodeLensType::Custom);
-        
-        Some(DecodedCodeLens {
-            line,
-            start_character,
-            end_character,
-            title,
-            command: cmd_name,
-            arguments,
-            is_resolved,
-            lens_type,
+
+    lenses
+        .iter()
+        .filter_map(|lens| {
+            let range = lens.get("range")?;
+            let start = range.get("start")?;
+            let end = range.get("end")?;
+
+            let line = start.get("line")?.as_u64()? as u32;
+            let start_character = start.get("character")?.as_u64()? as u32;
+            let end_character = end.get("character")?.as_u64()? as u32;
+
+            let command = lens.get("command");
+            let title = command
+                .and_then(|c| c.get("title")?.as_str())
+                .unwrap_or("...")
+                .to_string();
+
+            let cmd_name = command
+                .and_then(|c| c.get("command")?.as_str())
+                .map(|s| s.to_string());
+            let arguments = command.and_then(|c| c.get("arguments")?.as_array().cloned());
+
+            let is_resolved = command.is_some();
+            let lens_type = cmd_name
+                .as_ref()
+                .map(|c| CodeLensType::from_command(c))
+                .unwrap_or(CodeLensType::Custom);
+
+            Some(DecodedCodeLens {
+                line,
+                start_character,
+                end_character,
+                title,
+                command: cmd_name,
+                arguments,
+                is_resolved,
+                lens_type,
+            })
         })
-    }).collect()
+        .collect()
 }
 
 /// Code Lens configuration
@@ -183,21 +190,25 @@ pub enum CodeLensPosition {
 }
 
 /// Filter code lenses based on configuration
-pub fn filter_code_lenses(lenses: Vec<DecodedCodeLens>, config: &CodeLensConfig) -> Vec<DecodedCodeLens> {
+pub fn filter_code_lenses(
+    lenses: Vec<DecodedCodeLens>,
+    config: &CodeLensConfig,
+) -> Vec<DecodedCodeLens> {
     if !config.enable {
         return vec![];
     }
-    
-    lenses.into_iter().filter(|lens| {
-        match lens.lens_type {
+
+    lenses
+        .into_iter()
+        .filter(|lens| match lens.lens_type {
             CodeLensType::References => config.enable_references,
             CodeLensType::Implementations => config.enable_implementations,
             CodeLensType::Test => config.enable_tests,
             CodeLensType::Run => config.enable_run,
             CodeLensType::Debug => config.enable_debug,
             _ => true,
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 /// Generate CSS for code lenses
@@ -244,7 +255,8 @@ pub fn generate_code_lens_css() -> String {
 .code-lens-git { color: #d4d4d4; font-style: italic; }
 .code-lens-todo { color: #ffc300; }
 .code-lens-custom { color: #c8c8c8; }
-"#.to_string()
+"#
+    .to_string()
 }
 
 /// Generate reference count text

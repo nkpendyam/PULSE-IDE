@@ -17,9 +17,9 @@
 //! - Free hosting (GitHub)
 //! - No API rate limits for public repos
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 /// GitHub-based extension registry
 pub struct GitHubMarketplace {
@@ -40,14 +40,15 @@ impl GitHubMarketplace {
             cache_updated: None,
         }
     }
-    
+
     /// Search extensions by GitHub topics
     pub async fn search(&self, query: &str) -> anyhow::Result<Vec<GitHubExtension>> {
         let url = format!(
             "https://api.github.com/search/repositories?q=topic:kyro-extension+{}&sort=stars&order=desc&per_page=20",
             urlencoding::encode(query)
         );
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/vnd.github.v3+json")
             .header("User-Agent", "Kyro-IDE")
@@ -63,20 +64,17 @@ impl GitHubMarketplace {
         let items = json.get("items").and_then(|v| v.as_array());
 
         let extensions = items
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|item| Self::parse_repo_item(item))
-                    .collect()
-            })
+            .map(|arr| arr.iter().filter_map(Self::parse_repo_item).collect())
             .unwrap_or_default();
 
         Ok(extensions)
     }
-    
+
     /// Get extension details from GitHub
     pub async fn get_extension(&self, owner: &str, repo: &str) -> anyhow::Result<GitHubExtension> {
         let url = format!("https://api.github.com/repos/{}/{}", owner, repo);
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/vnd.github.v3+json")
             .header("User-Agent", "Kyro-IDE")
@@ -92,11 +90,19 @@ impl GitHubMarketplace {
         Self::parse_repo_item(&item)
             .ok_or_else(|| anyhow::anyhow!("Failed to parse repository data"))
     }
-    
+
     /// Get extension versions from GitHub Releases
-    pub async fn get_versions(&self, owner: &str, repo: &str) -> anyhow::Result<Vec<ExtensionVersion>> {
-        let url = format!("https://api.github.com/repos/{}/{}/releases?per_page=20", owner, repo);
-        let response = self.client
+    pub async fn get_versions(
+        &self,
+        owner: &str,
+        repo: &str,
+    ) -> anyhow::Result<Vec<ExtensionVersion>> {
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/releases?per_page=20",
+            owner, repo
+        );
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/vnd.github.v3+json")
             .header("User-Agent", "Kyro-IDE")
@@ -114,12 +120,17 @@ impl GitHubMarketplace {
             .filter_map(|release| {
                 let tag = release.get("tag_name")?.as_str()?;
                 let version = tag.strip_prefix('v').unwrap_or(tag).to_string();
-                let published = release.get("published_at")
+                let published = release
+                    .get("published_at")
                     .and_then(|v| v.as_str())
                     .and_then(|s| s.parse::<DateTime<Utc>>().ok())
                     .unwrap_or_else(Utc::now);
-                let body = release.get("body").and_then(|v| v.as_str()).map(String::from);
-                let assets = release.get("assets")
+                let body = release
+                    .get("body")
+                    .and_then(|v| v.as_str())
+                    .map(String::from);
+                let assets = release
+                    .get("assets")
                     .and_then(|v| v.as_array())
                     .map(|arr| {
                         arr.iter()
@@ -145,13 +156,26 @@ impl GitHubMarketplace {
 
         Ok(versions)
     }
-    
+
     /// Download extension from GitHub Release
-    pub async fn download(&self, owner: &str, repo: &str, version: &str) -> anyhow::Result<Vec<u8>> {
+    pub async fn download(
+        &self,
+        owner: &str,
+        repo: &str,
+        version: &str,
+    ) -> anyhow::Result<Vec<u8>> {
         // First get the release to find the VSIX asset
-        let tag = if version.starts_with('v') { version.to_string() } else { format!("v{}", version) };
-        let url = format!("https://api.github.com/repos/{}/{}/releases/tags/{}", owner, repo, tag);
-        let response = self.client
+        let tag = if version.starts_with('v') {
+            version.to_string()
+        } else {
+            format!("v{}", version)
+        };
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/releases/tags/{}",
+            owner, repo, tag
+        );
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/vnd.github.v3+json")
             .header("User-Agent", "Kyro-IDE")
@@ -164,11 +188,14 @@ impl GitHubMarketplace {
         }
 
         let release: serde_json::Value = response.json().await?;
-        let assets = release.get("assets").and_then(|v| v.as_array())
+        let assets = release
+            .get("assets")
+            .and_then(|v| v.as_array())
             .ok_or_else(|| anyhow::anyhow!("No assets in release"))?;
 
         // Look for a .vsix or .zip asset
-        let asset_url = assets.iter()
+        let asset_url = assets
+            .iter()
             .filter_map(|a| {
                 let name = a.get("name")?.as_str()?;
                 if name.ends_with(".vsix") || name.ends_with(".zip") {
@@ -180,7 +207,8 @@ impl GitHubMarketplace {
             .next()
             .ok_or_else(|| anyhow::anyhow!("No .vsix or .zip asset found in release"))?;
 
-        let bytes = self.client
+        let bytes = self
+            .client
             .get(&asset_url)
             .header("User-Agent", "Kyro-IDE")
             .timeout(std::time::Duration::from_secs(60))
@@ -191,12 +219,12 @@ impl GitHubMarketplace {
 
         Ok(bytes.to_vec())
     }
-    
+
     /// Get featured extensions (top by stars)
     pub async fn featured(&self) -> anyhow::Result<Vec<GitHubExtension>> {
         self.search("").await
     }
-    
+
     /// Get trending extensions (most stars in last week)
     pub async fn trending(&self) -> anyhow::Result<Vec<GitHubExtension>> {
         let week_ago = (Utc::now() - chrono::Duration::days(7)).format("%Y-%m-%d");
@@ -204,7 +232,8 @@ impl GitHubMarketplace {
             "https://api.github.com/search/repositories?q=topic:kyro-extension+created:>={}&sort=stars&order=desc&per_page=20",
             week_ago
         );
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/vnd.github.v3+json")
             .header("User-Agent", "Kyro-IDE")
@@ -220,7 +249,7 @@ impl GitHubMarketplace {
         let items = json.get("items").and_then(|v| v.as_array());
 
         let extensions = items
-            .map(|arr| arr.iter().filter_map(|item| Self::parse_repo_item(item)).collect())
+            .map(|arr| arr.iter().filter_map(Self::parse_repo_item).collect())
             .unwrap_or_default();
 
         Ok(extensions)
@@ -229,23 +258,40 @@ impl GitHubMarketplace {
     /// Parse a GitHub API repository item into a GitHubExtension
     fn parse_repo_item(item: &serde_json::Value) -> Option<GitHubExtension> {
         let full_name = item.get("full_name")?.as_str()?;
-        let name = item.get("name").and_then(|v| v.as_str()).unwrap_or(full_name);
-        let owner = item.get("owner")
+        let name = item
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or(full_name);
+        let owner = item
+            .get("owner")
             .and_then(|o| o.get("login"))
             .and_then(|v| v.as_str())
             .unwrap_or("unknown");
-        let description = item.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        let description = item
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let html_url = item.get("html_url").and_then(|v| v.as_str()).unwrap_or("");
-        let stars = item.get("stargazers_count").and_then(|v| v.as_u64()).unwrap_or(0);
-        let topics = item.get("topics")
+        let stars = item
+            .get("stargazers_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+        let topics = item
+            .get("topics")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|t| t.as_str().map(String::from)).collect())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|t| t.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
-        let license = item.get("license")
+        let license = item
+            .get("license")
             .and_then(|l| l.get("spdx_id"))
             .and_then(|v| v.as_str())
             .map(String::from);
-        let updated = item.get("updated_at")
+        let updated = item
+            .get("updated_at")
             .and_then(|v| v.as_str())
             .and_then(|s| s.parse::<DateTime<Utc>>().ok())
             .unwrap_or_else(Utc::now);
@@ -411,7 +457,7 @@ pub struct KeybindingContribution {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_marketplace_creation() {
         let marketplace = GitHubMarketplace::new();

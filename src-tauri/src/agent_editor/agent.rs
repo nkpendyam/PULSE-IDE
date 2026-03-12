@@ -4,14 +4,13 @@
 
 use super::*;
 use crate::embedded_llm::{EmbeddedLLMEngine, InferenceRequest};
+use crate::mcp::{Tool, ToolRegistry};
 use crate::rag::vector_store::HnswVectorStore;
-use crate::mcp::{ToolRegistry, Tool, MCPServer};
 
-use anyhow::{Result, Context};
+use serde_json::json;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use serde_json::json;
 
 /// MCP Agent for autonomous code editing
 pub struct MCPAgent {
@@ -58,11 +57,13 @@ impl MCPAgent {
                 "required": ["path"]
             }),
             |args| async move {
-                let path = args.get("path")
+                let path = args
+                    .get("path")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing path argument"))?;
 
-                let content = tokio::fs::read_to_string(path).await
+                let content = tokio::fs::read_to_string(path)
+                    .await
                     .map_err(|e| anyhow::anyhow!("Failed to read file: {}", e))?;
 
                 Ok(json!({ "content": content, "path": path }))
@@ -82,20 +83,24 @@ impl MCPAgent {
                 "required": ["path", "content"]
             }),
             |args| async move {
-                let path = args.get("path")
+                let path = args
+                    .get("path")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing path argument"))?;
-                let content = args.get("content")
+                let content = args
+                    .get("content")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing content argument"))?;
 
                 // Create parent directories if needed
                 if let Some(parent) = std::path::Path::new(path).parent() {
-                    tokio::fs::create_dir_all(parent).await
+                    tokio::fs::create_dir_all(parent)
+                        .await
                         .map_err(|e| anyhow::anyhow!("Failed to create directories: {}", e))?;
                 }
 
-                tokio::fs::write(path, content).await
+                tokio::fs::write(path, content)
+                    .await
                     .map_err(|e| anyhow::anyhow!("Failed to write file: {}", e))?;
 
                 Ok(json!({ "success": true, "path": path }))
@@ -127,15 +132,18 @@ impl MCPAgent {
                 "required": ["path", "edits"]
             }),
             |args| async move {
-                let path = args.get("path")
+                let path = args
+                    .get("path")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing path argument"))?;
-                let edits = args.get("edits")
+                let edits = args
+                    .get("edits")
                     .and_then(|v| v.as_array())
                     .ok_or_else(|| anyhow::anyhow!("Missing edits argument"))?;
 
                 // Read current content
-                let content = tokio::fs::read_to_string(path).await
+                let content = tokio::fs::read_to_string(path)
+                    .await
                     .map_err(|e| anyhow::anyhow!("Failed to read file: {}", e))?;
                 let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
 
@@ -148,9 +156,11 @@ impl MCPAgent {
                 });
 
                 for edit in sorted_edits {
-                    let start = edit.get("start_line").and_then(|v| v.as_i64()).unwrap_or(1) as usize;
+                    let start =
+                        edit.get("start_line").and_then(|v| v.as_i64()).unwrap_or(1) as usize;
                     let end = edit.get("end_line").and_then(|v| v.as_i64()).unwrap_or(1) as usize;
-                    let new_content = edit.get("new_content")
+                    let new_content = edit
+                        .get("new_content")
                         .and_then(|v| v.as_str())
                         .unwrap_or("");
 
@@ -159,13 +169,15 @@ impl MCPAgent {
                     let end = end.saturating_sub(1);
 
                     // Replace lines
-                    let new_lines: Vec<String> = new_content.lines().map(|s| s.to_string()).collect();
+                    let new_lines: Vec<String> =
+                        new_content.lines().map(|s| s.to_string()).collect();
                     lines.splice(start..=end.min(lines.len().saturating_sub(1)), new_lines);
                 }
 
                 // Write back
                 let new_content = lines.join("\n");
-                tokio::fs::write(path, new_content).await
+                tokio::fs::write(path, new_content)
+                    .await
                     .map_err(|e| anyhow::anyhow!("Failed to write file: {}", e))?;
 
                 Ok(json!({ "success": true, "path": path }))
@@ -185,26 +197,25 @@ impl MCPAgent {
                 "required": ["query"]
             }),
             |args| async move {
-                let query = args.get("query")
+                let query = args
+                    .get("query")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing query argument"))?;
-                let limit = args.get("limit")
-                    .and_then(|v| v.as_i64())
-                    .unwrap_or(5) as usize;
+                let limit = args.get("limit").and_then(|v| v.as_i64()).unwrap_or(5) as usize;
 
                 // Real implementation: search using regex patterns in project files
                 let mut results = Vec::new();
                 let query_lower = query.to_lowercase();
-                
+
                 // Common source directories to search
                 let search_dirs = ["src", "src-tauri/src", "lib", "app"];
-                
+
                 for dir in &search_dirs {
                     let dir_path = std::path::Path::new(dir);
                     if !dir_path.exists() {
                         continue;
                     }
-                    
+
                     // Walk directory
                     let entries: Vec<_> = walkdir::WalkDir::new(dir_path)
                         .max_depth(5)
@@ -213,19 +224,17 @@ impl MCPAgent {
                         .filter(|e| e.file_type().is_file())
                         .take(limit * 2)
                         .collect();
-                    
+
                     for entry in entries {
                         let path = entry.path();
-                        
+
                         // Check if it's a code file
-                        let ext: &str = path.extension()
-                            .and_then(|e| e.to_str())
-                            .unwrap_or("");
-                        
+                        let ext: &str = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+
                         if !["rs", "py", "js", "ts", "go", "java", "c", "cpp", "h"].contains(&ext) {
                             continue;
                         }
-                        
+
                         // Read file and search for query
                         if let Ok(content) = std::fs::read_to_string(path) {
                             for (line_num, line) in content.lines().enumerate() {
@@ -236,27 +245,27 @@ impl MCPAgent {
                                         "content": line.trim().to_string(),
                                         "match_type": "contains"
                                     }));
-                                    
+
                                     if results.len() >= limit {
                                         break;
                                     }
                                 }
                             }
                         }
-                        
+
                         if results.len() >= limit {
                             break;
                         }
                     }
-                    
+
                     if results.len() >= limit {
                         break;
                     }
                 }
-                
+
                 // Also search using vector store if available (would need to be passed in context)
                 // For now, return the grep-style results
-                
+
                 Ok(json!({
                     "results": results,
                     "query": query,
@@ -278,19 +287,23 @@ impl MCPAgent {
                 "required": ["path"]
             }),
             |args| async move {
-                let path = args.get("path")
+                let path = args
+                    .get("path")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing path argument"))?;
 
                 let mut entries = Vec::new();
-                let mut dir = tokio::fs::read_dir(path).await
+                let mut dir = tokio::fs::read_dir(path)
+                    .await
                     .map_err(|e| anyhow::anyhow!("Failed to read directory: {}", e))?;
 
-                while let Some(entry) = dir.next_entry().await.map_err(|e| anyhow::anyhow!("Failed to read entry: {}", e))? {
+                while let Some(entry) = dir
+                    .next_entry()
+                    .await
+                    .map_err(|e| anyhow::anyhow!("Failed to read entry: {}", e))?
+                {
                     let name = entry.file_name().to_string_lossy().to_string();
-                    let is_dir = entry.file_type().await
-                        .map(|t| t.is_dir())
-                        .unwrap_or(false);
+                    let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
                     entries.push(json!({
                         "name": name,
                         "is_directory": is_dir
@@ -313,7 +326,8 @@ impl MCPAgent {
                 "required": ["path"]
             }),
             |args| async move {
-                let path = args.get("path")
+                let path = args
+                    .get("path")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("Missing path argument"))?;
 
@@ -340,7 +354,9 @@ impl MCPAgent {
 
         // Check if approval is needed
         if self.config.require_approval && plan.requires_approval {
-            let pending = self.approval_workflow.create_pending(plan.actions.clone())?;
+            let pending = self
+                .approval_workflow
+                .create_pending(plan.actions.clone())?;
 
             return Ok(AgentResult {
                 success: true,
@@ -365,7 +381,11 @@ impl MCPAgent {
     }
 
     /// Plan actions from natural language command
-    async fn plan_actions(&self, command: &str, context: &AgentContext) -> anyhow::Result<ExecutionPlan> {
+    async fn plan_actions(
+        &self,
+        command: &str,
+        context: &AgentContext,
+    ) -> anyhow::Result<ExecutionPlan> {
         // Build prompt for LLM
         let prompt = self.build_planning_prompt(command, context)?;
 
@@ -392,7 +412,11 @@ impl MCPAgent {
     }
 
     /// Build prompt for action planning
-    fn build_planning_prompt(&self, command: &str, context: &AgentContext) -> anyhow::Result<String> {
+    fn build_planning_prompt(
+        &self,
+        command: &str,
+        context: &AgentContext,
+    ) -> anyhow::Result<String> {
         let mut prompt = String::new();
 
         // Add context
@@ -410,7 +434,7 @@ impl MCPAgent {
         for file in &context.open_files {
             prompt.push_str(&format!("- {}\n", file.to_string_lossy()));
         }
-        prompt.push_str("\n");
+        prompt.push('\n');
 
         prompt.push_str("USER REQUEST: ");
         prompt.push_str(command);
@@ -436,7 +460,7 @@ impl MCPAgent {
 
             // Execute action
             match self.execute_single_action(action).await {
-                Ok(result) => {
+                Ok(_result) => {
                     if let Some(file) = &action.target_file {
                         files_changed.push(file.clone());
                     }
@@ -478,7 +502,7 @@ impl MCPAgent {
     }
 
     /// Validate an action before execution
-    fn validate_action(&self, action: &AgentAction, context: &AgentContext) -> anyhow::Result<()> {
+    fn validate_action(&self, action: &AgentAction, _context: &AgentContext) -> anyhow::Result<()> {
         // Check if file editing is allowed
         if let Some(file) = &action.target_file {
             // Check blocked patterns
@@ -489,7 +513,9 @@ impl MCPAgent {
             }
 
             // Check file size for edits
-            if action.action_type == ActionType::EditLines || action.action_type == ActionType::WriteFile {
+            if action.action_type == ActionType::EditLines
+                || action.action_type == ActionType::WriteFile
+            {
                 if let Ok(metadata) = std::fs::metadata(file) {
                     if metadata.len() > self.config.max_file_size {
                         anyhow::bail!("File {} exceeds maximum size limit", file);
@@ -507,7 +533,9 @@ impl MCPAgent {
 
         match action.action_type {
             ActionType::ReadFile => {
-                let path = action.target_file.as_ref()
+                let path = action
+                    .target_file
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("No file specified"))?;
 
                 let mut args = HashMap::new();
@@ -516,10 +544,14 @@ impl MCPAgent {
                 registry.call("read_file", args).await?;
             }
             ActionType::WriteFile => {
-                let path = action.target_file.as_ref()
+                let path = action
+                    .target_file
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("No file specified"))?;
 
-                let content = action.edits.first()
+                let content = action
+                    .edits
+                    .first()
                     .map(|e| e.new_content.clone())
                     .unwrap_or_default();
 
@@ -530,15 +562,21 @@ impl MCPAgent {
                 registry.call("write_file", args).await?;
             }
             ActionType::EditLines => {
-                let path = action.target_file.as_ref()
+                let path = action
+                    .target_file
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("No file specified"))?;
 
-                let edits: Vec<serde_json::Value> = action.edits.iter()
-                    .map(|e| json!({
-                        "start_line": e.start_line,
-                        "end_line": e.end_line,
-                        "new_content": e.new_content
-                    }))
+                let edits: Vec<serde_json::Value> = action
+                    .edits
+                    .iter()
+                    .map(|e| {
+                        json!({
+                            "start_line": e.start_line,
+                            "end_line": e.end_line,
+                            "new_content": e.new_content
+                        })
+                    })
                     .collect();
 
                 let mut args = HashMap::new();
@@ -548,7 +586,9 @@ impl MCPAgent {
                 registry.call("edit_file", args).await?;
             }
             ActionType::OpenFile => {
-                let path = action.target_file.as_ref()
+                let path = action
+                    .target_file
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("No file specified"))?;
 
                 let mut args = HashMap::new();
@@ -557,10 +597,14 @@ impl MCPAgent {
                 registry.call("open_file", args).await?;
             }
             ActionType::CreateFile => {
-                let path = action.target_file.as_ref()
+                let path = action
+                    .target_file
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("No file specified"))?;
 
-                let content = action.edits.first()
+                let content = action
+                    .edits
+                    .first()
                     .map(|e| e.new_content.clone())
                     .unwrap_or_default();
 
@@ -579,7 +623,11 @@ impl MCPAgent {
     }
 
     /// Approve pending actions
-    pub async fn approve(&mut self, approval_id: &str, context: &AgentContext) -> anyhow::Result<AgentResult> {
+    pub async fn approve(
+        &mut self,
+        approval_id: &str,
+        context: &AgentContext,
+    ) -> anyhow::Result<AgentResult> {
         let pending = self.approval_workflow.approve(approval_id)?;
 
         if !pending.approved {

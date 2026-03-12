@@ -1,12 +1,12 @@
 // Enhanced LSP Commands — Tree-sitter powered + real LSP server subprocess
-use tauri::command;
+use crate::lsp_transport::transport::{get_language_server_config, LspTransport};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
-use crate::lsp_transport::transport::{LspTransport, get_language_server_config};
-use serde_json::json;
-use log::{info, warn};
 
 lazy_static::lazy_static! {
     static ref LSP_STATE: Arc<RwLock<LspState>> = Arc::new(RwLock::new(LspState::default()));
@@ -29,9 +29,15 @@ pub struct LspCapabilities {
 impl Default for LspCapabilities {
     fn default() -> Self {
         Self {
-            completion: true, hover: true, definition: true,
-            references: true, formatting: true, diagnostics: true,
-            code_actions: true, rename: true, signature_help: true,
+            completion: true,
+            hover: true,
+            definition: true,
+            references: true,
+            formatting: true,
+            diagnostics: true,
+            code_actions: true,
+            rename: true,
+            signature_help: true,
         }
     }
 }
@@ -116,7 +122,9 @@ pub struct LspState {
 fn get_ts_language(ext: &str) -> Option<tree_sitter::Language> {
     match ext {
         "rs" => Some(tree_sitter_rust::LANGUAGE.into()),
-        "js" | "jsx" | "mjs" | "ts" | "tsx" => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+        "js" | "jsx" | "mjs" | "ts" | "tsx" => {
+            Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+        }
         "py" => Some(tree_sitter_python::LANGUAGE.into()),
         "go" => Some(tree_sitter_go::LANGUAGE.into()),
         "c" | "h" => Some(tree_sitter_c::LANGUAGE.into()),
@@ -150,14 +158,34 @@ fn ext_to_language(ext: &str) -> &str {
 /// Convert LSP CompletionItemKind number to string
 fn completion_kind_to_str(kind: u64) -> String {
     match kind {
-        1 => "text", 2 => "method", 3 => "function", 4 => "constructor",
-        5 => "field", 6 => "variable", 7 => "class", 8 => "interface",
-        9 => "module", 10 => "property", 11 => "unit", 12 => "value",
-        13 => "enum", 14 => "keyword", 15 => "snippet", 16 => "color",
-        17 => "file", 18 => "reference", 19 => "folder", 20 => "enum_member",
-        21 => "constant", 22 => "struct", 23 => "event", 24 => "operator",
-        25 => "type_parameter", _ => "text",
-    }.to_string()
+        1 => "text",
+        2 => "method",
+        3 => "function",
+        4 => "constructor",
+        5 => "field",
+        6 => "variable",
+        7 => "class",
+        8 => "interface",
+        9 => "module",
+        10 => "property",
+        11 => "unit",
+        12 => "value",
+        13 => "enum",
+        14 => "keyword",
+        15 => "snippet",
+        16 => "color",
+        17 => "file",
+        18 => "reference",
+        19 => "folder",
+        20 => "enum_member",
+        21 => "constant",
+        22 => "struct",
+        23 => "event",
+        24 => "operator",
+        25 => "type_parameter",
+        _ => "text",
+    }
+    .to_string()
 }
 
 /// Parse LSP Range JSON into our Range type
@@ -186,7 +214,11 @@ fn parse_source(source: &str, ext: &str) -> Option<tree_sitter::Tree> {
 }
 
 /// Find the node at a specific position
-fn node_at_position<'a>(node: tree_sitter::Node<'a>, line: u32, character: u32) -> Option<tree_sitter::Node<'a>> {
+fn node_at_position<'a>(
+    node: tree_sitter::Node<'a>,
+    line: u32,
+    character: u32,
+) -> Option<tree_sitter::Node<'a>> {
     let point = tree_sitter::Point::new(line as usize, character as usize);
 
     // If point is outside this node, return None
@@ -207,9 +239,13 @@ fn node_at_position<'a>(node: tree_sitter::Node<'a>, line: u32, character: u32) 
 }
 
 /// Collect all identifier nodes matching a name
-fn find_all_identifiers(node: tree_sitter::Node, source: &str, name: &str) -> Vec<(u32, u32, u32, u32)> {
+fn find_all_identifiers(
+    node: tree_sitter::Node,
+    source: &str,
+    name: &str,
+) -> Vec<(u32, u32, u32, u32)> {
     let mut results = Vec::new();
-    let mut cursor = node.walk();
+    let _cursor = node.walk();
 
     fn walk_recursive(
         node: tree_sitter::Node,
@@ -218,8 +254,11 @@ fn find_all_identifiers(node: tree_sitter::Node, source: &str, name: &str) -> Ve
         results: &mut Vec<(u32, u32, u32, u32)>,
     ) {
         let kind = node.kind();
-        if kind == "identifier" || kind == "type_identifier" || kind == "field_identifier"
-            || kind == "property_identifier" || kind == "shorthand_property_identifier"
+        if kind == "identifier"
+            || kind == "type_identifier"
+            || kind == "field_identifier"
+            || kind == "property_identifier"
+            || kind == "shorthand_property_identifier"
         {
             if let Ok(text) = node.utf8_text(source.as_bytes()) {
                 if text == name {
@@ -243,7 +282,11 @@ fn find_all_identifiers(node: tree_sitter::Node, source: &str, name: &str) -> Ve
 }
 
 /// Find definition-like nodes (function_item, class_declaration, etc.)
-fn find_definition_nodes(node: tree_sitter::Node, source: &str, name: &str) -> Vec<(u32, u32, u32, u32)> {
+fn find_definition_nodes(
+    node: tree_sitter::Node,
+    source: &str,
+    name: &str,
+) -> Vec<(u32, u32, u32, u32)> {
     let mut results = Vec::new();
 
     fn walk(
@@ -254,12 +297,26 @@ fn find_definition_nodes(node: tree_sitter::Node, source: &str, name: &str) -> V
     ) {
         let kind = node.kind();
         // Common definition node types across languages
-        let is_definition = matches!(kind,
-            "function_item" | "function_definition" | "function_declaration" |
-            "method_definition" | "struct_item" | "class_declaration" | "class_definition" |
-            "impl_item" | "enum_item" | "type_alias_declaration" | "interface_declaration" |
-            "variable_declarator" | "let_declaration" | "const_item" | "static_item" |
-            "lexical_declaration" | "variable_declaration" | "assignment_expression"
+        let is_definition = matches!(
+            kind,
+            "function_item"
+                | "function_definition"
+                | "function_declaration"
+                | "method_definition"
+                | "struct_item"
+                | "class_declaration"
+                | "class_definition"
+                | "impl_item"
+                | "enum_item"
+                | "type_alias_declaration"
+                | "interface_declaration"
+                | "variable_declarator"
+                | "let_declaration"
+                | "const_item"
+                | "static_item"
+                | "lexical_declaration"
+                | "variable_declaration"
+                | "assignment_expression"
         );
 
         if is_definition {
@@ -296,62 +353,100 @@ fn find_definition_nodes(node: tree_sitter::Node, source: &str, name: &str) -> V
 fn get_keyword_completions(ext: &str) -> Vec<CompletionItem> {
     let keywords: Vec<(&str, &str)> = match ext {
         "rs" => vec![
-            ("fn", "Function declaration"), ("let", "Variable binding"),
-            ("mut", "Mutable binding"), ("struct", "Struct declaration"),
-            ("enum", "Enum declaration"), ("impl", "Implementation block"),
-            ("trait", "Trait declaration"), ("pub", "Public visibility"),
-            ("use", "Use declaration"), ("mod", "Module declaration"),
-            ("match", "Match expression"), ("if", "If expression"),
-            ("for", "For loop"), ("while", "While loop"),
-            ("loop", "Infinite loop"), ("return", "Return from function"),
-            ("async", "Async function"), ("await", "Await future"),
-            ("println!", "Print to stdout"), ("eprintln!", "Print to stderr"),
-            ("vec!", "Create Vec"), ("format!", "Format string"),
+            ("fn", "Function declaration"),
+            ("let", "Variable binding"),
+            ("mut", "Mutable binding"),
+            ("struct", "Struct declaration"),
+            ("enum", "Enum declaration"),
+            ("impl", "Implementation block"),
+            ("trait", "Trait declaration"),
+            ("pub", "Public visibility"),
+            ("use", "Use declaration"),
+            ("mod", "Module declaration"),
+            ("match", "Match expression"),
+            ("if", "If expression"),
+            ("for", "For loop"),
+            ("while", "While loop"),
+            ("loop", "Infinite loop"),
+            ("return", "Return from function"),
+            ("async", "Async function"),
+            ("await", "Await future"),
+            ("println!", "Print to stdout"),
+            ("eprintln!", "Print to stderr"),
+            ("vec!", "Create Vec"),
+            ("format!", "Format string"),
         ],
         "ts" | "tsx" | "js" | "jsx" => vec![
-            ("function", "Function declaration"), ("const", "Constant declaration"),
-            ("let", "Variable declaration"), ("class", "Class declaration"),
-            ("interface", "Interface declaration"), ("type", "Type alias"),
-            ("import", "Import declaration"), ("export", "Export declaration"),
-            ("async", "Async function"), ("await", "Await promise"),
-            ("if", "If statement"), ("for", "For loop"),
-            ("while", "While loop"), ("return", "Return statement"),
-            ("try", "Try block"), ("catch", "Catch block"),
-            ("throw", "Throw exception"), ("new", "New instance"),
-            ("console.log", "Log to console"), ("React.useState", "React state hook"),
+            ("function", "Function declaration"),
+            ("const", "Constant declaration"),
+            ("let", "Variable declaration"),
+            ("class", "Class declaration"),
+            ("interface", "Interface declaration"),
+            ("type", "Type alias"),
+            ("import", "Import declaration"),
+            ("export", "Export declaration"),
+            ("async", "Async function"),
+            ("await", "Await promise"),
+            ("if", "If statement"),
+            ("for", "For loop"),
+            ("while", "While loop"),
+            ("return", "Return statement"),
+            ("try", "Try block"),
+            ("catch", "Catch block"),
+            ("throw", "Throw exception"),
+            ("new", "New instance"),
+            ("console.log", "Log to console"),
+            ("React.useState", "React state hook"),
         ],
         "py" => vec![
-            ("def", "Function definition"), ("class", "Class definition"),
-            ("import", "Import module"), ("from", "From import"),
-            ("if", "If statement"), ("for", "For loop"),
-            ("while", "While loop"), ("return", "Return statement"),
-            ("try", "Try block"), ("except", "Except block"),
-            ("with", "Context manager"), ("async", "Async function"),
-            ("await", "Await coroutine"), ("print", "Print function"),
-            ("self", "Instance reference"), ("None", "None value"),
+            ("def", "Function definition"),
+            ("class", "Class definition"),
+            ("import", "Import module"),
+            ("from", "From import"),
+            ("if", "If statement"),
+            ("for", "For loop"),
+            ("while", "While loop"),
+            ("return", "Return statement"),
+            ("try", "Try block"),
+            ("except", "Except block"),
+            ("with", "Context manager"),
+            ("async", "Async function"),
+            ("await", "Await coroutine"),
+            ("print", "Print function"),
+            ("self", "Instance reference"),
+            ("None", "None value"),
         ],
         "go" => vec![
-            ("func", "Function declaration"), ("type", "Type declaration"),
-            ("struct", "Struct type"), ("interface", "Interface type"),
-            ("package", "Package declaration"), ("import", "Import"),
-            ("if", "If statement"), ("for", "For loop"),
-            ("return", "Return statement"), ("go", "Goroutine"),
-            ("chan", "Channel"), ("select", "Select statement"),
-            ("defer", "Defer execution"), ("fmt.Println", "Print line"),
+            ("func", "Function declaration"),
+            ("type", "Type declaration"),
+            ("struct", "Struct type"),
+            ("interface", "Interface type"),
+            ("package", "Package declaration"),
+            ("import", "Import"),
+            ("if", "If statement"),
+            ("for", "For loop"),
+            ("return", "Return statement"),
+            ("go", "Goroutine"),
+            ("chan", "Channel"),
+            ("select", "Select statement"),
+            ("defer", "Defer execution"),
+            ("fmt.Println", "Print line"),
         ],
         _ => vec![],
     };
 
-    keywords.into_iter().enumerate().map(|(i, (label, detail))| {
-        CompletionItem {
+    keywords
+        .into_iter()
+        .enumerate()
+        .map(|(i, (label, detail))| CompletionItem {
             label: label.to_string(),
             kind: "keyword".to_string(),
             detail: Some(detail.to_string()),
             documentation: None,
             insert_text: Some(label.to_string()),
             sort_text: Some(format!("{:04}", i)),
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 // Read file content (from cache or disk)
@@ -364,7 +459,8 @@ async fn read_file_content(uri: &str) -> Result<String, String> {
 
     // Try to read from disk
     let path = uri.strip_prefix("file://").unwrap_or(uri);
-    let content = tokio::fs::read_to_string(path).await
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| format!("Failed to read file: {}", e))?;
 
     // Cache it
@@ -374,9 +470,12 @@ async fn read_file_content(uri: &str) -> Result<String, String> {
 }
 
 #[command]
-pub async fn lsp_start_server(language: String, root_uri: String) -> Result<LspServerStatus, String> {
+pub async fn lsp_start_server(
+    language: String,
+    root_uri: String,
+) -> Result<LspServerStatus, String> {
     let mut state = LSP_STATE.write().await;
-    
+
     // Try to spawn a real language server via LspTransport
     if let Some(config) = get_language_server_config(&language) {
         let server_cmd = config.command.clone();
@@ -398,13 +497,13 @@ pub async fn lsp_start_server(language: String, root_uri: String) -> Result<LspS
                         "didChangeConfiguration": { "dynamicRegistration": true }
                     }
                 });
-                
+
                 match transport.initialize(&root_uri, init_caps).await {
                     Ok(_result) => {
                         info!("Real LSP server started: {} for {}", server_cmd, language);
                         let transport_handle = Arc::new(RwLock::new(transport));
                         state.transports.insert(language.clone(), transport_handle);
-                        
+
                         let status = LspServerStatus {
                             language: language.clone(),
                             running: true,
@@ -416,16 +515,22 @@ pub async fn lsp_start_server(language: String, root_uri: String) -> Result<LspS
                         return Ok(status);
                     }
                     Err(e) => {
-                        warn!("LSP {} init failed, falling back to tree-sitter: {}", server_cmd, e);
+                        warn!(
+                            "LSP {} init failed, falling back to tree-sitter: {}",
+                            server_cmd, e
+                        );
                     }
                 }
             }
             Err(e) => {
-                warn!("Cannot spawn {}: {} — falling back to tree-sitter", server_cmd, e);
+                warn!(
+                    "Cannot spawn {}: {} — falling back to tree-sitter",
+                    server_cmd, e
+                );
             }
         }
     }
-    
+
     // Fallback: register tree-sitter-only server
     let status = LspServerStatus {
         language: language.clone(),
@@ -459,9 +564,13 @@ pub async fn lsp_get_servers() -> Result<Vec<LspServerStatus>, String> {
 }
 
 #[command]
-pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Result<Vec<CompletionItem>, String> {
+pub async fn lsp_get_completions(
+    uri: String,
+    line: u32,
+    character: u32,
+) -> Result<Vec<CompletionItem>, String> {
     let ext = detect_extension(&uri);
-    
+
     // Try real LSP server first
     {
         let state = LSP_STATE.read().await;
@@ -472,7 +581,10 @@ pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Resu
                 "textDocument": { "uri": uri },
                 "position": { "line": line, "character": character }
             });
-            if let Ok(result) = t.send_request("textDocument/completion", Some(params)).await {
+            if let Ok(result) = t
+                .send_request("textDocument/completion", Some(params))
+                .await
+            {
                 // Parse LSP CompletionList or CompletionItem[]
                 let items = if let Some(items) = result.get("items") {
                     items.as_array().cloned().unwrap_or_default()
@@ -481,27 +593,48 @@ pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Resu
                 } else {
                     vec![]
                 };
-                
+
                 if !items.is_empty() {
-                    return Ok(items.into_iter().filter_map(|item| {
-                        Some(CompletionItem {
-                            label: item.get("label")?.as_str()?.to_string(),
-                            kind: completion_kind_to_str(item.get("kind").and_then(|k| k.as_u64()).unwrap_or(1)),
-                            detail: item.get("detail").and_then(|d| d.as_str()).map(|s| s.to_string()),
-                            documentation: item.get("documentation").and_then(|d| {
-                                d.as_str().map(|s| s.to_string())
-                                    .or_else(|| d.get("value").and_then(|v| v.as_str()).map(|s| s.to_string()))
-                            }),
-                            insert_text: item.get("insertText").and_then(|t| t.as_str()).map(|s| s.to_string())
-                                .or_else(|| item.get("label").and_then(|l| l.as_str()).map(|s| s.to_string())),
-                            sort_text: item.get("sortText").and_then(|s| s.as_str()).map(|s| s.to_string()),
+                    return Ok(items
+                        .into_iter()
+                        .filter_map(|item| {
+                            Some(CompletionItem {
+                                label: item.get("label")?.as_str()?.to_string(),
+                                kind: completion_kind_to_str(
+                                    item.get("kind").and_then(|k| k.as_u64()).unwrap_or(1),
+                                ),
+                                detail: item
+                                    .get("detail")
+                                    .and_then(|d| d.as_str())
+                                    .map(|s| s.to_string()),
+                                documentation: item.get("documentation").and_then(|d| {
+                                    d.as_str().map(|s| s.to_string()).or_else(|| {
+                                        d.get("value")
+                                            .and_then(|v| v.as_str())
+                                            .map(|s| s.to_string())
+                                    })
+                                }),
+                                insert_text: item
+                                    .get("insertText")
+                                    .and_then(|t| t.as_str())
+                                    .map(|s| s.to_string())
+                                    .or_else(|| {
+                                        item.get("label")
+                                            .and_then(|l| l.as_str())
+                                            .map(|s| s.to_string())
+                                    }),
+                                sort_text: item
+                                    .get("sortText")
+                                    .and_then(|s| s.as_str())
+                                    .map(|s| s.to_string()),
+                            })
                         })
-                    }).collect());
+                        .collect());
                 }
             }
         }
     }
-    
+
     // Fallback: tree-sitter + keyword completions
     let mut completions = Vec::new();
 
@@ -513,7 +646,7 @@ pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Resu
         if let Some(tree) = parse_source(&content, ext) {
             // Collect all unique identifiers in the file as completion candidates
             let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let mut cursor = tree.root_node().walk();
+            let _cursor = tree.root_node().walk();
             fn collect_identifiers(
                 node: tree_sitter::Node,
                 source: &str,
@@ -543,7 +676,13 @@ pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Resu
                 }
             }
             let mut idx = 0usize;
-            collect_identifiers(tree.root_node(), &content, &mut seen, &mut completions, &mut idx);
+            collect_identifiers(
+                tree.root_node(),
+                &content,
+                &mut seen,
+                &mut completions,
+                &mut idx,
+            );
         }
     }
 
@@ -551,9 +690,13 @@ pub async fn lsp_get_completions(uri: String, line: u32, character: u32) -> Resu
 }
 
 #[command]
-pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Result<Option<Location>, String> {
+pub async fn lsp_goto_definition(
+    uri: String,
+    line: u32,
+    character: u32,
+) -> Result<Option<Location>, String> {
     let ext = detect_extension(&uri);
-    
+
     // Try real LSP server first
     {
         let state = LSP_STATE.read().await;
@@ -564,7 +707,10 @@ pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Resu
                 "textDocument": { "uri": uri },
                 "position": { "line": line, "character": character }
             });
-            if let Ok(result) = t.send_request("textDocument/definition", Some(params)).await {
+            if let Ok(result) = t
+                .send_request("textDocument/definition", Some(params))
+                .await
+            {
                 // Parse Location or Location[]
                 let loc = if result.is_array() {
                     result.as_array().and_then(|a| a.first()).cloned()
@@ -574,7 +720,9 @@ pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Resu
                     None
                 };
                 if let Some(l) = loc {
-                    if let (Some(loc_uri), Some(range)) = (l.get("uri").and_then(|u| u.as_str()), l.get("range")) {
+                    if let (Some(loc_uri), Some(range)) =
+                        (l.get("uri").and_then(|u| u.as_str()), l.get("range"))
+                    {
                         return Ok(Some(Location {
                             uri: loc_uri.to_string(),
                             range: parse_lsp_range(range),
@@ -584,18 +732,18 @@ pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Resu
             }
         }
     }
-    
+
     // Fallback: tree-sitter definition search
     let content = read_file_content(&uri).await?;
 
-    let tree = parse_source(&content, ext)
-        .ok_or("Failed to parse file")?;
+    let tree = parse_source(&content, ext).ok_or("Failed to parse file")?;
 
     // Find the node at the cursor position
-    let target_node = node_at_position(tree.root_node(), line, character)
-        .ok_or("No node at position")?;
+    let target_node =
+        node_at_position(tree.root_node(), line, character).ok_or("No node at position")?;
 
-    let name = target_node.utf8_text(content.as_bytes())
+    let name = target_node
+        .utf8_text(content.as_bytes())
         .map_err(|e| format!("UTF-8 error: {}", e))?;
 
     // Find definition nodes matching this name
@@ -607,8 +755,14 @@ pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Resu
             return Ok(Some(Location {
                 uri: uri.clone(),
                 range: Range {
-                    start: Position { line: sl, character: sc },
-                    end: Position { line: el, character: ec },
+                    start: Position {
+                        line: sl,
+                        character: sc,
+                    },
+                    end: Position {
+                        line: el,
+                        character: ec,
+                    },
                 },
             }));
         }
@@ -618,9 +772,13 @@ pub async fn lsp_goto_definition(uri: String, line: u32, character: u32) -> Resu
 }
 
 #[command]
-pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<HoverResult>, String> {
+pub async fn lsp_hover(
+    uri: String,
+    line: u32,
+    character: u32,
+) -> Result<Option<HoverResult>, String> {
     let ext = detect_extension(&uri);
-    
+
     // Try real LSP server first
     {
         let state = LSP_STATE.read().await;
@@ -644,23 +802,23 @@ pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<
                     } else {
                         result.to_string()
                     };
-                    let range = result.get("range").map(|r| parse_lsp_range(r));
+                    let range = result.get("range").map(parse_lsp_range);
                     return Ok(Some(HoverResult { contents, range }));
                 }
             }
         }
     }
-    
+
     // Fallback: tree-sitter hover
     let content = read_file_content(&uri).await?;
 
-    let tree = parse_source(&content, ext)
-        .ok_or("Failed to parse file")?;
+    let tree = parse_source(&content, ext).ok_or("Failed to parse file")?;
 
-    let target = node_at_position(tree.root_node(), line, character)
-        .ok_or("No node at position")?;
+    let target =
+        node_at_position(tree.root_node(), line, character).ok_or("No node at position")?;
 
-    let text = target.utf8_text(content.as_bytes())
+    let text = target
+        .utf8_text(content.as_bytes())
         .map_err(|e| format!("UTF-8 error: {}", e))?;
 
     // Walk up to find the containing declaration
@@ -668,11 +826,20 @@ pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<
     let mut context = String::new();
     while let Some(p) = parent {
         let kind = p.kind();
-        if matches!(kind,
-            "function_item" | "function_definition" | "function_declaration" |
-            "method_definition" | "struct_item" | "class_declaration" |
-            "impl_item" | "enum_item" | "type_alias_declaration" |
-            "interface_declaration" | "variable_declarator" | "let_declaration"
+        if matches!(
+            kind,
+            "function_item"
+                | "function_definition"
+                | "function_declaration"
+                | "method_definition"
+                | "struct_item"
+                | "class_declaration"
+                | "impl_item"
+                | "enum_item"
+                | "type_alias_declaration"
+                | "interface_declaration"
+                | "variable_declarator"
+                | "let_declaration"
         ) {
             // Get the first line of the declaration as signature
             if let Ok(decl_text) = p.utf8_text(content.as_bytes()) {
@@ -686,14 +853,26 @@ pub async fn lsp_hover(uri: String, line: u32, character: u32) -> Result<Option<
     let hover_text = if context.is_empty() {
         format!("```\n{}\n```\n\n*Node: {}*", text, target.kind())
     } else {
-        format!("```{}\n{}\n```\n\n**{}** — *{}*", ext, context, text, target.kind())
+        format!(
+            "```{}\n{}\n```\n\n**{}** — *{}*",
+            ext,
+            context,
+            text,
+            target.kind()
+        )
     };
 
     Ok(Some(HoverResult {
         contents: hover_text,
         range: Some(Range {
-            start: Position { line: target.start_position().row as u32, character: target.start_position().column as u32 },
-            end: Position { line: target.end_position().row as u32, character: target.end_position().column as u32 },
+            start: Position {
+                line: target.start_position().row as u32,
+                character: target.start_position().column as u32,
+            },
+            end: Position {
+                line: target.end_position().row as u32,
+                character: target.end_position().column as u32,
+            },
         }),
     }))
 }
@@ -712,15 +891,26 @@ pub async fn lsp_get_diagnostics(uri: String) -> Result<Vec<Diagnostic>, String>
     if let Some(tree) = parse_source(&content, ext) {
         fn find_errors(node: tree_sitter::Node, diagnostics: &mut Vec<Diagnostic>, source: &str) {
             if node.is_error() || node.is_missing() {
-                let snippet = node.utf8_text(source.as_bytes()).unwrap_or("").chars().take(50).collect::<String>();
+                let snippet = node
+                    .utf8_text(source.as_bytes())
+                    .unwrap_or("")
+                    .chars()
+                    .take(50)
+                    .collect::<String>();
                 diagnostics.push(Diagnostic {
                     range: Range {
-                        start: Position { line: node.start_position().row as u32, character: node.start_position().column as u32 },
-                        end: Position { line: node.end_position().row as u32, character: node.end_position().column as u32 },
+                        start: Position {
+                            line: node.start_position().row as u32,
+                            character: node.start_position().column as u32,
+                        },
+                        end: Position {
+                            line: node.end_position().row as u32,
+                            character: node.end_position().column as u32,
+                        },
                     },
                     severity: "error".to_string(),
                     message: if node.is_missing() {
-                        format!("Missing expected syntax element")
+                        "Missing expected syntax element".to_string()
                     } else {
                         format!("Syntax error near: {}", snippet)
                     },
@@ -756,8 +946,14 @@ pub async fn lsp_format_document(uri: String) -> Result<Vec<TextEdit>, String> {
         if trimmed.len() != line.len() {
             edits.push(TextEdit {
                 range: Range {
-                    start: Position { line: i as u32, character: trimmed.len() as u32 },
-                    end: Position { line: i as u32, character: line.len() as u32 },
+                    start: Position {
+                        line: i as u32,
+                        character: trimmed.len() as u32,
+                    },
+                    end: Position {
+                        line: i as u32,
+                        character: line.len() as u32,
+                    },
                 },
                 new_text: String::new(),
             });
@@ -770,8 +966,14 @@ pub async fn lsp_format_document(uri: String) -> Result<Vec<TextEdit>, String> {
         let last_line_len = content.lines().last().map(|l| l.len()).unwrap_or(0);
         edits.push(TextEdit {
             range: Range {
-                start: Position { line: line_count as u32 - 1, character: last_line_len as u32 },
-                end: Position { line: line_count as u32 - 1, character: last_line_len as u32 },
+                start: Position {
+                    line: line_count as u32 - 1,
+                    character: last_line_len as u32,
+                },
+                end: Position {
+                    line: line_count as u32 - 1,
+                    character: last_line_len as u32,
+                },
             },
             new_text: "\n".to_string(),
         });
@@ -781,8 +983,12 @@ pub async fn lsp_format_document(uri: String) -> Result<Vec<TextEdit>, String> {
 }
 
 #[command]
-pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> Result<Vec<CodeAction>, String> {
-    let ext = detect_extension(&uri);
+pub async fn lsp_code_actions(
+    uri: String,
+    start_line: u32,
+    end_line: u32,
+) -> Result<Vec<CodeAction>, String> {
+    let _ext = detect_extension(&uri);
     let content = read_file_content(&uri).await?;
     let mut actions = Vec::new();
 
@@ -818,61 +1024,88 @@ pub async fn lsp_code_actions(uri: String, start_line: u32, end_line: u32) -> Re
 }
 
 #[command]
-pub async fn lsp_find_references(uri: String, line: u32, character: u32) -> Result<Vec<Location>, String> {
+pub async fn lsp_find_references(
+    uri: String,
+    line: u32,
+    character: u32,
+) -> Result<Vec<Location>, String> {
     let ext = detect_extension(&uri);
     let content = read_file_content(&uri).await?;
 
-    let tree = parse_source(&content, ext)
-        .ok_or("Failed to parse file")?;
+    let tree = parse_source(&content, ext).ok_or("Failed to parse file")?;
 
-    let target = node_at_position(tree.root_node(), line, character)
-        .ok_or("No node at position")?;
+    let target =
+        node_at_position(tree.root_node(), line, character).ok_or("No node at position")?;
 
-    let name = target.utf8_text(content.as_bytes())
+    let name = target
+        .utf8_text(content.as_bytes())
         .map_err(|e| format!("UTF-8 error: {}", e))?;
 
     let refs = find_all_identifiers(tree.root_node(), &content, name);
 
-    Ok(refs.into_iter().map(|(sl, sc, el, ec)| {
-        Location {
+    Ok(refs
+        .into_iter()
+        .map(|(sl, sc, el, ec)| Location {
             uri: uri.clone(),
             range: Range {
-                start: Position { line: sl, character: sc },
-                end: Position { line: el, character: ec },
+                start: Position {
+                    line: sl,
+                    character: sc,
+                },
+                end: Position {
+                    line: el,
+                    character: ec,
+                },
             },
-        }
-    }).collect())
+        })
+        .collect())
 }
 
 #[command]
-pub async fn lsp_rename(uri: String, line: u32, character: u32, new_name: String) -> Result<Vec<TextEdit>, String> {
+pub async fn lsp_rename(
+    uri: String,
+    line: u32,
+    character: u32,
+    new_name: String,
+) -> Result<Vec<TextEdit>, String> {
     let ext = detect_extension(&uri);
     let content = read_file_content(&uri).await?;
 
-    let tree = parse_source(&content, ext)
-        .ok_or("Failed to parse file")?;
+    let tree = parse_source(&content, ext).ok_or("Failed to parse file")?;
 
-    let target = node_at_position(tree.root_node(), line, character)
-        .ok_or("No node at position")?;
+    let target =
+        node_at_position(tree.root_node(), line, character).ok_or("No node at position")?;
 
-    let old_name = target.utf8_text(content.as_bytes())
+    let old_name = target
+        .utf8_text(content.as_bytes())
         .map_err(|e| format!("UTF-8 error: {}", e))?;
 
     let refs = find_all_identifiers(tree.root_node(), &content, old_name);
 
-    Ok(refs.into_iter().map(|(sl, sc, el, ec)| {
-        TextEdit {
+    Ok(refs
+        .into_iter()
+        .map(|(sl, sc, el, ec)| TextEdit {
             range: Range {
-                start: Position { line: sl, character: sc },
-                end: Position { line: el, character: ec },
+                start: Position {
+                    line: sl,
+                    character: sc,
+                },
+                end: Position {
+                    line: el,
+                    character: ec,
+                },
             },
             new_text: new_name.clone(),
-        }
-    }).collect())
+        })
+        .collect())
 }
 
 #[command]
-pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> Result<Option<String>, String> {
+pub async fn lsp_signature_help(
+    uri: String,
+    line: u32,
+    character: u32,
+) -> Result<Option<String>, String> {
     let ext = detect_extension(&uri);
     let content = read_file_content(&uri).await?;
 
@@ -890,9 +1123,13 @@ pub async fn lsp_signature_help(uri: String, line: u32, character: u32) -> Resul
     // Walk up to find a call expression
     let mut node = Some(target);
     while let Some(n) = node {
-        if matches!(n.kind(), "call_expression" | "function_call" | "method_call") {
+        if matches!(
+            n.kind(),
+            "call_expression" | "function_call" | "method_call"
+        ) {
             // Extract the function name and try to find its signature
-            let call_text = n.utf8_text(content.as_bytes())
+            let call_text = n
+                .utf8_text(content.as_bytes())
                 .unwrap_or("")
                 .lines()
                 .next()

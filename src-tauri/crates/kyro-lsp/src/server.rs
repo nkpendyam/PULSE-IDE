@@ -1,15 +1,13 @@
 //! LSP Server - Individual language server instance
 
 use kyro_core::{KyroError, KyroResult};
-use lsp_types::{
-    InitializeParams, InitializedParams, ServerCapabilities, Url,
-};
+use lsp_types::{InitializeParams, InitializedParams, ServerCapabilities, Url};
 use serde_json::Value;
 use std::process::Stdio;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, RwLock};
-use std::time::{Duration, Instant};
 
 /// LSP Server instance for a specific language
 pub struct LspServer {
@@ -90,10 +88,9 @@ impl LspServer {
     fn get_default_config(language: &str) -> ServerConfig {
         let (command, args) = match language {
             "rust" => ("rust-analyzer", vec![]),
-            "typescript" | "javascript" => (
-                "typescript-language-server",
-                vec!["--stdio".to_string()],
-            ),
+            "typescript" | "javascript" => {
+                ("typescript-language-server", vec!["--stdio".to_string()])
+            }
             "python" => ("pylsp", vec![]),
             "go" => ("gopls", vec![]),
             "java" => ("jdtls", vec![]),
@@ -160,13 +157,15 @@ impl LspServer {
             ))
         })?;
 
-        let stdin = child.stdin.take().ok_or_else(|| {
-            KyroError::lsp("Failed to get stdin handle".to_string())
-        })?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| KyroError::lsp("Failed to get stdin handle".to_string()))?;
 
-        let _stdout = child.stdout.take().ok_or_else(|| {
-            KyroError::lsp("Failed to get stdout handle".to_string())
-        })?;
+        let _stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| KyroError::lsp("Failed to get stdout handle".to_string()))?;
 
         let server_process = ServerProcess {
             child,
@@ -213,7 +212,7 @@ impl LspServer {
     /// Restart the LSP server
     pub async fn restart(&self) -> KyroResult<()> {
         log::info!("Restarting LSP server for {}", self.language);
-        
+
         let mut state = self.state.write().await;
         *state = ServerState::Restarting;
         drop(state);

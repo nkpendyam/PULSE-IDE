@@ -1,29 +1,30 @@
 //! End-to-End Encryption Module for KYRO IDE Collaboration
-//! 
+//!
 //! Implements Signal Protocol-inspired encryption for real-time collaboration
 //! Based on: https://github.com/signalapp/libsignal
-//! 
+//!
 //! Features:
 //! - X3DH key agreement protocol
 //! - Double Ratchet for forward secrecy
 //! - ChaCha20-Poly1305 AEAD encryption
 //! - Post-quantum ready (X448 support)
 
-use serde::{Deserialize, Serialize};
-use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
-use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce, aead::{Aead, KeyInit}};
+use chacha20poly1305::{
+    aead::{Aead, KeyInit},
+    ChaCha20Poly1305, Key, Nonce,
+};
+use chrono::{DateTime, Utc};
 use hkdf::Hkdf;
+use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use x25519_dalek::{PublicKey, SharedSecret, StaticSecret};
 
 pub mod double_ratchet;
-pub mod key_exchange;
 pub mod encrypted_channel;
+pub mod key_exchange;
 
 pub use double_ratchet::*;
-pub use key_exchange::*;
-pub use encrypted_channel::*;
 
 /// E2EE configuration
 #[derive(Debug, Clone)]
@@ -94,7 +95,7 @@ impl E2eeSession {
         let mut rng = rand::thread_rng();
         let secret = StaticSecret::random_from_rng(&mut rng);
         let public = PublicKey::from(&secret);
-        
+
         Self {
             session_id: Uuid::new_v4(),
             user_id,
@@ -110,39 +111,42 @@ impl E2eeSession {
     /// Initialize session with peer's public key (X3DH)
     pub fn initialize_with_peer_key(&mut self, peer_public: PublicKey) -> anyhow::Result<()> {
         self.peer_public_key = Some(peer_public);
-        
+
         // Perform X3DH key exchange
         let shared_secret = self.local_keypair.0.diffie_hellman(&peer_public);
-        
+
         // Derive root key using HKDF
         let root_key = Self::derive_root_key(&shared_secret);
-        
+
         // Initialize double ratchet
         self.double_ratchet = Some(DoubleRatchetState::new_initiator(root_key));
-        
+
         self.last_activity = Utc::now();
         Ok(())
     }
 
     /// Encrypt a message
     pub fn encrypt(&mut self, plaintext: &[u8]) -> anyhow::Result<EncryptedEnvelope> {
-        let ratchet = self.double_ratchet.as_mut()
+        let ratchet = self
+            .double_ratchet
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Double ratchet not initialized"))?;
-        
+
         // Get current sending key
         let (key, message_number) = ratchet.get_sending_key()?;
-        
+
         // Generate random nonce
         let nonce_bytes: [u8; 12] = rand::random();
         let nonce = Nonce::from_slice(&nonce_bytes);
-        
+
         // Encrypt with ChaCha20-Poly1305
         let cipher = ChaCha20Poly1305::new(Key::from_slice(&key));
-        let ciphertext = cipher.encrypt(&nonce, plaintext)
+        let ciphertext = cipher
+            .encrypt(nonce, plaintext)
             .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
-        
+
         self.last_activity = Utc::now();
-        
+
         Ok(EncryptedEnvelope {
             sender_key: self.local_keypair.1.as_bytes().to_vec(),
             ciphertext,
@@ -154,19 +158,22 @@ impl E2eeSession {
 
     /// Decrypt a message
     pub fn decrypt(&mut self, envelope: &EncryptedEnvelope) -> anyhow::Result<Vec<u8>> {
-        let ratchet = self.double_ratchet.as_mut()
+        let ratchet = self
+            .double_ratchet
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Double ratchet not initialized"))?;
-        
+
         // Get receiving key for this message number
         let key = ratchet.get_receiving_key(envelope.message_number)?;
-        
+
         // Decrypt with ChaCha20-Poly1305
         let nonce = Nonce::from_slice(&envelope.nonce);
         let cipher = ChaCha20Poly1305::new(Key::from_slice(&key));
-        
-        let plaintext = cipher.decrypt(nonce, envelope.ciphertext.as_slice())
+
+        let plaintext = cipher
+            .decrypt(nonce, envelope.ciphertext.as_slice())
             .map_err(|e| anyhow::anyhow!("Decryption failed: {}", e))?;
-        
+
         self.last_activity = Utc::now();
         Ok(plaintext)
     }
@@ -206,13 +213,13 @@ impl E2eeManager {
     pub fn create_session(&mut self, user_id: Uuid, peer_id: Uuid) -> Uuid {
         let session = E2eeSession::new(user_id, peer_id);
         let session_id = session.session_id;
-        
+
         self.sessions.insert(session_id, session);
         self.user_sessions
             .entry(user_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(session_id);
-        
+
         session_id
     }
 
@@ -227,15 +234,27 @@ impl E2eeManager {
     }
 
     /// Encrypt message for a session
-    pub fn encrypt(&mut self, session_id: Uuid, plaintext: &[u8]) -> anyhow::Result<EncryptedEnvelope> {
-        let session = self.sessions.get_mut(&session_id)
+    pub fn encrypt(
+        &mut self,
+        session_id: Uuid,
+        plaintext: &[u8],
+    ) -> anyhow::Result<EncryptedEnvelope> {
+        let session = self
+            .sessions
+            .get_mut(&session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
         session.encrypt(plaintext)
     }
 
     /// Decrypt message for a session
-    pub fn decrypt(&mut self, session_id: Uuid, envelope: &EncryptedEnvelope) -> anyhow::Result<Vec<u8>> {
-        let session = self.sessions.get_mut(&session_id)
+    pub fn decrypt(
+        &mut self,
+        session_id: Uuid,
+        envelope: &EncryptedEnvelope,
+    ) -> anyhow::Result<Vec<u8>> {
+        let session = self
+            .sessions
+            .get_mut(&session_id)
             .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
         session.decrypt(envelope)
     }
@@ -266,7 +285,7 @@ mod tests {
     fn test_e2ee_session_creation() {
         let user_id = Uuid::new_v4();
         let peer_id = Uuid::new_v4();
-        
+
         let session = E2eeSession::new(user_id, peer_id);
         assert_eq!(session.user_id, user_id);
         assert_eq!(session.peer_id, peer_id);
@@ -276,19 +295,23 @@ mod tests {
     fn test_e2ee_encryption_decryption() {
         let mut alice_session = E2eeSession::new(Uuid::new_v4(), Uuid::new_v4());
         let mut bob_session = E2eeSession::new(Uuid::new_v4(), Uuid::new_v4());
-        
+
         // Exchange public keys
         let alice_public = alice_session.get_public_key();
         let bob_public = bob_session.get_public_key();
-        
+
         // Initialize sessions (simplified, not full X3DH)
-        alice_session.initialize_with_peer_key(
-            PublicKey::from(<[u8; 32]>::try_from(bob_public.as_slice()).unwrap())
-        ).unwrap();
-        bob_session.initialize_with_peer_key(
-            PublicKey::from(<[u8; 32]>::try_from(alice_public.as_slice()).unwrap())
-        ).unwrap();
-        
+        alice_session
+            .initialize_with_peer_key(PublicKey::from(
+                <[u8; 32]>::try_from(bob_public.as_slice()).unwrap(),
+            ))
+            .unwrap();
+        bob_session
+            .initialize_with_peer_key(PublicKey::from(
+                <[u8; 32]>::try_from(alice_public.as_slice()).unwrap(),
+            ))
+            .unwrap();
+
         // Note: This simplified test won't work with real double ratchet
         // because we need proper key exchange. This demonstrates the API.
     }

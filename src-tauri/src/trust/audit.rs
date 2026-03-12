@@ -2,8 +2,8 @@
 //!
 //! Shows the agent's "thinking process" (Chain of Thought) for trust.
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Thought step in agent reasoning
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,11 +79,11 @@ impl ThoughtVisualizer {
             max_history: 100,
         }
     }
-    
+
     /// Start a new thought chain
     pub fn start_chain(&mut self, agent_id: &str, task: &str) -> String {
         let chain_id = uuid::Uuid::new_v4().to_string();
-        
+
         let chain = ThoughtChain {
             id: chain_id.clone(),
             agent_id: agent_id.to_string(),
@@ -95,30 +95,30 @@ impl ThoughtVisualizer {
             total_tokens: 0,
             success: None,
         };
-        
+
         self.chains.insert(chain_id.clone(), chain);
         self.current_chain = Some(chain_id.clone());
-        
+
         chain_id
     }
-    
+
     /// Add a thought step
     pub fn add_step(&mut self, step: ThoughtStep) -> String {
         let step_id = step.id.clone();
         let chain_id = step.id.clone(); // Use step chain context
-        
+
         // Add step
         self.steps.insert(step_id.clone(), step.clone());
-        
+
         // Link to chain
         if let Some(chain) = self.chains.get_mut(&chain_id) {
             chain.steps.push(step_id.clone());
             chain.total_tokens += step.content.len() as u32 / 4; // Rough estimate
         }
-        
+
         step_id
     }
-    
+
     /// Add step to current chain
     pub fn add_step_to_current(
         &mut self,
@@ -129,10 +129,10 @@ impl ThoughtVisualizer {
         duration_ms: u64,
     ) -> Option<String> {
         let chain_id = self.current_chain.clone()?;
-        
+
         let chain = self.chains.get(&chain_id)?;
         let step_number = chain.steps.len() as u32 + 1;
-        
+
         let step = ThoughtStep {
             id: uuid::Uuid::new_v4().to_string(),
             agent_id: agent_id.to_string(),
@@ -145,53 +145,61 @@ impl ThoughtVisualizer {
             sub_steps: Vec::new(),
             sources: Vec::new(),
         };
-        
+
         let step_id = step.id.clone();
         self.steps.insert(step_id.clone(), step);
-        
+
         if let Some(chain) = self.chains.get_mut(&chain_id) {
             chain.steps.push(step_id.clone());
         }
-        
+
         Some(step_id)
     }
-    
+
     /// Complete the current chain
     pub fn complete_chain(&mut self, success: bool) -> Option<String> {
         let chain_id = self.current_chain.take()?;
-        
+
         if let Some(chain) = self.chains.get_mut(&chain_id) {
             chain.status = ChainStatus::Completed;
             chain.completed_at = Some(Utc::now());
             chain.success = Some(success);
         }
-        
+
         Some(chain_id)
     }
-    
+
     /// Get chain with steps
-    pub fn get_chain_with_steps(&self, chain_id: &str) -> Option<(&ThoughtChain, Vec<&ThoughtStep>)> {
+    pub fn get_chain_with_steps(
+        &self,
+        chain_id: &str,
+    ) -> Option<(&ThoughtChain, Vec<&ThoughtStep>)> {
         let chain = self.chains.get(chain_id)?;
-        let steps: Vec<_> = chain.steps.iter()
+        let steps: Vec<_> = chain
+            .steps
+            .iter()
             .filter_map(|id| self.steps.get(id))
             .collect();
-        
+
         Some((chain, steps))
     }
-    
+
     /// Get formatted thought process for display
     pub fn format_chain(&self, chain_id: &str) -> Option<String> {
         let (chain, steps) = self.get_chain_with_steps(chain_id)?;
-        
+
         let mut output = String::new();
-        
+
         output.push_str(&format!("🎯 Task: {}\n\n", chain.task));
         output.push_str(&format!("Agent: {}\n", chain.agent_id));
         output.push_str(&format!("Status: {:?}\n", chain.status));
-        output.push_str(&format!("Started: {}\n\n", chain.started_at.format("%H:%M:%S")));
+        output.push_str(&format!(
+            "Started: {}\n\n",
+            chain.started_at.format("%H:%M:%S")
+        ));
         output.push_str("━".repeat(50).as_str());
         output.push_str("\n\n💭 Thought Process:\n\n");
-        
+
         for step in steps {
             let icon = match step.thought_type {
                 ThoughtType::Understanding => "🔍",
@@ -203,28 +211,37 @@ impl ThoughtVisualizer {
                 ThoughtType::Verification => "✔️",
                 ThoughtType::Reflection => "📝",
             };
-            
-            output.push_str(&format!("{} [Step {}] {:?}\n", icon, step.step_number, step.thought_type));
+
+            output.push_str(&format!(
+                "{} [Step {}] {:?}\n",
+                icon, step.step_number, step.thought_type
+            ));
             output.push_str(&format!("   {}\n", step.content));
-            
+
             if let Some(conf) = step.confidence {
                 output.push_str(&format!("   Confidence: {:.0}%\n", conf * 100.0));
             }
-            
+
             output.push_str(&format!("   ⏱ {}ms\n\n", step.duration_ms));
         }
-        
+
         if let Some(completed) = chain.completed_at {
-            output.push_str(&format!("\n⏰ Completed: {}\n", completed.format("%H:%M:%S")));
+            output.push_str(&format!(
+                "\n⏰ Completed: {}\n",
+                completed.format("%H:%M:%S")
+            ));
         }
-        
+
         if let Some(success) = chain.success {
-            output.push_str(&format!("📊 Result: {}\n", if success { "✓ Success" } else { "✗ Failed" }));
+            output.push_str(&format!(
+                "📊 Result: {}\n",
+                if success { "✓ Success" } else { "✗ Failed" }
+            ));
         }
-        
+
         Some(output)
     }
-    
+
     /// Get recent chains
     pub fn get_recent_chains(&self, limit: usize) -> Vec<&ThoughtChain> {
         let mut chains: Vec<_> = self.chains.values().collect();

@@ -1,6 +1,6 @@
 //! Memory Hierarchy Module
 //!
-//! Multi-level memory management for AI agents, including Lazy Semantic Resolution 
+//! Multi-level memory management for AI agents, including Lazy Semantic Resolution
 //! for targeted RAG retrieval of symbols and definitions.
 
 use serde::{Deserialize, Serialize};
@@ -42,23 +42,26 @@ pub struct MemoryHierarchy {
 }
 
 impl MemoryHierarchy {
-    pub fn new() -> Self { 
-        Self { 
+    pub fn new() -> Self {
+        Self {
             entries: Vec::new(),
             semantic_cache: HashMap::new(),
-        } 
+        }
     }
-    
+
     pub fn store(&mut self, entry: MemoryEntry) {
         self.entries.push(entry);
     }
-    
+
     pub fn retrieve(&self, key: &str) -> Option<&MemoryEntry> {
         self.entries.iter().find(|e| e.key == key)
     }
-    
+
     pub fn search(&self, query: &str) -> Vec<&MemoryEntry> {
-        self.entries.iter().filter(|e| e.value.contains(query)).collect()
+        self.entries
+            .iter()
+            .filter(|e| e.value.contains(query))
+            .collect()
     }
 
     /// Stores a recently resolved symbol so the LLM doesn't have to fetch it again
@@ -73,5 +76,7 @@ impl MemoryHierarchy {
 }
 
 impl Default for MemoryHierarchy {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

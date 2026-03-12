@@ -1,8 +1,8 @@
 //! Authentication module for KYRO IDE
-//! 
+//!
 //! Implements secure JWT-based authentication using jwt-simple library
 //! Based on patterns from jedisct1/rust-jwt-simple
-//! 
+//!
 //! Features:
 //! - User registration and login with Argon2 password hashing
 //! - JWT token generation and validation
@@ -11,22 +11,18 @@
 //! - Rate limiting and brute-force protection
 //! - Audit logging
 
+pub mod audit;
 pub mod jwt_handler;
-pub mod session;
-pub mod rbac;
 pub mod oauth;
 pub mod rate_limiter;
-pub mod audit;
+pub mod rbac;
+pub mod session;
 
-pub use jwt_handler::*;
-pub use session::*;
-pub use rbac::*;
-pub use oauth::*;
-pub use rate_limiter::*;
 pub use audit::*;
+pub use rate_limiter::*;
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// User representation
@@ -56,19 +52,14 @@ impl User {
 }
 
 /// User roles for RBAC
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum UserRole {
     Guest,
+    #[default]
     Viewer,
     Editor,
     Admin,
     Owner,
-}
-
-impl Default for UserRole {
-    fn default() -> Self {
-        Self::Viewer
-    }
 }
 
 /// Authentication configuration
@@ -96,11 +87,12 @@ impl AuthConfig {
     /// Create config from environment variables
     pub fn from_env() -> Self {
         Self {
-            jwt_secret: std::env::var("JWT_SECRET")
-                .unwrap_or_else(|_| {
-                    log::warn!("JWT_SECRET not set, using generated secret. THIS IS INSECURE FOR PRODUCTION!");
-                    format!("kyro-ide-{}-secret", Uuid::new_v4())
-                }),
+            jwt_secret: std::env::var("JWT_SECRET").unwrap_or_else(|_| {
+                log::warn!(
+                    "JWT_SECRET not set, using generated secret. THIS IS INSECURE FOR PRODUCTION!"
+                );
+                format!("kyro-ide-{}-secret", Uuid::new_v4())
+            }),
             token_expiration: std::env::var("JWT_EXPIRATION_SECS")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -156,12 +148,16 @@ impl AuthManager {
 
     /// Hash password using Argon2
     fn hash_password(password: &str) -> String {
-        use argon2::{Argon2, PasswordHasher, password_hash::{SaltString, rand_core::OsRng}};
-        
+        use argon2::{
+            password_hash::{rand_core::OsRng, SaltString},
+            Argon2, PasswordHasher,
+        };
+
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
-        
-        argon2.hash_password(password.as_bytes(), &salt)
+
+        argon2
+            .hash_password(password.as_bytes(), &salt)
             .map(|hash| hash.to_string())
             .unwrap_or_else(|_| {
                 // Fallback to bcrypt if argon2 fails (shouldn't happen)
@@ -172,21 +168,29 @@ impl AuthManager {
     /// Verify password against hash
     fn verify_password(password: &str, hash: &str) -> bool {
         // Try Argon2 first
+        use argon2::password_hash::PasswordHash;
         use argon2::{Argon2, PasswordVerifier};
-        use argon2::password_hash::{PasswordHash, PasswordHasher};
-        
+
         if let Ok(parsed_hash) = PasswordHash::new(hash) {
-            if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok() {
+            if Argon2::default()
+                .verify_password(password.as_bytes(), &parsed_hash)
+                .is_ok()
+            {
                 return true;
             }
         }
-        
+
         // Fallback to bcrypt
         bcrypt::verify(password, hash).unwrap_or(false)
     }
 
     /// Register a new user with hashed password
-    pub fn register(&mut self, username: String, email: String, password: &str) -> anyhow::Result<User> {
+    pub fn register(
+        &mut self,
+        username: String,
+        email: String,
+        password: &str,
+    ) -> anyhow::Result<User> {
         // Check if username already exists
         if self.username_index.contains_key(&username) {
             anyhow::bail!("Username already exists");
@@ -194,7 +198,7 @@ impl AuthManager {
 
         let user_id = Uuid::new_v4();
         let password_hash = Self::hash_password(password);
-        
+
         let user = User {
             id: user_id,
             username: username.clone(),
@@ -207,51 +211,73 @@ impl AuthManager {
             failed_login_attempts: 0,
             locked_until: None,
         };
-        
+
         self.username_index.insert(username, user_id);
         self.users.insert(user_id, user.clone());
-        
+
         // Audit log
-        self.audit_log.log(AuditAction::UserRegistered, user_id, None);
-        
+        self.audit_log
+            .log(AuditAction::UserRegistered, user_id, None);
+
         Ok(user)
     }
 
     /// Authenticate user and generate tokens (with rate limiting)
-    pub fn login(&mut self, username: &str, password: &str, client_ip: Option<&str>) -> anyhow::Result<AuthTokens> {
+    pub fn login(
+        &mut self,
+        username: &str,
+        password: &str,
+        client_ip: Option<&str>,
+    ) -> anyhow::Result<AuthTokens> {
         // Rate limiting check
         let ip = client_ip.unwrap_or("unknown");
         if !self.rate_limiter.check(ip) {
-            self.audit_log.log(AuditAction::RateLimited, Uuid::nil(), Some(ip.to_string()));
+            self.audit_log
+                .log(AuditAction::RateLimited, Uuid::nil(), Some(ip.to_string()));
             anyhow::bail!("Rate limit exceeded. Please try again later.");
         }
 
         // Find user by username
-        let user_id = self.username_index.get(username)
+        let user_id = self
+            .username_index
+            .get(username)
             .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
-        
-        let user = self.users.get_mut(user_id)
+
+        let user = self
+            .users
+            .get_mut(user_id)
             .ok_or_else(|| anyhow::anyhow!("Invalid credentials"))?;
 
         // Check if account is locked
         if user.is_locked() {
-            self.audit_log.log(AuditAction::LoginFailedLocked, user.id, Some(ip.to_string()));
+            self.audit_log.log(
+                AuditAction::LoginFailedLocked,
+                user.id,
+                Some(ip.to_string()),
+            );
             anyhow::bail!("Account is temporarily locked due to too many failed attempts");
         }
 
         // Verify password
         if !Self::verify_password(password, &user.password_hash) {
             user.failed_login_attempts += 1;
-            
+
             // Lock account after max failures
             if user.failed_login_attempts >= self.config.max_failed_attempts {
-                user.locked_until = Some(Utc::now() + chrono::Duration::seconds(self.config.lockout_duration_secs as i64));
-                self.audit_log.log(AuditAction::AccountLocked, user.id, Some(ip.to_string()));
-                anyhow::bail!("Account locked due to too many failed attempts. Try again in {} minutes.", 
-                    self.config.lockout_duration_secs / 60);
+                user.locked_until = Some(
+                    Utc::now()
+                        + chrono::Duration::seconds(self.config.lockout_duration_secs as i64),
+                );
+                self.audit_log
+                    .log(AuditAction::AccountLocked, user.id, Some(ip.to_string()));
+                anyhow::bail!(
+                    "Account locked due to too many failed attempts. Try again in {} minutes.",
+                    self.config.lockout_duration_secs / 60
+                );
             }
-            
-            self.audit_log.log(AuditAction::LoginFailed, user.id, Some(ip.to_string()));
+
+            self.audit_log
+                .log(AuditAction::LoginFailed, user.id, Some(ip.to_string()));
             anyhow::bail!("Invalid credentials");
         }
 
@@ -282,13 +308,15 @@ impl AuthManager {
             user_id: user.id,
             refresh_token: refresh_token.clone(),
             created_at: Utc::now(),
-            expires_at: Utc::now() + chrono::Duration::seconds(self.config.refresh_expiration as i64),
+            expires_at: Utc::now()
+                + chrono::Duration::seconds(self.config.refresh_expiration as i64),
         };
 
         self.sessions.insert(session.id, session);
 
         // Audit log
-        self.audit_log.log(AuditAction::LoginSuccess, user.id, Some(ip.to_string()));
+        self.audit_log
+            .log(AuditAction::LoginSuccess, user.id, Some(ip.to_string()));
 
         Ok(AuthTokens {
             access_token,
@@ -306,8 +334,10 @@ impl AuthManager {
     /// Refresh access token
     pub fn refresh(&mut self, refresh_token: &str) -> anyhow::Result<AuthTokens> {
         let claims = jwt_handler::validate_token(refresh_token, &self.config.jwt_secret)?;
-        
-        let user = self.users.get(&claims.user_id)
+
+        let user = self
+            .users
+            .get(&claims.user_id)
             .ok_or_else(|| anyhow::anyhow!("User not found"))?
             .clone();
 
@@ -326,7 +356,8 @@ impl AuthManager {
             &self.config.jwt_secret,
         )?;
 
-        self.audit_log.log(AuditAction::TokenRefreshed, user.id, None);
+        self.audit_log
+            .log(AuditAction::TokenRefreshed, user.id, None);
 
         Ok(AuthTokens {
             access_token: new_access_token,
@@ -350,7 +381,8 @@ impl AuthManager {
 
     /// Get user by username
     pub fn get_user_by_username(&self, username: &str) -> Option<&User> {
-        self.username_index.get(username)
+        self.username_index
+            .get(username)
             .and_then(|id| self.users.get(id))
     }
 
@@ -365,23 +397,35 @@ impl AuthManager {
     }
 
     /// Change user role (admin only)
-    pub fn change_role(&mut self, admin_id: Uuid, user_id: Uuid, new_role: UserRole) -> anyhow::Result<()> {
+    pub fn change_role(
+        &mut self,
+        admin_id: Uuid,
+        user_id: Uuid,
+        new_role: UserRole,
+    ) -> anyhow::Result<()> {
         // Verify admin
-        let admin = self.users.get(&admin_id)
+        let admin = self
+            .users
+            .get(&admin_id)
             .ok_or_else(|| anyhow::anyhow!("Admin not found"))?;
-        
+
         if !matches!(admin.role, UserRole::Admin | UserRole::Owner) {
             anyhow::bail!("Insufficient permissions");
         }
 
-        let user = self.users.get_mut(&user_id)
+        let user = self
+            .users
+            .get_mut(&user_id)
             .ok_or_else(|| anyhow::anyhow!("User not found"))?;
-        
+
         user.role = new_role.clone();
-        
-        self.audit_log.log(AuditAction::RoleChanged, user_id, 
-            Some(format!("Changed to {:?}", new_role)));
-        
+
+        self.audit_log.log(
+            AuditAction::RoleChanged,
+            user_id,
+            Some(format!("Changed to {:?}", new_role)),
+        );
+
         Ok(())
     }
 }
@@ -398,11 +442,11 @@ pub struct AuthTokens {
 /// JWT claims
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: Uuid,        // Subject (user ID)
+    pub sub: Uuid, // Subject (user ID)
     pub username: String,
     pub role: UserRole,
-    pub exp: u64,         // Expiration time
-    pub iat: u64,         // Issued at
+    pub exp: u64, // Expiration time
+    pub iat: u64, // Issued at
     pub user_id: Uuid,
 }
 
@@ -452,13 +496,15 @@ mod tests {
             ..Default::default()
         };
         let mut manager = AuthManager::new(config);
-        
-        let user = manager.register(
-            "testuser".to_string(),
-            "test@example.com".to_string(),
-            "password123",
-        ).unwrap();
-        
+
+        let user = manager
+            .register(
+                "testuser".to_string(),
+                "test@example.com".to_string(),
+                "password123",
+            )
+            .unwrap();
+
         assert_eq!(user.username, "testuser");
         assert_eq!(user.role, UserRole::Viewer);
         assert!(!user.password_hash.is_empty());
@@ -469,7 +515,7 @@ mod tests {
     fn test_password_hashing() {
         let password = "my_secure_password";
         let hash = AuthManager::hash_password(password);
-        
+
         assert_ne!(hash, password);
         assert!(AuthManager::verify_password(password, &hash));
         assert!(!AuthManager::verify_password("wrong_password", &hash));
@@ -482,15 +528,19 @@ mod tests {
             ..Default::default()
         };
         let mut manager = AuthManager::new(config);
-        
-        manager.register(
-            "testuser".to_string(),
-            "test@example.com".to_string(),
-            "password123",
-        ).unwrap();
-        
-        let tokens = manager.login("testuser", "password123", Some("127.0.0.1")).unwrap();
-        
+
+        manager
+            .register(
+                "testuser".to_string(),
+                "test@example.com".to_string(),
+                "password123",
+            )
+            .unwrap();
+
+        let tokens = manager
+            .login("testuser", "password123", Some("127.0.0.1"))
+            .unwrap();
+
         assert!(!tokens.access_token.is_empty());
         assert!(!tokens.refresh_token.is_empty());
         assert_eq!(tokens.user.username, "testuser");
@@ -504,13 +554,15 @@ mod tests {
             ..Default::default()
         };
         let mut manager = AuthManager::new(config);
-        
-        manager.register(
-            "testuser".to_string(),
-            "test@example.com".to_string(),
-            "password123",
-        ).unwrap();
-        
+
+        manager
+            .register(
+                "testuser".to_string(),
+                "test@example.com".to_string(),
+                "password123",
+            )
+            .unwrap();
+
         let result = manager.login("testuser", "wrong_password", Some("127.0.0.1"));
         assert!(result.is_err());
     }
@@ -524,18 +576,20 @@ mod tests {
             ..Default::default()
         };
         let mut manager = AuthManager::new(config);
-        
-        manager.register(
-            "testuser".to_string(),
-            "test@example.com".to_string(),
-            "password123",
-        ).unwrap();
-        
+
+        manager
+            .register(
+                "testuser".to_string(),
+                "test@example.com".to_string(),
+                "password123",
+            )
+            .unwrap();
+
         // First failed attempt
         let _ = manager.login("testuser", "wrong1", Some("127.0.0.1"));
         // Second failed attempt - should lock
         let _ = manager.login("testuser", "wrong2", Some("127.0.0.1"));
-        
+
         // Even correct password should fail now
         let result = manager.login("testuser", "password123", Some("127.0.0.1"));
         assert!(result.is_err());
@@ -544,11 +598,26 @@ mod tests {
 
     #[test]
     fn test_rbac_permissions() {
-        assert!(rbac::has_permission(&UserRole::Owner, &Permission::FileDelete));
-        assert!(rbac::has_permission(&UserRole::Admin, &Permission::CollaboratorInvite));
-        assert!(!rbac::has_permission(&UserRole::Viewer, &Permission::FileDelete));
-        assert!(rbac::has_permission(&UserRole::Editor, &Permission::FileWrite));
-        assert!(!rbac::has_permission(&UserRole::Guest, &Permission::AIAccess));
+        assert!(rbac::has_permission(
+            &UserRole::Owner,
+            &Permission::FileDelete
+        ));
+        assert!(rbac::has_permission(
+            &UserRole::Admin,
+            &Permission::CollaboratorInvite
+        ));
+        assert!(!rbac::has_permission(
+            &UserRole::Viewer,
+            &Permission::FileDelete
+        ));
+        assert!(rbac::has_permission(
+            &UserRole::Editor,
+            &Permission::FileWrite
+        ));
+        assert!(!rbac::has_permission(
+            &UserRole::Guest,
+            &Permission::AIAccess
+        ));
     }
 
     #[test]
@@ -558,19 +627,21 @@ mod tests {
             ..Default::default()
         };
         let mut manager = AuthManager::new(config);
-        
-        manager.register(
-            "testuser".to_string(),
-            "test1@example.com".to_string(),
-            "password123",
-        ).unwrap();
-        
+
+        manager
+            .register(
+                "testuser".to_string(),
+                "test1@example.com".to_string(),
+                "password123",
+            )
+            .unwrap();
+
         let result = manager.register(
             "testuser".to_string(),
             "test2@example.com".to_string(),
             "password456",
         );
-        
+
         assert!(result.is_err());
     }
 
@@ -581,17 +652,20 @@ mod tests {
             ..Default::default()
         };
         let mut manager = AuthManager::new(config);
-        
-        manager.register(
-            "testuser".to_string(),
-            "test@example.com".to_string(),
-            "password123",
-        ).unwrap();
-        
+
+        manager
+            .register(
+                "testuser".to_string(),
+                "test@example.com".to_string(),
+                "password123",
+            )
+            .unwrap();
+
         let logs = manager.get_audit_log(10);
         assert!(!logs.is_empty());
-        assert!(logs.iter().any(|l| matches!(l.action, AuditAction::UserRegistered)));
-    
+        assert!(logs
+            .iter()
+            .any(|l| matches!(l.action, AuditAction::UserRegistered)));
     }
 }
 
@@ -606,8 +680,11 @@ impl AuthManager {
     pub fn generate_token(&self, user_id: Uuid) -> anyhow::Result<String> {
         if let Some(user) = self.get_user(user_id) {
             jwt_handler::generate_token(
-                user.id, &user.username, &user.role,
-                self.config.token_expiration, &self.config.jwt_secret,
+                user.id,
+                &user.username,
+                &user.role,
+                self.config.token_expiration,
+                &self.config.jwt_secret,
             )
         } else {
             anyhow::bail!("User not found")
@@ -626,11 +703,18 @@ impl AuthManager {
 
     /// Get OAuth URL for a provider
     pub fn get_oauth_url(&self, provider: &str) -> anyhow::Result<String> {
-        Ok(format!("https://oauth.{}.com/authorize?client_id=kyro_ide", provider))
+        Ok(format!(
+            "https://oauth.{}.com/authorize?client_id=kyro_ide",
+            provider
+        ))
     }
 
     /// Handle OAuth callback
-    pub fn handle_oauth_callback(&mut self, provider: &str, code: &str) -> anyhow::Result<AuthTokens> {
+    pub fn handle_oauth_callback(
+        &mut self,
+        provider: &str,
+        code: &str,
+    ) -> anyhow::Result<AuthTokens> {
         let user_id = Uuid::new_v4();
         let code_prefix = if code.len() > 6 { &code[..6] } else { code };
         let user = User {

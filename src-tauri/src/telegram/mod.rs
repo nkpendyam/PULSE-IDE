@@ -12,11 +12,11 @@
 //! - File sharing and snippets
 
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
 pub mod bot;
 pub mod commands;
@@ -116,12 +116,30 @@ pub enum AttachmentType {
 /// Telegram notification types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NotificationType {
-    BuildCompleted { success: bool, duration_ms: u64 },
-    TestResults { passed: u32, failed: u32 },
-    CodeReviewReady { file_path: String, author: String },
-    DeployCompleted { environment: String, url: Option<String> },
-    ErrorAlert { message: String, severity: Severity },
-    AiTaskCompleted { task_type: String, summary: String },
+    BuildCompleted {
+        success: bool,
+        duration_ms: u64,
+    },
+    TestResults {
+        passed: u32,
+        failed: u32,
+    },
+    CodeReviewReady {
+        file_path: String,
+        author: String,
+    },
+    DeployCompleted {
+        environment: String,
+        url: Option<String>,
+    },
+    ErrorAlert {
+        message: String,
+        severity: Severity,
+    },
+    AiTaskCompleted {
+        task_type: String,
+        summary: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -177,8 +195,9 @@ impl TelegramBridge {
     /// Handle incoming message
     pub async fn handle_message(&self, message: TelegramMessage) -> Result<()> {
         // Check if chat is allowed
-        if !self.config.allowed_chat_ids.is_empty() 
-            && !self.config.allowed_chat_ids.contains(&message.chat_id) {
+        if !self.config.allowed_chat_ids.is_empty()
+            && !self.config.allowed_chat_ids.contains(&message.chat_id)
+        {
             log::warn!("Message from unauthorized chat: {}", message.chat_id);
             return Ok(());
         }
@@ -207,7 +226,7 @@ impl TelegramBridge {
     /// Update session from message
     async fn update_session(&self, message: &TelegramMessage) -> Result<()> {
         let mut sessions = self.sessions.write().await;
-        
+
         let session = sessions.entry(message.chat_id).or_insert(TelegramSession {
             chat_id: message.chat_id,
             user_id: message.user_id,
@@ -228,7 +247,7 @@ impl TelegramBridge {
     /// Handle text message (non-command)
     async fn handle_text_message(&self, message: &TelegramMessage, text: &str) -> Result<()> {
         let sessions = self.sessions.read().await;
-        
+
         if let Some(session) = sessions.get(&message.chat_id) {
             if let Some(action) = &session.pending_action {
                 match action {
@@ -252,13 +271,17 @@ impl TelegramBridge {
     }
 
     /// Send notification
-    pub async fn send_notification(&self, chat_id: i64, notification: NotificationType) -> Result<()> {
+    pub async fn send_notification(
+        &self,
+        chat_id: i64,
+        notification: NotificationType,
+    ) -> Result<()> {
         if !self.config.enable_notifications {
             return Ok(());
         }
 
         let message = self.format_notification(&notification);
-        
+
         if let Some(bot) = &self.bot {
             let bot = bot.read().await;
             bot.send_message(chat_id, &message).await?;
@@ -270,7 +293,7 @@ impl TelegramBridge {
     /// Broadcast notification to all allowed chats
     pub async fn broadcast_notification(&self, notification: NotificationType) -> Result<()> {
         let message = self.format_notification(&notification);
-        
+
         for chat_id in &self.config.allowed_chat_ids {
             if let Some(bot) = &self.bot {
                 let bot = bot.read().await;
@@ -284,24 +307,40 @@ impl TelegramBridge {
     /// Format notification as message
     fn format_notification(&self, notification: &NotificationType) -> String {
         match notification {
-            NotificationType::BuildCompleted { success, duration_ms } => {
-                let status = if *success { "✅ SUCCESS" } else { "❌ FAILED" };
+            NotificationType::BuildCompleted {
+                success,
+                duration_ms,
+            } => {
+                let status = if *success {
+                    "✅ SUCCESS"
+                } else {
+                    "❌ FAILED"
+                };
                 format!("🔨 Build {}\n⏱ Duration: {}ms", status, duration_ms)
             }
             NotificationType::TestResults { passed, failed } => {
                 let total = passed + failed;
                 let status = if *failed == 0 { "✅" } else { "⚠️" };
-                format!("{} Test Results\n✅ Passed: {}\n❌ Failed: {}\n📊 Total: {}", 
-                    status, passed, failed, total)
+                format!(
+                    "{} Test Results\n✅ Passed: {}\n❌ Failed: {}\n📊 Total: {}",
+                    status, passed, failed, total
+                )
             }
             NotificationType::CodeReviewReady { file_path, author } => {
-                format!("📝 Code Review Request\n📄 File: {}\n👤 Author: {}", file_path, author)
+                format!(
+                    "📝 Code Review Request\n📄 File: {}\n👤 Author: {}",
+                    file_path, author
+                )
             }
             NotificationType::DeployCompleted { environment, url } => {
-                let url_info = url.as_ref()
+                let url_info = url
+                    .as_ref()
                     .map(|u| format!("\n🔗 URL: {}", u))
                     .unwrap_or_default();
-                format!("🚀 Deployed to {}\n✅ Deployment successful{}", environment, url_info)
+                format!(
+                    "🚀 Deployed to {}\n✅ Deployment successful{}",
+                    environment, url_info
+                )
             }
             NotificationType::ErrorAlert { message, severity } => {
                 let emoji = match severity {
@@ -310,15 +349,23 @@ impl TelegramBridge {
                     Severity::Error => "❌",
                     Severity::Critical => "🚨",
                 };
-                format!("{} Alert [{}]\n{}", emoji, match severity {
-                    Severity::Info => "INFO",
-                    Severity::Warning => "WARNING",
-                    Severity::Error => "ERROR",
-                    Severity::Critical => "CRITICAL",
-                }, message)
+                format!(
+                    "{} Alert [{}]\n{}",
+                    emoji,
+                    match severity {
+                        Severity::Info => "INFO",
+                        Severity::Warning => "WARNING",
+                        Severity::Error => "ERROR",
+                        Severity::Critical => "CRITICAL",
+                    },
+                    message
+                )
             }
             NotificationType::AiTaskCompleted { task_type, summary } => {
-                format!("🤖 AI Task Completed\n📋 Type: {}\n📝 Summary: {}", task_type, summary)
+                format!(
+                    "🤖 AI Task Completed\n📋 Type: {}\n📝 Summary: {}",
+                    task_type, summary
+                )
             }
         }
     }

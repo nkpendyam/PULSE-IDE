@@ -7,8 +7,8 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::agents::{AgentError, AgentConfig, AgentId};
 use crate::agents::agent_lock::AgentLock;
+use crate::agents::{AgentConfig, AgentError, AgentId};
 
 /// Maximum queue size
 pub const MAX_QUEUE_SIZE: usize = 10;
@@ -66,9 +66,10 @@ impl AgentScheduler {
 
     /// Queue a new agent task
     pub fn queue(&self, task: AgentTask) -> Result<usize, AgentError> {
-        let mut queue = self.queue.lock().map_err(|_| {
-            AgentError::SchedulerBusy(0)
-        })?;
+        let mut queue = self
+            .queue
+            .lock()
+            .map_err(|_| AgentError::SchedulerBusy(0))?;
 
         if queue.len() >= MAX_QUEUE_SIZE {
             return Err(AgentError::SchedulerBusy(queue.len()));
@@ -81,16 +82,16 @@ impl AgentScheduler {
     /// Get next task from queue
     pub fn next(&self) -> Option<AgentTask> {
         let mut queue = self.queue.lock().ok()?;
-        
+
         // Sort by priority (highest first)
         let mut tasks: Vec<_> = queue.drain(..).collect();
         tasks.sort_by(|a, b| b.priority.cmp(&a.priority));
-        
+
         // Re-queue lower priority tasks
         for task in tasks.iter().skip(1) {
             queue.push_back(task.clone());
         }
-        
+
         tasks.into_iter().next()
     }
 
@@ -132,7 +133,7 @@ impl AgentScheduler {
     pub fn check_runtime(&self) -> Option<Duration> {
         let current = self.current()?;
         let elapsed = current.started_at.elapsed();
-        
+
         if elapsed > self.max_runtime {
             Some(elapsed)
         } else {

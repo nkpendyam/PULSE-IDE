@@ -2,9 +2,9 @@
 //!
 //! Exposes agent management to the frontend
 
-use crate::agent_store::{AgentStore, AgentDefinition, InstalledAgent, AgentExecutionResult};
-use tokio::sync::Mutex;
+use crate::agent_store::{AgentDefinition, AgentExecutionResult, AgentStore, InstalledAgent};
 use tauri::State;
+use tokio::sync::Mutex;
 
 /// Global agent store state
 pub struct AgentStoreState(pub Mutex<AgentStore>);
@@ -26,7 +26,10 @@ pub async fn install_agent(
     repo_url: String,
 ) -> Result<String, String> {
     let mut store = state.0.lock().await;
-    store.install_from_github(&repo_url).await.map_err(|e| e.to_string())
+    store
+        .install_from_github(&repo_url)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// List installed agents (custom / store)
@@ -68,7 +71,10 @@ pub async fn execute_agent(
 ) -> Result<AgentExecutionResult, String> {
     let store = state.0.lock().await;
     let mut executor = crate::agent_store::AgentExecutor::new(store.clone());
-    executor.execute(&agent_id, &task).await.map_err(|e| e.to_string())
+    executor
+        .execute(&agent_id, &task)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Get featured agents

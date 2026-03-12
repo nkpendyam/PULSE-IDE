@@ -5,11 +5,11 @@
 //!
 //! Based on: https://arxiv.org/abs/2211.17192
 
+use super::local_inference::LocalInferenceEngine;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use super::local_inference::LocalInferenceEngine;
 
 /// Speculative decoder that uses a small model to draft and large model to verify
 pub struct SpeculativeDecoder {
@@ -38,8 +38,13 @@ struct DraftSequence {
 /// Verification result
 #[derive(Debug, Clone)]
 enum VerificationResult {
-    Accepted { tokens: Vec<Token> },
-    Rejected { first_rejected: usize, accepted_text: String },
+    Accepted {
+        tokens: Vec<Token>,
+    },
+    Rejected {
+        first_rejected: usize,
+        accepted_text: String,
+    },
 }
 
 impl SpeculativeDecoder {
@@ -47,12 +52,12 @@ impl SpeculativeDecoder {
     pub async fn new(draft_model: String, target_model: String) -> Result<Self> {
         // Initialize draft engine with smaller memory budget
         let draft_engine = Arc::new(RwLock::new(
-            LocalInferenceEngine::new(draft_model.clone(), 4.0).await?
+            LocalInferenceEngine::new(draft_model.clone(), 4.0).await?,
         ));
 
         // Initialize target engine with larger memory budget
         let target_engine = Arc::new(RwLock::new(
-            LocalInferenceEngine::new(target_model.clone(), 8.0).await?
+            LocalInferenceEngine::new(target_model.clone(), 8.0).await?,
         ));
 
         Ok(Self {
@@ -60,7 +65,7 @@ impl SpeculativeDecoder {
             target_model,
             draft_engine,
             target_engine,
-            speculation_length: 8, // Draft 8 tokens at a time
+            speculation_length: 8,     // Draft 8 tokens at a time
             acceptance_threshold: 0.6, // Accept if draft probability > 60%
         })
     }
@@ -91,15 +96,22 @@ impl SpeculativeDecoder {
                         }
                     }
                 }
-                VerificationResult::Rejected { first_rejected, accepted_text } => {
+                VerificationResult::Rejected {
+                    first_rejected,
+                    accepted_text,
+                } => {
                     result.push_str(&accepted_text);
                     current_prompt.push_str(&accepted_text);
                     generated_tokens += first_rejected as u32;
 
                     // Fall back to standard generation for one token
-                    let fallback = self.target_engine.write().await
-                        .complete(&current_prompt, 1).await?;
-                    
+                    let fallback = self
+                        .target_engine
+                        .write()
+                        .await
+                        .complete(&current_prompt, 1)
+                        .await?;
+
                     if !fallback.is_empty() {
                         let first_token = fallback.split_whitespace().next().unwrap_or("");
                         result.push_str(first_token);
@@ -125,7 +137,9 @@ impl SpeculativeDecoder {
         let mut draft_engine = self.draft_engine.write().await;
 
         // Generate draft tokens with probabilities
-        let draft_text = draft_engine.complete(prompt, self.speculation_length as u32).await?;
+        let draft_text = draft_engine
+            .complete(prompt, self.speculation_length as u32)
+            .await?;
 
         // Split into tokens (approximation - real impl would use token probabilities)
         let tokens: Vec<Token> = draft_text
@@ -138,18 +152,28 @@ impl SpeculativeDecoder {
             .collect();
 
         Ok(DraftSequence {
-            full_text: tokens.iter().map(|t| t.text.as_str()).collect::<Vec<_>>().join(" "),
+            full_text: tokens
+                .iter()
+                .map(|t| t.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" "),
             tokens,
         })
     }
 
     /// Verify draft tokens with the large model
-    async fn verify_tokens(&self, prompt: &str, draft: &DraftSequence) -> Result<VerificationResult> {
+    async fn verify_tokens(
+        &self,
+        prompt: &str,
+        draft: &DraftSequence,
+    ) -> Result<VerificationResult> {
         let mut target_engine = self.target_engine.write().await;
 
         // Run the target model on prompt + draft to get probabilities
-        let full_prompt = format!("{}{}", prompt, draft.full_text);
-        let target_output = target_engine.complete(prompt, draft.tokens.len() as u32 + 5).await?;
+        let _full_prompt = format!("{}{}", prompt, draft.full_text);
+        let target_output = target_engine
+            .complete(prompt, draft.tokens.len() as u32 + 5)
+            .await?;
 
         // Compare draft with target output
         let target_tokens: Vec<&str> = target_output.split_whitespace().collect();
@@ -157,7 +181,9 @@ impl SpeculativeDecoder {
 
         // Find first mismatch
         let mut accepted_count = 0;
-        for (i, (draft_tok, target_tok)) in draft_tokens.iter().zip(target_tokens.iter()).enumerate() {
+        for (i, (draft_tok, target_tok)) in
+            draft_tokens.iter().zip(target_tokens.iter()).enumerate()
+        {
             if draft_tok == target_tok {
                 accepted_count += 1;
             } else {

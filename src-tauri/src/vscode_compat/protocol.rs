@@ -3,7 +3,6 @@
 //! JSON-RPC protocol for communication with extension host processes.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 /// JSON-RPC request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -196,7 +195,7 @@ pub enum ApiMethod {
     WindowCreateTerminal,
     WindowCreateOutputChannel,
     WindowSetStatusBarMessage,
-    
+
     // Workspace API
     WorkspaceGetConfiguration,
     WorkspaceGetWorkspaceFolders,
@@ -204,19 +203,19 @@ pub enum ApiMethod {
     WorkspaceSaveAll,
     WorkspaceFindFiles,
     WorkspaceCreateFileSystemWatcher,
-    
+
     // Commands API
     CommandsRegisterCommand,
     CommandsExecuteCommand,
     CommandsGetCommands,
-    
+
     // Languages API
     LanguagesRegisterCompletionItemProvider,
     LanguagesRegisterHoverProvider,
     LanguagesRegisterDefinitionProvider,
     LanguagesRegisterDocumentSymbolProvider,
     LanguagesRegisterCodeActionsProvider,
-    
+
     // Debug API
     DebugStartDebugging,
     DebugRegisterDebugConfigurationProvider,
@@ -233,31 +232,41 @@ impl ApiMethod {
             "window.createTerminal" => Some(Self::WindowCreateTerminal),
             "window.createOutputChannel" => Some(Self::WindowCreateOutputChannel),
             "window.setStatusBarMessage" => Some(Self::WindowSetStatusBarMessage),
-            
+
             "workspace.getConfiguration" => Some(Self::WorkspaceGetConfiguration),
             "workspace.workspaceFolders" => Some(Self::WorkspaceGetWorkspaceFolders),
             "workspace.openTextDocument" => Some(Self::WorkspaceOpenTextDocument),
             "workspace.saveAll" => Some(Self::WorkspaceSaveAll),
             "workspace.findFiles" => Some(Self::WorkspaceFindFiles),
             "workspace.createFileSystemWatcher" => Some(Self::WorkspaceCreateFileSystemWatcher),
-            
+
             "commands.registerCommand" => Some(Self::CommandsRegisterCommand),
             "commands.executeCommand" => Some(Self::CommandsExecuteCommand),
             "commands.getCommands" => Some(Self::CommandsGetCommands),
-            
-            "languages.registerCompletionItemProvider" => Some(Self::LanguagesRegisterCompletionItemProvider),
+
+            "languages.registerCompletionItemProvider" => {
+                Some(Self::LanguagesRegisterCompletionItemProvider)
+            }
             "languages.registerHoverProvider" => Some(Self::LanguagesRegisterHoverProvider),
-            "languages.registerDefinitionProvider" => Some(Self::LanguagesRegisterDefinitionProvider),
-            "languages.registerDocumentSymbolProvider" => Some(Self::LanguagesRegisterDocumentSymbolProvider),
-            "languages.registerCodeActionsProvider" => Some(Self::LanguagesRegisterCodeActionsProvider),
-            
+            "languages.registerDefinitionProvider" => {
+                Some(Self::LanguagesRegisterDefinitionProvider)
+            }
+            "languages.registerDocumentSymbolProvider" => {
+                Some(Self::LanguagesRegisterDocumentSymbolProvider)
+            }
+            "languages.registerCodeActionsProvider" => {
+                Some(Self::LanguagesRegisterCodeActionsProvider)
+            }
+
             "debug.startDebugging" => Some(Self::DebugStartDebugging),
-            "debug.registerDebugConfigurationProvider" => Some(Self::DebugRegisterDebugConfigurationProvider),
-            
+            "debug.registerDebugConfigurationProvider" => {
+                Some(Self::DebugRegisterDebugConfigurationProvider)
+            }
+
             _ => None,
         }
     }
-    
+
     pub fn to_str(&self) -> &'static str {
         match self {
             Self::WindowShowMessage => "window.showInformationMessage",
@@ -268,26 +277,32 @@ impl ApiMethod {
             Self::WindowCreateTerminal => "window.createTerminal",
             Self::WindowCreateOutputChannel => "window.createOutputChannel",
             Self::WindowSetStatusBarMessage => "window.setStatusBarMessage",
-            
+
             Self::WorkspaceGetConfiguration => "workspace.getConfiguration",
             Self::WorkspaceGetWorkspaceFolders => "workspace.workspaceFolders",
             Self::WorkspaceOpenTextDocument => "workspace.openTextDocument",
             Self::WorkspaceSaveAll => "workspace.saveAll",
             Self::WorkspaceFindFiles => "workspace.findFiles",
             Self::WorkspaceCreateFileSystemWatcher => "workspace.createFileSystemWatcher",
-            
+
             Self::CommandsRegisterCommand => "commands.registerCommand",
             Self::CommandsExecuteCommand => "commands.executeCommand",
             Self::CommandsGetCommands => "commands.getCommands",
-            
-            Self::LanguagesRegisterCompletionItemProvider => "languages.registerCompletionItemProvider",
+
+            Self::LanguagesRegisterCompletionItemProvider => {
+                "languages.registerCompletionItemProvider"
+            }
             Self::LanguagesRegisterHoverProvider => "languages.registerHoverProvider",
             Self::LanguagesRegisterDefinitionProvider => "languages.registerDefinitionProvider",
-            Self::LanguagesRegisterDocumentSymbolProvider => "languages.registerDocumentSymbolProvider",
+            Self::LanguagesRegisterDocumentSymbolProvider => {
+                "languages.registerDocumentSymbolProvider"
+            }
             Self::LanguagesRegisterCodeActionsProvider => "languages.registerCodeActionsProvider",
-            
+
             Self::DebugStartDebugging => "debug.startDebugging",
-            Self::DebugRegisterDebugConfigurationProvider => "debug.registerDebugConfigurationProvider",
+            Self::DebugRegisterDebugConfigurationProvider => {
+                "debug.registerDebugConfigurationProvider"
+            }
         }
     }
 }
@@ -298,8 +313,6 @@ pub struct ExtensionProtocol;
 impl ExtensionProtocol {
     /// Create initialize request
     pub fn create_initialize(params: InitializeParams) -> JsonRpcRequest {
-        use serde_json::Map;
-        
         JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
             id: Some(RequestId::Number(1)),
@@ -309,11 +322,11 @@ impl ExtensionProtocol {
                     .unwrap_or_default()
                     .as_object()
                     .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-                    .unwrap_or_default()
+                    .unwrap_or_default(),
             )),
         }
     }
-    
+
     /// Create initialized notification
     pub fn create_initialized() -> JsonRpcRequest {
         JsonRpcRequest {
@@ -323,7 +336,7 @@ impl ExtensionProtocol {
             params: None,
         }
     }
-    
+
     /// Create shutdown request
     pub fn create_shutdown() -> JsonRpcRequest {
         JsonRpcRequest {
@@ -333,7 +346,7 @@ impl ExtensionProtocol {
             params: None,
         }
     }
-    
+
     /// Create exit notification
     pub fn create_exit() -> JsonRpcRequest {
         JsonRpcRequest {
@@ -343,9 +356,14 @@ impl ExtensionProtocol {
             params: None,
         }
     }
-    
+
     /// Create API call
-    pub fn create_api_call(call_id: u32, api: &str, method: &str, args: Vec<serde_json::Value>) -> JsonRpcRequest {
+    pub fn create_api_call(
+        call_id: u32,
+        api: &str,
+        method: &str,
+        args: Vec<serde_json::Value>,
+    ) -> JsonRpcRequest {
         JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
             id: Some(RequestId::Number(call_id as i64)),
@@ -353,7 +371,7 @@ impl ExtensionProtocol {
             params: Some(Params::Array(args)),
         }
     }
-    
+
     /// Create event notification
     pub fn create_event(event: &str, data: serde_json::Value) -> JsonRpcRequest {
         JsonRpcRequest {
@@ -365,16 +383,16 @@ impl ExtensionProtocol {
                     .unwrap_or_default()
                     .as_object()
                     .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-                    .unwrap_or_default()
+                    .unwrap_or_default(),
             )),
         }
     }
-    
+
     /// Parse response
     pub fn parse_response(data: &str) -> Result<JsonRpcResponse, serde_json::Error> {
         serde_json::from_str(data)
     }
-    
+
     /// Parse notification
     pub fn parse_notification(data: &str) -> Result<JsonRpcRequest, serde_json::Error> {
         serde_json::from_str(data)
@@ -388,7 +406,7 @@ pub mod error_codes {
     pub const METHOD_NOT_FOUND: i32 = -32601;
     pub const INVALID_PARAMS: i32 = -32602;
     pub const INTERNAL_ERROR: i32 = -32603;
-    
+
     // Extension-specific errors
     pub const EXTENSION_NOT_FOUND: i32 = -40001;
     pub const EXTENSION_NOT_ACTIVE: i32 = -40002;
@@ -400,7 +418,7 @@ pub mod error_codes {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_create_initialize() {
         let params = InitializeParams {
@@ -412,12 +430,12 @@ mod tests {
             ui_kind: UiKind::Desktop,
             capabilities: ClientCapabilities::default(),
         };
-        
+
         let request = ExtensionProtocol::create_initialize(params);
         assert_eq!(request.method, "initialize");
         assert!(request.params.is_some());
     }
-    
+
     #[test]
     fn test_parse_response() {
         let json = r#"{"jsonrpc":"2.0","id":1,"result":{"success":true}}"#;
@@ -425,7 +443,7 @@ mod tests {
         assert_eq!(response.jsonrpc, "2.0");
         assert!(response.result.is_some());
     }
-    
+
     #[test]
     fn test_api_method_conversion() {
         assert!(matches!(

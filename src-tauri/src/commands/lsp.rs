@@ -1,14 +1,14 @@
 //! LSP commands for KYRO IDE with AI-powered completion
 
-use serde::{Deserialize, Serialize};
-use tauri::{command, State};
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use crate::lsp::{MolecularLsp, Symbol, CompletionItem, Diagnostic};
 use crate::lsp::completion_engine::{
-    AiCompletionEngine, CompletionContext,
-    CompletionTriggerKind, CompletionStats, PERFORMANCE_BUDGET_MS
+    AiCompletionEngine, CompletionContext, CompletionStats, CompletionTriggerKind,
+    PERFORMANCE_BUDGET_MS,
 };
+use crate::lsp::{CompletionItem, Diagnostic, MolecularLsp, Symbol};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tauri::{command, State};
+use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SymbolsResponse {
@@ -57,40 +57,59 @@ pub struct CompletionRequest {
 }
 
 #[command]
-pub async fn detect_language(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, path: String) -> Result<String, String> {
+pub async fn detect_language(
+    lsp: State<'_, Arc<Mutex<MolecularLsp>>>,
+    path: String,
+) -> Result<String, String> {
     let lsp = lsp.lock().await;
     Ok(lsp.detect_language(&path))
 }
 
 #[command]
-pub async fn extract_symbols(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, language: String, code: String) -> Result<SymbolsResponse, String> {
+pub async fn extract_symbols(
+    lsp: State<'_, Arc<Mutex<MolecularLsp>>>,
+    language: String,
+    code: String,
+) -> Result<SymbolsResponse, String> {
     let lsp = lsp.lock().await;
     let symbols = lsp.extract_symbols(&language, &code);
     Ok(SymbolsResponse { symbols, language })
 }
 
 #[command]
-pub async fn get_completions(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, language: String, code: String, line: usize, col: usize) -> Result<CompletionsResponse, String> {
+pub async fn get_completions(
+    lsp: State<'_, Arc<Mutex<MolecularLsp>>>,
+    language: String,
+    code: String,
+    line: usize,
+    col: usize,
+) -> Result<CompletionsResponse, String> {
     let lsp = lsp.lock().await;
     let completions = lsp.get_completions(&language, &code, line, col);
     Ok(CompletionsResponse { completions })
 }
 
 #[command]
-pub async fn get_diagnostics(lsp: State<'_, Arc<Mutex<MolecularLsp>>>, language: String, code: String) -> Result<DiagnosticsResponse, String> {
+pub async fn get_diagnostics(
+    lsp: State<'_, Arc<Mutex<MolecularLsp>>>,
+    language: String,
+    code: String,
+) -> Result<DiagnosticsResponse, String> {
     let lsp = lsp.lock().await;
     let diagnostics = lsp.get_diagnostics(&language, &code);
     Ok(DiagnosticsResponse { diagnostics })
 }
 
 #[command]
-pub async fn lsp_list_supported_languages(lsp: State<'_, Arc<Mutex<MolecularLsp>>>) -> Result<Vec<String>, String> {
+pub async fn lsp_list_supported_languages(
+    lsp: State<'_, Arc<Mutex<MolecularLsp>>>,
+) -> Result<Vec<String>, String> {
     let lsp = lsp.lock().await;
     Ok(lsp.list_languages())
 }
 
 /// Enhanced AI-powered completion endpoint
-/// 
+///
 /// Flow:
 /// 1. User types: fn fib(n: u32) -> u32 {
 /// 2. Monaco detects completion request
@@ -108,7 +127,7 @@ pub async fn get_ai_completions(
     request: CompletionRequest,
 ) -> Result<EnhancedCompletionsResponse, String> {
     let engine = completion_engine.lock().await;
-    
+
     let trigger_kind = match request.trigger_kind.as_str() {
         "invoked" => CompletionTriggerKind::Invoked,
         "trigger_character" => CompletionTriggerKind::TriggerCharacter,
@@ -130,15 +149,19 @@ pub async fn get_ai_completions(
     let response = engine.get_completions(context).await;
 
     Ok(EnhancedCompletionsResponse {
-        items: response.items.iter().map(|item| ScoredCompletionItem {
-            label: item.item.label.clone(),
-            kind: format!("{:?}", item.item.kind),
-            detail: item.item.detail.clone(),
-            documentation: item.item.documentation.clone(),
-            insert_text: item.item.insert_text.clone(),
-            score: item.score,
-            source: item.source.clone(),
-        }).collect(),
+        items: response
+            .items
+            .iter()
+            .map(|item| ScoredCompletionItem {
+                label: item.item.label.clone(),
+                kind: format!("{:?}", item.item.kind),
+                detail: item.item.detail.clone(),
+                documentation: item.item.documentation.clone(),
+                insert_text: item.item.insert_text.clone(),
+                score: item.score,
+                source: item.source.clone(),
+            })
+            .collect(),
         total_latency_ms: response.total_latency_ms,
         sources_used: response.sources_used,
         performance_warning: response.performance_warning,

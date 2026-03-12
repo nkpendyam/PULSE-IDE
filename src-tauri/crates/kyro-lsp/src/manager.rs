@@ -1,8 +1,8 @@
 //! LSP Manager - Manages multiple LSP server instances
 
-use kyro_core::{KyroError, KyroResult, Service};
 use async_trait::async_trait;
 use dashmap::DashMap;
+use kyro_core::{KyroError, KyroResult, Service};
 use lsp_types::Url;
 use std::sync::Arc;
 
@@ -31,17 +31,19 @@ impl LspManager {
         }
 
         // Create new server with configuration
-        let mut config = crate::server::ServerConfig::default();
-        config.root_uri = root_uri;
-        
+        let config = crate::server::ServerConfig {
+            root_uri,
+            ..Default::default()
+        };
+
         let server = crate::server::LspServer::with_config(language.to_string(), config);
-        
+
         // Start the server
         server.start().await?;
-        
+
         // Store the server
         self.servers.insert(language.to_string(), Arc::new(server));
-        
+
         log::info!("Started LSP server for language: {}", language);
         Ok(())
     }
@@ -91,13 +93,13 @@ impl LspManager {
     /// Stop all LSP servers
     pub async fn stop_all_servers(&self) -> KyroResult<()> {
         let languages: Vec<String> = self.list_servers();
-        
+
         for language in languages {
             if let Err(e) = self.stop_server(&language).await {
                 log::error!("Failed to stop LSP server for {}: {}", language, e);
             }
         }
-        
+
         Ok(())
     }
 }
@@ -153,17 +155,17 @@ mod tests {
     #[tokio::test]
     async fn test_server_lifecycle() {
         let manager = LspManager::new();
-        
+
         // Note: This test will fail if rust-analyzer is not installed
         // In a real test environment, we'd use a mock LSP server
         let result = manager.start_server("rust", None).await;
-        
+
         // We expect this to fail in CI/test environments without LSP servers
         // but the code path is exercised
         if result.is_ok() {
             assert_eq!(manager.list_servers().len(), 1);
             assert!(manager.get_server("rust").is_some());
-            
+
             let _ = manager.stop_server("rust").await;
             assert_eq!(manager.list_servers().len(), 0);
         }

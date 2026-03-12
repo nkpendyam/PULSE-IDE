@@ -32,7 +32,11 @@ pub async fn access_resource(resource: &ExternalResource) -> ResourceResult {
                 Ok(content) => {
                     // Limit content to 50KB to avoid blowing up memory in the agent pipeline
                     let truncated = if content.len() > 50_000 {
-                        format!("{}\n\n... (truncated, {} bytes total)", &content[..50_000], content.len())
+                        format!(
+                            "{}\n\n... (truncated, {} bytes total)",
+                            &content[..50_000],
+                            content.len()
+                        )
                     } else {
                         content
                     };
@@ -50,7 +54,7 @@ pub async fn access_resource(resource: &ExternalResource) -> ResourceResult {
                     error: Some(format!("Failed to read file {}: {}", path, e)),
                 },
             }
-        },
+        }
         ExternalResource::Tool(command) if command.starts_with("terminal:") => {
             // Sandboxed terminal execution — run the command and capture output
             let cmdstr = command.strip_prefix("terminal:").unwrap_or("");
@@ -90,7 +94,11 @@ pub async fn access_resource(resource: &ExternalResource) -> ResourceResult {
                         resource: resource.clone(),
                         success,
                         data: Some(combined),
-                        error: if success { None } else { Some(format!("Exit code: {:?}", output.status.code())) },
+                        error: if success {
+                            None
+                        } else {
+                            Some(format!("Exit code: {:?}", output.status.code()))
+                        },
                     }
                 }
                 Err(e) => ResourceResult {
@@ -100,7 +108,7 @@ pub async fn access_resource(resource: &ExternalResource) -> ResourceResult {
                     error: Some(format!("Failed to execute command: {}", e)),
                 },
             }
-        },
+        }
         ExternalResource::Url(url) => {
             // Fetch URL content
             match reqwest::get(url).await {
@@ -108,7 +116,11 @@ pub async fn access_resource(resource: &ExternalResource) -> ResourceResult {
                     if response.status().is_success() {
                         let text = response.text().await.unwrap_or_default();
                         let truncated = if text.len() > 50_000 {
-                            format!("{}\n\n... (truncated, {} bytes total)", &text[..50_000], text.len())
+                            format!(
+                                "{}\n\n... (truncated, {} bytes total)",
+                                &text[..50_000],
+                                text.len()
+                            )
                         } else {
                             text
                         };
@@ -134,14 +146,12 @@ pub async fn access_resource(resource: &ExternalResource) -> ResourceResult {
                     error: Some(format!("Request failed: {}", e)),
                 },
             }
-        },
-        _ => {
-            ResourceResult {
-                resource: resource.clone(),
-                success: false,
-                data: None,
-                error: Some("External resource type not supported".to_string()),
-            }
         }
+        _ => ResourceResult {
+            resource: resource.clone(),
+            success: false,
+            data: None,
+            error: Some("External resource type not supported".to_string()),
+        },
     }
 }

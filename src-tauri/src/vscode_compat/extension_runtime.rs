@@ -3,14 +3,14 @@
 //! Uses a Node.js subprocess to run extension JavaScript code.
 //! Provides RPC bridge for VS Code API surface.
 
-use anyhow::{Result, Context, bail};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Child, Stdio};
-use std::io::{BufRead, BufReader, Write};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
+use std::sync::Arc;
+use tokio::sync::{Mutex, RwLock};
 
 /// Extension runtime managing a Node.js subprocess
 pub struct ExtensionRuntime {
@@ -67,8 +67,7 @@ impl ExtensionRuntime {
     /// Create a new extension runtime
     pub fn new(extensions_dir: PathBuf) -> Self {
         // Find Node.js
-        let node_path = which::which("node")
-            .unwrap_or_else(|_| PathBuf::from("node"));
+        let node_path = which::which("node").unwrap_or_else(|_| PathBuf::from("node"));
 
         Self {
             process: None,
@@ -87,7 +86,10 @@ impl ExtensionRuntime {
         let script_path = self.extensions_dir.join(".extension_host.js");
         std::fs::write(&script_path, host_script)?;
 
-        log::info!("Starting extension runtime with Node.js: {:?}", self.node_path);
+        log::info!(
+            "Starting extension runtime with Node.js: {:?}",
+            self.node_path
+        );
 
         // Spawn Node.js process
         let mut child = Command::new(&self.node_path)
@@ -146,7 +148,7 @@ impl ExtensionRuntime {
 
             // Wait for graceful shutdown
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            
+
             // Force kill if still running
             let _ = child.kill();
             log::info!("Extension runtime stopped");
@@ -157,32 +159,41 @@ impl ExtensionRuntime {
     /// Load an extension
     pub async fn load_extension(&mut self, extension_path: &Path) -> Result<String> {
         let package_json = extension_path.join("package.json");
-        let content = std::fs::read_to_string(&package_json)
-            .context("Failed to read package.json")?;
-        
+        let content =
+            std::fs::read_to_string(&package_json).context("Failed to read package.json")?;
+
         let manifest: serde_json::Value = serde_json::from_str(&content)?;
-        let id = format!("{}.{}", 
+        let id = format!(
+            "{}.{}",
             manifest["publisher"].as_str().unwrap_or("unknown"),
             manifest["name"].as_str().unwrap_or("unknown")
         );
 
         // Send load request to extension host
-        let response = self.rpc_call("loadExtension", serde_json::json!({
-            "extensionPath": extension_path.to_string_lossy(),
-            "manifest": manifest
-        })).await?;
+        let response = self
+            .rpc_call(
+                "loadExtension",
+                serde_json::json!({
+                    "extensionPath": extension_path.to_string_lossy(),
+                    "manifest": manifest
+                }),
+            )
+            .await?;
 
         if let Some(result) = response.result {
             let name = result["name"].as_str().unwrap_or(&id).to_string();
             let version = result["version"].as_str().unwrap_or("0.0.0").to_string();
-            
-            self.active_extensions.insert(id.clone(), ExtensionState {
-                id: id.clone(),
-                name,
-                version,
-                active: true,
-                error: None,
-            });
+
+            self.active_extensions.insert(
+                id.clone(),
+                ExtensionState {
+                    id: id.clone(),
+                    name,
+                    version,
+                    active: true,
+                    error: None,
+                },
+            );
         }
 
         Ok(id)
@@ -190,9 +201,14 @@ impl ExtensionRuntime {
 
     /// Activate an extension
     pub async fn activate_extension(&mut self, extension_id: &str) -> Result<()> {
-        let response = self.rpc_call("activateExtension", serde_json::json!({
-            "extensionId": extension_id
-        })).await?;
+        let response = self
+            .rpc_call(
+                "activateExtension",
+                serde_json::json!({
+                    "extensionId": extension_id
+                }),
+            )
+            .await?;
 
         if response.error.is_some() {
             if let Some(state) = self.active_extensions.get_mut(extension_id) {
@@ -210,11 +226,20 @@ impl ExtensionRuntime {
     }
 
     /// Execute a command from an extension
-    pub async fn execute_command(&mut self, command: &str, args: Vec<serde_json::Value>) -> Result<Option<serde_json::Value>> {
-        let response = self.rpc_call("executeCommand", serde_json::json!({
-            "command": command,
-            "args": args
-        })).await?;
+    pub async fn execute_command(
+        &mut self,
+        command: &str,
+        args: Vec<serde_json::Value>,
+    ) -> Result<Option<serde_json::Value>> {
+        let response = self
+            .rpc_call(
+                "executeCommand",
+                serde_json::json!({
+                    "command": command,
+                    "args": args
+                }),
+            )
+            .await?;
 
         if let Some(error) = response.error {
             bail!("Command execution failed: {}", error);
@@ -235,7 +260,9 @@ impl ExtensionRuntime {
 
     /// Make an RPC call to the extension host
     async fn rpc_call(&mut self, method: &str, params: serde_json::Value) -> Result<RpcResponse> {
-        let process = self.process.as_mut()
+        let process = self
+            .process
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Extension runtime not started"))?;
 
         // Get next message ID
@@ -264,10 +291,8 @@ impl ExtensionRuntime {
         }
 
         // Wait for response with timeout
-        let response = tokio::time::timeout(
-            tokio::time::Duration::from_secs(30),
-            rx
-        ).await
+        let response = tokio::time::timeout(tokio::time::Duration::from_secs(30), rx)
+            .await
             .context("RPC call timeout")?
             .context("RPC response channel closed")?;
 
@@ -503,7 +528,8 @@ async function executeCommand(commandId, args) {
 
 // Ready signal
 console.error('[Extension Host] Ready');
-"#.to_string())
+"#
+        .to_string())
     }
 }
 

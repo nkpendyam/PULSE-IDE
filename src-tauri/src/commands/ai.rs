@@ -38,12 +38,14 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         .timeout(std::time::Duration::from_secs(2))
         .build()
         .map_err(|e| format!("Failed to create client: {}", e))?;
-    
+
     let mut backends = Vec::new();
-    
+
     // Check Ollama
-    let ollama_available = client.get("http://localhost:11434/api/tags")
-        .send().await
+    let ollama_available = client
+        .get("http://localhost:11434/api/tags")
+        .send()
+        .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
     backends.push(BackendStatus {
@@ -51,10 +53,12 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         available: ollama_available,
         endpoint: "http://localhost:11434".to_string(),
     });
-    
+
     // Check LM Studio
-    let lmstudio_available = client.get("http://localhost:1234/v1/models")
-        .send().await
+    let lmstudio_available = client
+        .get("http://localhost:1234/v1/models")
+        .send()
+        .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
     backends.push(BackendStatus {
@@ -62,10 +66,12 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         available: lmstudio_available,
         endpoint: "http://localhost:1234/v1".to_string(),
     });
-    
+
     // Check vLLM
-    let vllm_available = client.get("http://localhost:8000/v1/models")
-        .send().await
+    let vllm_available = client
+        .get("http://localhost:8000/v1/models")
+        .send()
+        .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
     backends.push(BackendStatus {
@@ -73,10 +79,12 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         available: vllm_available,
         endpoint: "http://localhost:8000/v1".to_string(),
     });
-    
+
     // Check AirLLM Python service (optional standalone)
-    let airllm_service_available = client.get("http://127.0.0.1:8765/health")
-        .send().await
+    let airllm_service_available = client
+        .get("http://127.0.0.1:8765/health")
+        .send()
+        .await
         .map(|r| r.status().is_success())
         .unwrap_or(false);
     backends.push(BackendStatus {
@@ -84,14 +92,14 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         available: airllm_service_available,
         endpoint: "http://127.0.0.1:8765".to_string(),
     });
-    
+
     // PicoClaw (always available - embedded)
     backends.push(BackendStatus {
         name: "picoclaw".to_string(),
         available: true,
         endpoint: "embedded".to_string(),
     });
-    
+
     // Local llama.cpp (always available when compiled)
     #[cfg(feature = "llama-cpp")]
     backends.push(BackendStatus {
@@ -99,21 +107,26 @@ pub async fn detect_ai_backends() -> Result<Vec<BackendStatus>, String> {
         available: true,
         endpoint: "local".to_string(),
     });
-    
+
     // Pattern fallback (always available)
     backends.push(BackendStatus {
         name: "fallback".to_string(),
         available: true,
         endpoint: "builtin".to_string(),
     });
-    
+
     Ok(backends)
 }
 
 #[command]
 pub async fn check_ollama_status() -> Result<bool, String> {
     let client = reqwest::Client::new();
-    match client.get("http://localhost:11434/api/tags").timeout(std::time::Duration::from_secs(2)).send().await {
+    match client
+        .get("http://localhost:11434/api/tags")
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+    {
         Ok(response) => Ok(response.status().is_success()),
         Err(_) => Ok(false),
     }
@@ -122,39 +135,99 @@ pub async fn check_ollama_status() -> Result<bool, String> {
 #[command]
 pub async fn list_models() -> Result<Vec<ModelInfo>, String> {
     let client = reqwest::Client::new();
-    let response = client.get("http://localhost:11434/api/tags").timeout(std::time::Duration::from_secs(5)).send().await.map_err(|e| format!("Failed to connect to Ollama: {}", e))?;
+    let response = client
+        .get("http://localhost:11434/api/tags")
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to connect to Ollama: {}", e))?;
     #[derive(Deserialize)]
-    struct OllamaResponse { models: Vec<OllamaModel> }
+    struct OllamaResponse {
+        models: Vec<OllamaModel>,
+    }
     #[derive(Deserialize)]
-    struct OllamaModel { name: String, size: u64, modified_at: String }
-    let data: OllamaResponse = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
-    Ok(data.models.into_iter().map(|m| ModelInfo { name: m.name, size: format_size(m.size), modified_at: m.modified_at }).collect())
+    struct OllamaModel {
+        name: String,
+        size: u64,
+        modified_at: String,
+    }
+    let data: OllamaResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+    Ok(data
+        .models
+        .into_iter()
+        .map(|m| ModelInfo {
+            name: m.name,
+            size: format_size(m.size),
+            modified_at: m.modified_at,
+        })
+        .collect())
 }
 
 #[command]
 pub async fn chat_completion(model: String, messages: Vec<ChatMessage>) -> Result<String, String> {
     let client = reqwest::Client::new();
     #[derive(Serialize)]
-    struct OllamaRequest { model: String, messages: Vec<ChatMessage>, stream: bool }
-    let request = OllamaRequest { model, messages, stream: false };
-    let response = client.post("http://localhost:11434/api/chat").json(&request).timeout(std::time::Duration::from_secs(120)).send().await.map_err(|e| format!("Failed to connect to Ollama: {}", e))?;
+    struct OllamaRequest {
+        model: String,
+        messages: Vec<ChatMessage>,
+        stream: bool,
+    }
+    let request = OllamaRequest {
+        model,
+        messages,
+        stream: false,
+    };
+    let response = client
+        .post("http://localhost:11434/api/chat")
+        .json(&request)
+        .timeout(std::time::Duration::from_secs(120))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to connect to Ollama: {}", e))?;
     #[derive(Deserialize)]
-    struct OllamaResponse { message: ChatMessage }
-    let data: OllamaResponse = response.json().await.map_err(|e| format!("Failed to parse response: {}", e))?;
+    struct OllamaResponse {
+        message: ChatMessage,
+    }
+    let data: OllamaResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
     Ok(data.message.content)
 }
 
 #[command]
-pub async fn code_completion(model: String, prompt: String, code: Option<String>, language: Option<String>) -> Result<String, String> {
-    let system_prompt = "You are KYRO, an expert code completion AI. Complete the code following best practices.";
+pub async fn code_completion(
+    model: String,
+    prompt: String,
+    code: Option<String>,
+    language: Option<String>,
+) -> Result<String, String> {
+    let system_prompt =
+        "You are KYRO, an expert code completion AI. Complete the code following best practices.";
     let user_prompt = match (code, language) {
-        (Some(code), Some(lang)) => format!("Language: {}\n\nExisting code:\n```\n{}\n```\n\nRequest: {}", lang, code, prompt),
+        (Some(code), Some(lang)) => format!(
+            "Language: {}\n\nExisting code:\n```\n{}\n```\n\nRequest: {}",
+            lang, code, prompt
+        ),
         _ => prompt,
     };
-    chat_completion(model, vec![
-        ChatMessage { role: "system".to_string(), content: system_prompt.to_string() },
-        ChatMessage { role: "user".to_string(), content: user_prompt },
-    ]).await
+    chat_completion(
+        model,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: system_prompt.to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_prompt,
+            },
+        ],
+    )
+    .await
 }
 
 #[command]
@@ -166,7 +239,11 @@ pub async fn code_review(model: String, code: String, language: String) -> Resul
 }
 
 #[command]
-pub async fn generate_tests(model: String, code: String, language: String) -> Result<String, String> {
+pub async fn generate_tests(
+    model: String,
+    code: String,
+    language: String,
+) -> Result<String, String> {
     chat_completion(model, vec![
         ChatMessage { role: "system".to_string(), content: "You are KYRO-TEST, a test engineering expert. Generate comprehensive tests with high coverage.".to_string() },
         ChatMessage { role: "user".to_string(), content: format!("Generate tests for this {} code:\n\n```\n{}\n```", language, code) },
@@ -182,37 +259,84 @@ pub async fn explain_code(model: String, code: String, language: String) -> Resu
 }
 
 #[command]
-pub async fn refactor_code(model: String, code: String, language: String, instructions: Option<String>) -> Result<String, String> {
+pub async fn refactor_code(
+    model: String,
+    code: String,
+    language: String,
+    instructions: Option<String>,
+) -> Result<String, String> {
     let user_prompt = match instructions {
-        Some(ref instr) => format!("Refactor this {} code according to: {}\n\n```\n{}\n```", language, instr, code),
-        None => format!("Refactor this {} code to be cleaner:\n\n```\n{}\n```", language, code),
+        Some(ref instr) => format!(
+            "Refactor this {} code according to: {}\n\n```\n{}\n```",
+            language, instr, code
+        ),
+        None => format!(
+            "Refactor this {} code to be cleaner:\n\n```\n{}\n```",
+            language, code
+        ),
     };
-    chat_completion(model, vec![
-        ChatMessage { role: "system".to_string(), content: "You are KYRO-REFACTOR, a code refactoring expert.".to_string() },
-        ChatMessage { role: "user".to_string(), content: user_prompt },
-    ]).await
+    chat_completion(
+        model,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: "You are KYRO-REFACTOR, a code refactoring expert.".to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_prompt,
+            },
+        ],
+    )
+    .await
 }
 
 #[command]
-pub async fn fix_code(model: String, code: String, language: String, error: Option<String>) -> Result<String, String> {
+pub async fn fix_code(
+    model: String,
+    code: String,
+    language: String,
+    error: Option<String>,
+) -> Result<String, String> {
     let user_prompt = match error {
-        Some(ref err) => format!("Fix this {} code with error:\n\nError: {}\n\nCode:\n```\n{}\n```", language, err, code),
-        None => format!("Fix any issues in this {} code:\n\n```\n{}\n```", language, code),
+        Some(ref err) => format!(
+            "Fix this {} code with error:\n\nError: {}\n\nCode:\n```\n{}\n```",
+            language, err, code
+        ),
+        None => format!(
+            "Fix any issues in this {} code:\n\n```\n{}\n```",
+            language, code
+        ),
     };
-    chat_completion(model, vec![
-        ChatMessage { role: "system".to_string(), content: "You are KYRO-FIX, a debugging expert.".to_string() },
-        ChatMessage { role: "user".to_string(), content: user_prompt },
-    ]).await
+    chat_completion(
+        model,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: "You are KYRO-FIX, a debugging expert.".to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_prompt,
+            },
+        ],
+    )
+    .await
 }
 
 fn format_size(bytes: u64) -> String {
     const GB: u64 = 1024 * 1024 * 1024;
     const MB: u64 = 1024 * 1024;
     const KB: u64 = 1024;
-    if bytes >= GB { format!("{:.1} GB", bytes as f64 / GB as f64) }
-    else if bytes >= MB { format!("{:.1} MB", bytes as f64 / MB as f64) }
-    else if bytes >= KB { format!("{:.1} KB", bytes as f64 / KB as f64) }
-    else { format!("{} B", bytes) }
+    if bytes >= GB {
+        format!("{:.1} GB", bytes as f64 / GB as f64)
+    } else if bytes >= MB {
+        format!("{:.1} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.1} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
 }
 
 // ============ Ghost Text / Inline Completion Commands ============
@@ -227,13 +351,13 @@ pub async fn ai_code_completion(
 ) -> Result<String, String> {
     let max_tokens = max_tokens.unwrap_or(100);
     let temperature = temperature.unwrap_or(0.3);
-    
+
     // Check if embedded LLM is available
     let state = crate::commands::embedded_llm::EmbeddedLLMState::default();
-    
+
     if let Some(ref engine) = state.engine {
         let mut engine = engine.write().await;
-        
+
         let request = crate::embedded_llm::InferenceRequest {
             prompt: code.clone(),
             max_tokens,
@@ -249,29 +373,42 @@ pub async fn ai_code_completion(
             )),
             history: vec![],
         };
-        
-        let response = engine.complete(&request).await
+
+        let response = engine
+            .complete(&request)
+            .await
             .map_err(|e| format!("Completion failed: {}", e))?;
-        
+
         return Ok(response.text);
     }
     drop(state);
-    
+
     // Fallback to Ollama
     let models = list_models().await?;
-    let model = models.first()
+    let model = models
+        .first()
         .map(|m| m.name.clone())
         .unwrap_or_else(|| "codellama:7b".to_string());
-    
+
     let system_prompt = format!(
         "You are an AI code completion assistant. Complete the {} code naturally. Only output the completion, nothing else.",
         language
     );
-    
-    chat_completion(model, vec![
-        ChatMessage { role: "system".to_string(), content: system_prompt },
-        ChatMessage { role: "user".to_string(), content: format!("Complete this code:\n\n{}", code) },
-    ]).await
+
+    chat_completion(
+        model,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: system_prompt,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: format!("Complete this code:\n\n{}", code),
+            },
+        ],
+    )
+    .await
 }
 
 /// Real streaming AI completion using Ollama /api/generate with stream=true.
@@ -286,20 +423,21 @@ pub async fn ai_stream_completion(
     temperature: Option<f32>,
 ) -> Result<StreamCompletionResult, String> {
     use futures_util::StreamExt;
-    
+
     let max_tokens = max_tokens.unwrap_or(100);
     let temperature = temperature.unwrap_or(0.3);
-    
+
     let models = list_models().await?;
-    let model = models.first()
+    let model = models
+        .first()
         .map(|m| m.name.clone())
         .unwrap_or_else(|| "codellama:7b".to_string());
-    
+
     let prompt = format!(
         "Complete this {} code. Respond ONLY with code, no explanations:\n\n{}",
         language, code
     );
-    
+
     let client = reqwest::Client::new();
     let body = serde_json::json!({
         "model": model,
@@ -310,43 +448,48 @@ pub async fn ai_stream_completion(
             "temperature": temperature,
         }
     });
-    
+
     let response = client
         .post("http://localhost:11434/api/generate")
         .json(&body)
         .send()
         .await
         .map_err(|e| format!("Ollama request failed: {}", e))?;
-    
+
     if !response.status().is_success() {
         return Err(format!("Ollama returned status {}", response.status()));
     }
-    
+
     let mut stream = response.bytes_stream();
     let mut full_text = String::new();
     let mut tokens = Vec::new();
     let mut buffer = String::new();
-    
+
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("Stream read error: {}", e))?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
-        
+
         // Process complete lines (newline-delimited JSON)
         while let Some(newline_pos) = buffer.find('\n') {
             let line = buffer[..newline_pos].to_string();
             buffer = buffer[newline_pos + 1..].to_string();
-            
-            if line.trim().is_empty() { continue; }
-            
+
+            if line.trim().is_empty() {
+                continue;
+            }
+
             if let Ok(obj) = serde_json::from_str::<serde_json::Value>(&line) {
                 if let Some(token) = obj.get("response").and_then(|r| r.as_str()) {
                     full_text.push_str(token);
                     tokens.push(token.to_string());
                     // Emit to frontend in real-time
-                    let _ = window.emit("ai-stream-token", serde_json::json!({
-                        "token": token,
-                        "done": obj.get("done").and_then(|d| d.as_bool()).unwrap_or(false),
-                    }));
+                    let _ = window.emit(
+                        "ai-stream-token",
+                        serde_json::json!({
+                            "token": token,
+                            "done": obj.get("done").and_then(|d| d.as_bool()).unwrap_or(false),
+                        }),
+                    );
                 }
                 if obj.get("done").and_then(|d| d.as_bool()).unwrap_or(false) {
                     break;
@@ -354,7 +497,7 @@ pub async fn ai_stream_completion(
             }
         }
     }
-    
+
     Ok(StreamCompletionResult {
         text: full_text,
         tokens,
@@ -377,17 +520,18 @@ pub async fn ai_inline_chat(
     context: String,
 ) -> Result<String, String> {
     let models = list_models().await?;
-    let model = models.first()
+    let model = models
+        .first()
         .map(|m| m.name.clone())
         .unwrap_or_else(|| "codellama:7b".to_string());
-    
+
     let system_prompt = format!(
         "You are KYRO, an AI coding assistant integrated into an IDE. \
         The user has selected some {} code and wants to modify it. \
         Respond ONLY with the modified code, no explanations or markdown.",
         language
     );
-    
+
     let user_content = if selected_code.is_empty() {
         format!(
             "Context (surrounding code):\n```\n{}\n```\n\nRequest: {}",
@@ -399,11 +543,21 @@ pub async fn ai_inline_chat(
             selected_code, context, prompt
         )
     };
-    
-    chat_completion(model, vec![
-        ChatMessage { role: "system".to_string(), content: system_prompt },
-        ChatMessage { role: "user".to_string(), content: user_content },
-    ]).await
+
+    chat_completion(
+        model,
+        vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: system_prompt,
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: user_content,
+            },
+        ],
+    )
+    .await
 }
 
 /// Smart AI completion with automatic backend detection and fallback
@@ -417,35 +571,40 @@ pub async fn smart_ai_completion(
     temperature: Option<f32>,
     max_tokens: Option<u32>,
 ) -> Result<SmartCompletionResult, String> {
-    use crate::ai::{AiService, AiBackendConfig, CompletionRequest};
-    
+    use crate::ai::{AiBackendConfig, AiService, CompletionRequest};
+
     let config = AiBackendConfig {
         temperature: temperature.unwrap_or(0.7),
         max_tokens: max_tokens.unwrap_or(2048),
         ..Default::default()
     };
-    
+
     let service = AiService::new(config);
-    
+
     // Detect available backends
-    let backends = service.detect_backends().await
+    let backends = service
+        .detect_backends()
+        .await
         .map_err(|e| format!("Failed to detect backends: {}", e))?;
-    
+
     log::info!("Available AI backends: {:?}", backends);
-    
+
     let request = CompletionRequest {
         prompt: prompt.clone(),
         system_prompt,
-        history: history.into_iter().map(|m| crate::ai::ConversationMessage {
-            role: m.role,
-            content: m.content,
-        }).collect(),
+        history: history
+            .into_iter()
+            .map(|m| crate::ai::ConversationMessage {
+                role: m.role,
+                content: m.content,
+            })
+            .collect(),
         temperature,
         max_tokens,
         stop_sequences: vec![],
         context,
     };
-    
+
     // Try to get completion
     match service.complete(request).await {
         Ok(response) => Ok(SmartCompletionResult {
@@ -459,7 +618,7 @@ pub async fn smart_ai_completion(
         }),
         Err(e) => {
             log::warn!("AI completion failed: {}, using fallback", e);
-            
+
             // Use pattern-based fallback
             let fallback_text = generate_fallback_response(&prompt);
             Ok(SmartCompletionResult {
@@ -490,17 +649,20 @@ pub struct SmartCompletionResult {
 /// Generate fallback response using pattern matching
 fn generate_fallback_response(prompt: &str) -> String {
     let prompt_lower = prompt.to_lowercase();
-    
-    if prompt_lower.contains("fix") || prompt_lower.contains("bug") || prompt_lower.contains("error") {
-        format!("🔧 **Bug Analysis**\n\nLooking at the code, here are potential issues:\n\n1. Check for `unwrap()` calls - consider proper error handling\n2. Verify null/undefined checks are in place\n3. Ensure all edge cases are handled\n\nWould you like me to analyze specific code?")
+
+    if prompt_lower.contains("fix")
+        || prompt_lower.contains("bug")
+        || prompt_lower.contains("error")
+    {
+        "🔧 **Bug Analysis**\n\nLooking at the code, here are potential issues:\n\n1. Check for `unwrap()` calls - consider proper error handling\n2. Verify null/undefined checks are in place\n3. Ensure all edge cases are handled\n\nWould you like me to analyze specific code?".to_string()
     } else if prompt_lower.contains("explain") || prompt_lower.contains("what") {
-        format!("📚 **Code Explanation**\n\nThis code appears to implement a specific functionality.\n\nTo provide a detailed explanation, please share the specific code snippet you'd like me to analyze.\n\n*Tip: Run Ollama locally for more detailed AI assistance*")
+        "📚 **Code Explanation**\n\nThis code appears to implement a specific functionality.\n\nTo provide a detailed explanation, please share the specific code snippet you'd like me to analyze.\n\n*Tip: Run Ollama locally for more detailed AI assistance*".to_string()
     } else if prompt_lower.contains("refactor") || prompt_lower.contains("improve") {
-        format!("♻️ **Refactoring Suggestions**\n\nGeneral improvements:\n\n1. Extract repeated code into functions\n2. Add proper error handling\n3. Improve naming for clarity\n4. Consider the DRY principle\n\nShare your code for specific suggestions!")
+        "♻️ **Refactoring Suggestions**\n\nGeneral improvements:\n\n1. Extract repeated code into functions\n2. Add proper error handling\n3. Improve naming for clarity\n4. Consider the DRY principle\n\nShare your code for specific suggestions!".to_string()
     } else if prompt_lower.contains("test") {
-        format!("🧪 **Test Generation**\n\nI can help generate tests! Please share:\n\n1. The code you want to test\n2. Any specific test scenarios\n\n*Run Ollama for full test generation capabilities*")
+        "🧪 **Test Generation**\n\nI can help generate tests! Please share:\n\n1. The code you want to test\n2. Any specific test scenarios\n\n*Run Ollama for full test generation capabilities*".to_string()
     } else if prompt_lower.contains("implement") || prompt_lower.contains("create") {
-        format!("💡 **Implementation Guide**\n\nTo help you implement this:\n\n1. Break down the requirements\n2. Define the interfaces first\n3. Implement core logic\n4. Add error handling\n5. Write tests\n\nPlease provide more details about what you'd like to implement!")
+        "💡 **Implementation Guide**\n\nTo help you implement this:\n\n1. Break down the requirements\n2. Define the interfaces first\n3. Implement core logic\n4. Add error handling\n5. Write tests\n\nPlease provide more details about what you'd like to implement!".to_string()
     } else {
         format!("🤖 **AI Assistant**\n\nI understand you're asking about: \"{}\"\n\n**For full AI capabilities, please:**\n- Install and run Ollama: `ollama serve`\n- Pull a model: `ollama pull codellama:7b`\n- Or use LM Studio for local inference\n\nI can still help with pattern-based analysis!", 
             prompt.chars().take(100).collect::<String>())
@@ -529,7 +691,8 @@ pub async fn ai_inline_edit(
         selected_code.clone(),
         "auto".to_string(),
         context,
-    ).await?;
+    )
+    .await?;
 
     // Try to extract code block from response
     let code = extract_code_block(&response).unwrap_or_else(|| {
@@ -568,11 +731,13 @@ fn extract_code_block(text: &str) -> Option<String> {
 
 /// Create a new chat session
 #[command]
-pub async fn create_chat_session(
-    project_path: String,
-) -> Result<String, String> {
+pub async fn create_chat_session(project_path: String) -> Result<String, String> {
     let session_id = uuid::Uuid::new_v4().to_string();
-    log::info!("Chat session created: {} for project: {}", session_id, project_path);
+    log::info!(
+        "Chat session created: {} for project: {}",
+        session_id,
+        project_path
+    );
     Ok(session_id)
 }
 
@@ -606,7 +771,7 @@ pub struct RagSourceRef {
 /// RAG-enhanced chat — uses code context + Ollama for responses
 #[command]
 pub async fn rag_chat(
-    session_id: String,
+    _session_id: String,
     message: String,
     context: serde_json::Value,
 ) -> Result<RagChatResponse, String> {
@@ -627,7 +792,11 @@ pub async fn rag_chat(
                 "Current file: {}\n```\n{}\n```\n\n",
                 path,
                 // Trim to avoid sending huge files
-                if content.len() > 8000 { &content[..8000] } else { content }
+                if content.len() > 8000 {
+                    &content[..8000]
+                } else {
+                    content
+                }
             ));
             rag_sources.push(RagSourceRef {
                 file_path: path.to_string(),
@@ -644,17 +813,28 @@ pub async fn rag_chat(
         "You are Kyro, an expert AI coding assistant embedded in Kyro IDE. \
          You have access to the user's codebase context. Be concise and helpful.\n\n\
          Code Context:\n{}",
-        if context_str.is_empty() { "(no context provided)" } else { &context_str }
+        if context_str.is_empty() {
+            "(no context provided)"
+        } else {
+            &context_str
+        }
     );
 
     let messages = vec![
-        ChatMessage { role: "system".to_string(), content: system_prompt },
-        ChatMessage { role: "user".to_string(), content: message.clone() },
+        ChatMessage {
+            role: "system".to_string(),
+            content: system_prompt,
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: message.clone(),
+        },
     ];
 
     // Try Ollama, fall back to pattern-based
     let models = list_models().await.unwrap_or_default();
-    let model = models.first()
+    let model = models
+        .first()
         .map(|m| m.name.clone())
         .unwrap_or_else(|| "codellama:7b".to_string());
 
@@ -705,22 +885,24 @@ pub struct AgentResult {
 
 /// Execute an agent command (e.g. "fix the bug", "add tests")
 #[command]
-pub async fn agent_command(
-    command: String,
-    context: AgentContext,
-) -> Result<AgentResult, String> {
+pub async fn agent_command(command: String, context: AgentContext) -> Result<AgentResult, String> {
     log::info!("Agent command: {} on {}", command, context.current_file);
 
     // Read the current file content for context
-    let file_content = std::fs::read_to_string(&context.current_file)
-        .unwrap_or_else(|_| String::new());
+    let file_content =
+        std::fs::read_to_string(&context.current_file).unwrap_or_else(|_| String::new());
 
     let prompt = format!(
         "You are an autonomous coding agent. Execute this command: {}\n\n\
          File: {}\n```\n{}\n```\n\n\
          Respond with the specific changes to make.",
-        command, context.current_file,
-        if file_content.len() > 6000 { &file_content[..6000] } else { &file_content }
+        command,
+        context.current_file,
+        if file_content.len() > 6000 {
+            &file_content[..6000]
+        } else {
+            &file_content
+        }
     );
 
     let messages = vec![
@@ -729,7 +911,8 @@ pub async fn agent_command(
     ];
 
     let models = list_models().await.unwrap_or_default();
-    let model = models.first()
+    let model = models
+        .first()
         .map(|m| m.name.clone())
         .unwrap_or_else(|| "codellama:7b".to_string());
 
@@ -761,5 +944,3 @@ pub async fn agent_reject(approval_id: String) -> Result<(), String> {
     log::info!("Agent edit rejected: {}", approval_id);
     Ok(())
 }
-
-

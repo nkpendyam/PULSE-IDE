@@ -8,18 +8,17 @@
 //! - MCP Client: Connects to external MCP servers
 //! - Agent Orchestrator: Coordinates MCP tools with local LLM
 
-pub mod server;
 pub mod client;
-pub mod tools;
-pub mod resources;
 pub mod prompts;
+pub mod resources;
+pub mod server;
+pub mod tools;
 pub mod transport;
 
+pub use prompts::PromptRegistry;
+pub use resources::ResourceRegistry;
 pub use server::MCPServer;
-pub use client::MCPClient;
-pub use tools::{Tool, ToolRegistry, ToolResult};
-pub use resources::{Resource, ResourceRegistry};
-pub use prompts::{PromptTemplate, PromptRegistry};
+pub use tools::{Tool, ToolRegistry};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -73,33 +72,19 @@ pub enum TransportType {
 #[serde(tag = "method", rename_all = "camelCase")]
 pub enum MCPRequest {
     /// Initialize connection
-    Initialize {
-        params: InitializeParams,
-    },
+    Initialize { params: InitializeParams },
     /// List available tools
-    ListTools {
-        params: Option<ListParams>,
-    },
+    ListTools { params: Option<ListParams> },
     /// Call a tool
-    CallTool {
-        params: CallToolParams,
-    },
+    CallTool { params: CallToolParams },
     /// List available resources
-    ListResources {
-        params: Option<ListParams>,
-    },
+    ListResources { params: Option<ListParams> },
     /// Read a resource
-    ReadResource {
-        params: ReadResourceParams,
-    },
+    ReadResource { params: ReadResourceParams },
     /// List available prompts
-    ListPrompts {
-        params: Option<ListParams>,
-    },
+    ListPrompts { params: Option<ListParams> },
     /// Get a prompt
-    GetPrompt {
-        params: GetPromptParams,
-    },
+    GetPrompt { params: GetPromptParams },
 }
 
 /// Initialize parameters

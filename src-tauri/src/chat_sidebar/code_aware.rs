@@ -3,7 +3,6 @@
 //! Special handling for code-related queries
 
 use super::*;
-use anyhow::Result;
 use std::collections::HashMap;
 
 /// Code-aware chat processor
@@ -16,10 +15,22 @@ impl CodeAwareChat {
         let mut language_hints = HashMap::new();
 
         // Add language-specific hints
-        language_hints.insert("rust".to_string(), include_str!("prompts/rust_hints.txt").to_string());
-        language_hints.insert("python".to_string(), include_str!("prompts/python_hints.txt").to_string());
-        language_hints.insert("typescript".to_string(), include_str!("prompts/typescript_hints.txt").to_string());
-        language_hints.insert("javascript".to_string(), include_str!("prompts/javascript_hints.txt").to_string());
+        language_hints.insert(
+            "rust".to_string(),
+            include_str!("prompts/rust_hints.txt").to_string(),
+        );
+        language_hints.insert(
+            "python".to_string(),
+            include_str!("prompts/python_hints.txt").to_string(),
+        );
+        language_hints.insert(
+            "typescript".to_string(),
+            include_str!("prompts/typescript_hints.txt").to_string(),
+        );
+        language_hints.insert(
+            "javascript".to_string(),
+            include_str!("prompts/javascript_hints.txt").to_string(),
+        );
 
         Self { language_hints }
     }
@@ -29,7 +40,9 @@ impl CodeAwareChat {
         let mut enhanced = String::new();
 
         // Add language hints
-        let languages: std::collections::HashSet<&str> = context.snippets.iter()
+        let languages: std::collections::HashSet<&str> = context
+            .snippets
+            .iter()
             .map(|s| s.language.as_str())
             .collect();
 
@@ -49,13 +62,22 @@ impl CodeAwareChat {
     pub fn detect_query_type(&self, query: &str) -> QueryType {
         let query_lower = query.to_lowercase();
 
-        if query_lower.contains("fix") || query_lower.contains("bug") || query_lower.contains("error") {
+        if query_lower.contains("fix")
+            || query_lower.contains("bug")
+            || query_lower.contains("error")
+        {
             QueryType::BugFix
         } else if query_lower.contains("refactor") {
             QueryType::Refactor
-        } else if query_lower.contains("add") || query_lower.contains("implement") || query_lower.contains("create") {
+        } else if query_lower.contains("add")
+            || query_lower.contains("implement")
+            || query_lower.contains("create")
+        {
             QueryType::AddFeature
-        } else if query_lower.contains("explain") || query_lower.contains("what does") || query_lower.contains("how does") {
+        } else if query_lower.contains("explain")
+            || query_lower.contains("what does")
+            || query_lower.contains("how does")
+        {
             QueryType::Explain
         } else if query_lower.contains("test") {
             QueryType::WriteTest
@@ -63,7 +85,10 @@ impl CodeAwareChat {
             QueryType::Documentation
         } else if query_lower.contains("optimize") || query_lower.contains("performance") {
             QueryType::Optimize
-        } else if query_lower.contains("find") || query_lower.contains("search") || query_lower.contains("where") {
+        } else if query_lower.contains("find")
+            || query_lower.contains("search")
+            || query_lower.contains("where")
+        {
             QueryType::CodeSearch
         } else {
             QueryType::General
@@ -139,7 +164,8 @@ impl CodeAwareChat {
         if code.contains("unwrap()") && !code.contains("// safe: ") {
             issues.push(ValidationIssue {
                 line: None,
-                message: "Consider using expect() with a message or proper error handling".to_string(),
+                message: "Consider using expect() with a message or proper error handling"
+                    .to_string(),
                 severity: Severity::Warning,
             });
         }
@@ -280,9 +306,18 @@ mod tests {
     fn test_detect_query_type() {
         let chat = CodeAwareChat::new();
 
-        assert_eq!(chat.detect_query_type("Fix the bug in auth.rs"), QueryType::BugFix);
-        assert_eq!(chat.detect_query_type("Explain how this works"), QueryType::Explain);
-        assert_eq!(chat.detect_query_type("Add a new feature"), QueryType::AddFeature);
+        assert_eq!(
+            chat.detect_query_type("Fix the bug in auth.rs"),
+            QueryType::BugFix
+        );
+        assert_eq!(
+            chat.detect_query_type("Explain how this works"),
+            QueryType::Explain
+        );
+        assert_eq!(
+            chat.detect_query_type("Add a new feature"),
+            QueryType::AddFeature
+        );
     }
 
     #[test]

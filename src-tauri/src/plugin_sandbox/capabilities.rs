@@ -17,7 +17,7 @@ pub enum Capability {
     FsList,
     /// Watch file changes
     FsWatch,
-    
+
     // Network access
     /// Make HTTP requests
     NetHttp,
@@ -25,7 +25,7 @@ pub enum Capability {
     NetWebSocket,
     /// DNS resolution
     NetDns,
-    
+
     // Editor access
     /// Read editor content
     EditorRead,
@@ -35,13 +35,13 @@ pub enum Capability {
     EditorSelection,
     /// Show UI elements
     EditorUi,
-    
+
     // Terminal access
     /// Execute terminal commands
     TerminalExecute,
     /// Read terminal output
     TerminalRead,
-    
+
     // AI access
     /// Use AI for completions
     AiCompletion,
@@ -49,13 +49,13 @@ pub enum Capability {
     AiAnalysis,
     /// Access AI models
     AiModels,
-    
+
     // Git access
     /// Read git status
     GitRead,
     /// Execute git commands
     GitExecute,
-    
+
     // System access
     /// Access clipboard
     SystemClipboard,
@@ -63,7 +63,7 @@ pub enum Capability {
     SystemNotifications,
     /// Access environment variables
     SystemEnv,
-    
+
     // Storage
     /// Persistent storage
     Storage,
@@ -101,7 +101,7 @@ impl Capability {
             _ => None,
         }
     }
-    
+
     /// Convert to string
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -130,30 +130,38 @@ impl Capability {
             Self::TempStorage => "temp",
         }
     }
-    
+
     /// Get risk level
     pub fn risk_level(&self) -> RiskLevel {
         match self {
             // Low risk - read-only operations
-            Self::FsRead | Self::FsList | Self::FsWatch |
-            Self::EditorRead | Self::EditorSelection |
-            Self::TerminalRead |
-            Self::GitRead |
-            Self::SystemClipboard => RiskLevel::Low,
-            
+            Self::FsRead
+            | Self::FsList
+            | Self::FsWatch
+            | Self::EditorRead
+            | Self::EditorSelection
+            | Self::TerminalRead
+            | Self::GitRead
+            | Self::SystemClipboard => RiskLevel::Low,
+
             // Medium risk - limited write operations
-            Self::EditorWrite | Self::EditorUi |
-            Self::SystemNotifications |
-            Self::Storage | Self::TempStorage |
-            Self::AiCompletion | Self::AiAnalysis => RiskLevel::Medium,
-            
+            Self::EditorWrite
+            | Self::EditorUi
+            | Self::SystemNotifications
+            | Self::Storage
+            | Self::TempStorage
+            | Self::AiCompletion
+            | Self::AiAnalysis => RiskLevel::Medium,
+
             // High risk - network and system access
-            Self::FsWrite |
-            Self::NetHttp | Self::NetWebSocket | Self::NetDns |
-            Self::TerminalExecute |
-            Self::AiModels |
-            Self::GitExecute |
-            Self::SystemEnv => RiskLevel::High,
+            Self::FsWrite
+            | Self::NetHttp
+            | Self::NetWebSocket
+            | Self::NetDns
+            | Self::TerminalExecute
+            | Self::AiModels
+            | Self::GitExecute
+            | Self::SystemEnv => RiskLevel::High,
         }
     }
 }
@@ -184,94 +192,97 @@ impl CapabilitySet {
             capabilities: HashSet::new(),
         }
     }
-    
+
     /// Create from iterator
     pub fn from_iter<'a, I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
         Self {
             capabilities: iter.into_iter().map(|s| s.to_string()).collect(),
         }
     }
-    
+
     /// Add a capability
     pub fn add(&mut self, capability: impl AsRef<str>) {
         self.capabilities.insert(capability.as_ref().to_string());
     }
-    
+
     /// Remove a capability
     pub fn remove(&mut self, capability: impl AsRef<str>) {
         self.capabilities.remove(capability.as_ref());
     }
-    
+
     /// Check if capability is present
     pub fn has(&self, capability: impl AsRef<str>) -> bool {
         self.capabilities.contains(capability.as_ref())
     }
-    
+
     /// Check if all capabilities are present
     pub fn has_all(&self, capabilities: &[&str]) -> bool {
         capabilities.iter().all(|c| self.has(*c))
     }
-    
+
     /// Check if any capability is present
     pub fn has_any(&self, capabilities: &[&str]) -> bool {
         capabilities.iter().any(|c| self.has(*c))
     }
-    
+
     /// Merge with another set
     pub fn merge(&mut self, other: &CapabilitySet) {
         for cap in &other.capabilities {
             self.capabilities.insert(cap.clone());
         }
     }
-    
+
     /// Get capabilities as slice
     pub fn as_slice(&self) -> Vec<&str> {
         self.capabilities.iter().map(|s| s.as_str()).collect()
     }
-    
+
     /// Get count
     pub fn len(&self) -> usize {
         self.capabilities.len()
     }
-    
+
     /// Check if empty
     pub fn is_empty(&self) -> bool {
         self.capabilities.is_empty()
     }
-    
+
     /// Filter by risk level
     pub fn filter_by_risk(&self, max_risk: RiskLevel) -> Self {
-        Self::from_iter(
-            self.capabilities.iter()
-                .filter_map(|s| {
-                    Capability::from_str(s)
-                        .filter(|c| c.risk_level() <= max_risk)
-                        .map(|c| c.as_str())
-                })
-        )
+        Self::from_iter(self.capabilities.iter().filter_map(|s| {
+            Capability::from_str(s)
+                .filter(|c| c.risk_level() <= max_risk)
+                .map(|c| c.as_str())
+        }))
     }
 }
 
 /// Default capabilities for untrusted plugins
 pub fn default_sandbox_capabilities() -> CapabilitySet {
-    CapabilitySet::from_iter([
-        "editor.read",
-        "editor.selection",
-        "storage",
-        "temp",
-    ])
+    CapabilitySet::from_iter(["editor.read", "editor.selection", "storage", "temp"])
 }
 
 /// Full capabilities for trusted plugins
 pub fn full_capabilities() -> CapabilitySet {
     CapabilitySet::from_iter([
-        "fs.read", "fs.write", "fs.list", "fs.watch",
-        "net.http", "net.websocket",
-        "editor.read", "editor.write", "editor.selection", "editor.ui",
-        "terminal.execute", "terminal.read",
-        "ai.completion", "ai.analysis",
+        "fs.read",
+        "fs.write",
+        "fs.list",
+        "fs.watch",
+        "net.http",
+        "net.websocket",
+        "editor.read",
+        "editor.write",
+        "editor.selection",
+        "editor.ui",
+        "terminal.execute",
+        "terminal.read",
+        "ai.completion",
+        "ai.analysis",
         "git.read",
-        "system.clipboard", "system.notifications",
-        "storage", "temp",
+        "system.clipboard",
+        "system.notifications",
+        "storage",
+        "temp",
     ])
 }

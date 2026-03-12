@@ -3,13 +3,13 @@
 //! Combines embedded LLM with RAG vector store for code-aware conversations
 
 use super::*;
-use crate::embedded_llm::{EmbeddedLLMEngine, InferenceRequest, ConversationTurn};
-use crate::rag::vector_store::{HnswVectorStore, VectorSearchResult, VectorMetadata};
-use anyhow::{Result, Context};
-use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex};
+use crate::embedded_llm::{ConversationTurn, EmbeddedLLMEngine, InferenceRequest};
+use crate::rag::vector_store::HnswVectorStore;
+use anyhow::Result;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
+use tokio::sync::{Mutex, RwLock};
 
 /// RAG-enhanced chat engine
 pub struct RAGChatEngine {
@@ -41,7 +41,10 @@ impl RAGChatEngine {
             ..Default::default()
         };
 
-        self.sessions.write().await.insert(session.id.clone(), session.clone());
+        self.sessions
+            .write()
+            .await
+            .insert(session.id.clone(), session.clone());
         Ok(session)
     }
 
@@ -61,13 +64,18 @@ impl RAGChatEngine {
         let start = Instant::now();
 
         // Get or create session
-        let mut session = self.sessions.read().await
+        let mut session = self
+            .sessions
+            .read()
+            .await
             .get(session_id)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Session not found: {}", session_id))?;
 
         // Build context with RAG
-        let (context, rag_sources) = self.build_context(user_message, current_file, open_files).await?;
+        let (context, rag_sources) = self
+            .build_context(user_message, current_file, open_files)
+            .await?;
 
         // Create user message with context
         let user_msg = ChatMessage {
@@ -103,7 +111,9 @@ impl RAGChatEngine {
             stop_sequences: vec!["USER:".to_string(), "###".to_string()],
             stream: false,
             system_prompt: Some(self.config.system_prompt.clone()),
-            history: session.messages.iter()
+            history: session
+                .messages
+                .iter()
                 .filter(|m| m.role != ChatRole::System)
                 .map(|m| ConversationTurn {
                     role: match m.role {
@@ -148,7 +158,10 @@ impl RAGChatEngine {
             .as_secs();
 
         // Update session
-        self.sessions.write().await.insert(session_id.to_string(), session);
+        self.sessions
+            .write()
+            .await
+            .insert(session_id.to_string(), session);
 
         Ok(ChatResponse {
             message: assistant_msg,
@@ -167,18 +180,23 @@ impl RAGChatEngine {
         user_message: &str,
         current_file: Option<&CodeSnippet>,
         open_files: &[CodeSnippet],
-        mut callback: impl FnMut(StreamChunk) + Send + 'static,
+        callback: impl FnMut(StreamChunk) + Send + 'static,
     ) -> Result<ChatResponse> {
         let start = Instant::now();
 
         // Get or create session
-        let mut session = self.sessions.read().await
+        let mut session = self
+            .sessions
+            .read()
+            .await
             .get(session_id)
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("Session not found: {}", session_id))?;
 
         // Build context with RAG
-        let (context, rag_sources) = self.build_context(user_message, current_file, open_files).await?;
+        let (context, rag_sources) = self
+            .build_context(user_message, current_file, open_files)
+            .await?;
 
         // Create user message
         let user_msg = ChatMessage {
@@ -217,7 +235,9 @@ impl RAGChatEngine {
             stop_sequences: vec!["USER:".to_string(), "###".to_string()],
             stream: true,
             system_prompt: Some(self.config.system_prompt.clone()),
-            history: session.messages.iter()
+            history: session
+                .messages
+                .iter()
                 .filter(|m| m.role != ChatRole::System)
                 .map(|m| ConversationTurn {
                     role: match m.role {
@@ -238,17 +258,19 @@ impl RAGChatEngine {
         let llm = self.llm.read().await;
         let callback = Arc::new(Mutex::new(callback));
         let callback_clone = callback.clone();
-        let response = llm.complete_stream(&request, move |token: &str| {
-            let mut cb = callback.blocking_lock();
-            cb(StreamChunk {
-                session_id: session_id_owned.clone(),
-                message_id: message_id_clone.clone(),
-                delta: token.to_string(),
-                is_thinking: false,
-                is_done: false,
-                rag_sources: vec![],
-            });
-        }).await?;
+        let response = llm
+            .complete_stream(&request, move |token: &str| {
+                let mut cb = callback.blocking_lock();
+                cb(StreamChunk {
+                    session_id: session_id_owned.clone(),
+                    message_id: message_id_clone.clone(),
+                    delta: token.to_string(),
+                    is_thinking: false,
+                    is_done: false,
+                    rag_sources: vec![],
+                });
+            })
+            .await?;
         drop(llm);
 
         // Send final chunk
@@ -289,7 +311,10 @@ impl RAGChatEngine {
             .as_secs();
 
         // Update session
-        self.sessions.write().await.insert(session_id.to_string(), session);
+        self.sessions
+            .write()
+            .await
+            .insert(session_id.to_string(), session);
 
         Ok(ChatResponse {
             message: assistant_msg,
@@ -321,8 +346,9 @@ impl RAGChatEngine {
 
         // Add open files context
         if self.config.include_open_files && !open_files.is_empty() {
-            let files_context: Vec<String> = open_files.iter()
-                .filter(|f| current_file.map_or(true, |cf| f.file_path != cf.file_path))
+            let files_context: Vec<String> = open_files
+                .iter()
+                .filter(|f| current_file.is_none_or(|cf| f.file_path != cf.file_path))
                 .map(|f| format!("{}:{}", f.file_path, f.content))
                 .collect();
 
@@ -340,7 +366,8 @@ impl RAGChatEngine {
             )?;
 
             if !results.is_empty() {
-                let rag_context: Vec<String> = results.iter()
+                let rag_context: Vec<String> = results
+                    .iter()
                     .map(|r| {
                         rag_sources.push(RagSource {
                             file_path: r.metadata.file_path.clone(),
@@ -360,7 +387,10 @@ impl RAGChatEngine {
                     })
                     .collect();
 
-                context_parts.push(format!("[RELEVANT CODE FROM PROJECT]\n{}", rag_context.join("\n\n")));
+                context_parts.push(format!(
+                    "[RELEVANT CODE FROM PROJECT]\n{}",
+                    rag_context.join("\n\n")
+                ));
             }
         }
 
@@ -382,7 +412,9 @@ impl RAGChatEngine {
         for msg in session.messages.iter().skip(history_start) {
             match msg.role {
                 ChatRole::User => conversation.push_str(&format!("USER: {}\n", msg.content)),
-                ChatRole::Assistant => conversation.push_str(&format!("ASSISTANT: {}\n", msg.content)),
+                ChatRole::Assistant => {
+                    conversation.push_str(&format!("ASSISTANT: {}\n", msg.content))
+                }
                 ChatRole::System => conversation.push_str(&format!("SYSTEM: {}\n", msg.content)),
             }
         }

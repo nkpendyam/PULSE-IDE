@@ -6,11 +6,11 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
+use serde_json::Value;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::RwLock;
-use serde_json::Value;
 
 /// Transport trait for MCP communication
 #[async_trait]
@@ -47,8 +47,14 @@ impl StdioTransport {
             .kill_on_drop(true)
             .spawn()?;
 
-        let stdin = child.stdin.take().ok_or_else(|| anyhow::anyhow!("No stdin"))?;
-        let stdout = child.stdout.take().ok_or_else(|| anyhow::anyhow!("No stdout"))?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("No stdin"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("No stdout"))?;
 
         let (stdin_tx, mut stdin_rx) = tokio::sync::mpsc::channel::<String>(64);
         let (stdout_tx, stdout_rx) = tokio::sync::mpsc::channel::<String>(64);
@@ -58,9 +64,15 @@ impl StdioTransport {
             let mut stdin = stdin;
             while let Some(msg) = stdin_rx.recv().await {
                 let header = format!("Content-Length: {}\r\n\r\n", msg.len());
-                if stdin.write_all(header.as_bytes()).await.is_err() { break; }
-                if stdin.write_all(msg.as_bytes()).await.is_err() { break; }
-                if stdin.flush().await.is_err() { break; }
+                if stdin.write_all(header.as_bytes()).await.is_err() {
+                    break;
+                }
+                if stdin.write_all(msg.as_bytes()).await.is_err() {
+                    break;
+                }
+                if stdin.flush().await.is_err() {
+                    break;
+                }
             }
         });
 
@@ -93,7 +105,10 @@ impl StdioTransport {
                 };
                 // Read exactly `len` bytes of body
                 let mut body = vec![0u8; len];
-                if tokio::io::AsyncReadExt::read_exact(&mut reader, &mut body).await.is_err() {
+                if tokio::io::AsyncReadExt::read_exact(&mut reader, &mut body)
+                    .await
+                    .is_err()
+                {
                     return;
                 }
                 if let Ok(s) = String::from_utf8(body) {
@@ -127,7 +142,9 @@ impl StdioTransport {
 impl Transport for StdioTransport {
     async fn send(&self, message: &Value) -> Result<()> {
         let json = serde_json::to_string(message)?;
-        self.stdin_tx.send(json).await
+        self.stdin_tx
+            .send(json)
+            .await
             .map_err(|e| anyhow::anyhow!("Failed to send to stdin: {}", e))
     }
 
@@ -169,11 +186,7 @@ impl SseTransport {
 #[async_trait]
 impl Transport for SseTransport {
     async fn send(&self, message: &Value) -> Result<()> {
-        let response = self.client
-            .post(&self.url)
-            .json(message)
-            .send()
-            .await?;
+        let response = self.client.post(&self.url).json(message).send().await?;
 
         if !response.status().is_success() {
             anyhow::bail!("SSE send failed: {}", response.status());

@@ -10,16 +10,16 @@ use std::collections::HashMap;
 pub trait PluginApi: Send + Sync {
     /// Get plugin info
     fn info(&self) -> &PluginMetadata;
-    
+
     /// Initialize plugin
     fn init(&mut self, context: &PluginContext) -> Result<()>;
-    
+
     /// Shutdown plugin
     fn shutdown(&mut self) -> Result<()>;
-    
+
     /// Execute a command
     fn execute(&mut self, command: &str, args: &serde_json::Value) -> Result<serde_json::Value>;
-    
+
     /// Get available commands
     fn commands(&self) -> Vec<&str>;
 }
@@ -63,7 +63,11 @@ pub enum PluginEvent {
     /// Plugin error
     Error { plugin_id: String, error: String },
     /// Command executed
-    CommandExecuted { plugin_id: String, command: String, success: bool },
+    CommandExecuted {
+        plugin_id: String,
+        command: String,
+        success: bool,
+    },
     /// Configuration changed
     ConfigChanged { plugin_id: String },
 }
@@ -84,7 +88,7 @@ impl<T> PluginResult<T> {
             error: None,
         }
     }
-    
+
     pub fn err(error: impl Into<String>) -> Self {
         Self {
             success: false,
@@ -107,14 +111,34 @@ pub const BUILTIN_COMMANDS: &[(&str, &str)] = &[
 pub const EDITOR_COMMANDS: &[(&str, &str, &[&str])] = &[
     ("editor.getContent", "Get editor content", &["editor.read"]),
     ("editor.setContent", "Set editor content", &["editor.write"]),
-    ("editor.getSelection", "Get current selection", &["editor.selection"]),
-    ("editor.setSelection", "Set selection range", &["editor.selection"]),
-    ("editor.insertText", "Insert text at position", &["editor.write"]),
+    (
+        "editor.getSelection",
+        "Get current selection",
+        &["editor.selection"],
+    ),
+    (
+        "editor.setSelection",
+        "Set selection range",
+        &["editor.selection"],
+    ),
+    (
+        "editor.insertText",
+        "Insert text at position",
+        &["editor.write"],
+    ),
     ("editor.deleteText", "Delete text range", &["editor.write"]),
     ("editor.openFile", "Open a file", &["editor.read"]),
     ("editor.saveFile", "Save current file", &["editor.write"]),
-    ("editor.showNotification", "Show notification", &["editor.ui"]),
-    ("editor.showQuickPick", "Show quick pick dialog", &["editor.ui"]),
+    (
+        "editor.showNotification",
+        "Show notification",
+        &["editor.ui"],
+    ),
+    (
+        "editor.showQuickPick",
+        "Show quick pick dialog",
+        &["editor.ui"],
+    ),
 ];
 
 /// File system API commands (requires fs.* capabilities)
@@ -140,8 +164,16 @@ pub const AI_COMMANDS: &[(&str, &str, &[&str])] = &[
 /// Terminal API commands (requires terminal.* capabilities)
 pub const TERMINAL_COMMANDS: &[(&str, &str, &[&str])] = &[
     ("terminal.execute", "Execute command", &["terminal.execute"]),
-    ("terminal.readOutput", "Read terminal output", &["terminal.read"]),
-    ("terminal.writeInput", "Write to terminal input", &["terminal.execute"]),
+    (
+        "terminal.readOutput",
+        "Read terminal output",
+        &["terminal.read"],
+    ),
+    (
+        "terminal.writeInput",
+        "Write to terminal input",
+        &["terminal.execute"],
+    ),
 ];
 
 /// Git API commands (requires git.* capabilities)

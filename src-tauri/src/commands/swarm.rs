@@ -2,10 +2,10 @@
 //
 // Manages distributed AI agents for collaborative task completion
 
-use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
 
 lazy_static::lazy_static! {
@@ -18,6 +18,12 @@ pub struct SwarmState {
     tasks: Vec<TaskInfo>,
     messages: Vec<AgentMessage>,
     ollama_url: String,
+}
+
+impl Default for SwarmState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SwarmState {
@@ -95,7 +101,11 @@ fn system_prompt_for_role(role: &str) -> String {
     }
 }
 
-async fn call_ollama_for_agent(agent: &SwarmAgentInfo, prompt: &str, ollama_url: &str) -> Result<String, String> {
+async fn call_ollama_for_agent(
+    agent: &SwarmAgentInfo,
+    prompt: &str,
+    ollama_url: &str,
+) -> Result<String, String> {
     let client = reqwest::Client::new();
     let system = system_prompt_for_role(&agent.role);
     let body = serde_json::json!({
@@ -111,9 +121,12 @@ async fn call_ollama_for_agent(agent: &SwarmAgentInfo, prompt: &str, ollama_url:
         .send()
         .await
         .map_err(|e| format!("Ollama request failed for agent '{}': {}", agent.name, e))?;
-    let json: serde_json::Value = resp.json().await
+    let json: serde_json::Value = resp
+        .json()
+        .await
         .map_err(|e| format!("Parse error: {}", e))?;
-    json["response"].as_str()
+    json["response"]
+        .as_str()
         .map(|s| s.to_string())
         .ok_or_else(|| "No response from Ollama".to_string())
 }
@@ -125,7 +138,11 @@ pub async fn list_swarm_agents() -> Result<Vec<SwarmAgentInfo>, String> {
 }
 
 #[command]
-pub async fn create_swarm_agent(name: String, role: String, model: Option<String>) -> Result<SwarmAgentInfo, String> {
+pub async fn create_swarm_agent(
+    name: String,
+    role: String,
+    model: Option<String>,
+) -> Result<SwarmAgentInfo, String> {
     let mut state = SWARM_STATE.write().await;
     let id = uuid::Uuid::new_v4().to_string();
     let agent = SwarmAgentInfo {
@@ -147,12 +164,16 @@ pub async fn submit_swarm_task(request: CreateTaskRequest) -> Result<TaskInfo, S
 
     // Assign agents by role if specified, otherwise use all available
     let assigned: Vec<String> = if let Some(roles) = &request.agent_roles {
-        state.agents.values()
+        state
+            .agents
+            .values()
             .filter(|a| roles.contains(&a.role) && a.status == "idle")
             .map(|a| a.id.clone())
             .collect()
     } else {
-        state.agents.values()
+        state
+            .agents
+            .values()
             .filter(|a| a.status == "idle")
             .take(3)
             .map(|a| a.id.clone())
@@ -179,7 +200,10 @@ pub async fn execute_swarm_task(task_id: String) -> Result<SwarmResponse, String
     // Get task info and assigned agents
     let (task_desc, assigned_ids, ollama_url) = {
         let mut state = SWARM_STATE.write().await;
-        let task_idx = state.tasks.iter().position(|t| t.id == task_id)
+        let task_idx = state
+            .tasks
+            .iter()
+            .position(|t| t.id == task_id)
             .ok_or("Task not found")?;
         state.tasks[task_idx].status = "running".to_string();
         let aids = state.tasks[task_idx].assigned_agents.clone();
@@ -197,7 +221,8 @@ pub async fn execute_swarm_task(task_id: String) -> Result<SwarmResponse, String
     // Collect agent info
     let agents: Vec<SwarmAgentInfo> = {
         let state = SWARM_STATE.read().await;
-        assigned_ids.iter()
+        assigned_ids
+            .iter()
             .filter_map(|id| state.agents.get(id).cloned())
             .collect()
     };
@@ -266,7 +291,10 @@ pub async fn execute_swarm_task(task_id: String) -> Result<SwarmResponse, String
 #[command]
 pub async fn get_swarm_task_status(task_id: String) -> Result<TaskInfo, String> {
     let state = SWARM_STATE.read().await;
-    state.tasks.iter().find(|t| t.id == task_id)
+    state
+        .tasks
+        .iter()
+        .find(|t| t.id == task_id)
         .cloned()
         .ok_or_else(|| "Task not found".to_string())
 }
@@ -280,7 +308,10 @@ pub async fn list_swarm_tasks() -> Result<Vec<TaskInfo>, String> {
 #[command]
 pub async fn cancel_swarm_task(task_id: String) -> Result<(), String> {
     let mut state = SWARM_STATE.write().await;
-    let task_idx = state.tasks.iter().position(|t| t.id == task_id)
+    let task_idx = state
+        .tasks
+        .iter()
+        .position(|t| t.id == task_id)
         .ok_or("Task not found")?;
     state.tasks[task_idx].status = "cancelled".to_string();
     let aids = state.tasks[task_idx].assigned_agents.clone();
@@ -299,7 +330,11 @@ pub async fn get_swarm_stats() -> Result<SwarmStats, String> {
     Ok(SwarmStats {
         total_agents: state.agents.len(),
         active_tasks: state.tasks.iter().filter(|t| t.status == "running").count(),
-        completed_tasks: state.tasks.iter().filter(|t| t.status == "completed").count(),
+        completed_tasks: state
+            .tasks
+            .iter()
+            .filter(|t| t.status == "completed")
+            .count(),
         total_tasks: state.tasks.len(),
     })
 }

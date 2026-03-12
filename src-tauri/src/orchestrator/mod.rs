@@ -9,7 +9,7 @@
 
 mod missions;
 
-pub use missions::{Mission, MissionArtifact, MissionPhase, MissionStatus};
+pub use missions::{Mission, MissionPhase, MissionStatus};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -191,7 +191,11 @@ impl KyroOrchestrator {
     // =========================================================================
 
     /// Start a Quest: full pipeline from user spec to tested code
-    pub async fn start_quest(&self, spec: String, project_path: String) -> Result<QuestState, String> {
+    pub async fn start_quest(
+        &self,
+        spec: String,
+        project_path: String,
+    ) -> Result<QuestState, String> {
         // 1. Create mission
         let mission = self.start_mission(spec.clone(), None).await;
         let mission_id = mission.id.clone();
@@ -209,12 +213,20 @@ impl KyroOrchestrator {
             test_output: None,
         };
 
-        self.quests.write().await.insert(mission_id.clone(), quest.clone());
+        self.quests
+            .write()
+            .await
+            .insert(mission_id.clone(), quest.clone());
         Ok(quest)
     }
 
     /// Execute all steps of an existing quest (Coder phase)
-    pub async fn execute_quest(&self, mission_id: &str, project_path: &str, app: Option<&AppHandle>) -> Result<QuestState, String> {
+    pub async fn execute_quest(
+        &self,
+        mission_id: &str,
+        project_path: &str,
+        app: Option<&AppHandle>,
+    ) -> Result<QuestState, String> {
         let mut quest = {
             let quests = self.quests.read().await;
             quests.get(mission_id).cloned().ok_or("Quest not found")?
@@ -224,8 +236,18 @@ impl KyroOrchestrator {
 
         // Advance to Edit phase
         quest.phase = MissionPhase::Edit;
-        self.update_mission_phase(mission_id, MissionPhase::Edit).await;
-        Self::emit_progress(app, &quest.mission_id, "edit", None, Some(total_steps), None, "running", "Coder agent starting");
+        self.update_mission_phase(mission_id, MissionPhase::Edit)
+            .await;
+        Self::emit_progress(
+            app,
+            &quest.mission_id,
+            "edit",
+            None,
+            Some(total_steps),
+            None,
+            "running",
+            "Coder agent starting",
+        );
 
         // Execute each pending step via the Coder agent
         for i in 0..quest.steps.len() {
@@ -234,18 +256,48 @@ impl KyroOrchestrator {
             }
             quest.steps[i].status = QuestStepStatus::Running;
             self.save_quest(&quest).await;
-            Self::emit_progress(app, &quest.mission_id, "edit", Some(i), Some(total_steps), Some(&quest.steps[i].description), "running", "Executing step");
+            Self::emit_progress(
+                app,
+                &quest.mission_id,
+                "edit",
+                Some(i),
+                Some(total_steps),
+                Some(&quest.steps[i].description),
+                "running",
+                "Executing step",
+            );
 
-            match self.run_coder_step(&quest.steps[i], &quest.spec, project_path).await {
+            match self
+                .run_coder_step(&quest.steps[i], &quest.spec, project_path)
+                .await
+            {
                 Ok(output) => {
                     quest.steps[i].status = QuestStepStatus::Done;
                     quest.steps[i].output = Some(output);
-                    Self::emit_progress(app, &quest.mission_id, "edit", Some(i), Some(total_steps), Some(&quest.steps[i].description), "done", "Step completed");
+                    Self::emit_progress(
+                        app,
+                        &quest.mission_id,
+                        "edit",
+                        Some(i),
+                        Some(total_steps),
+                        Some(&quest.steps[i].description),
+                        "done",
+                        "Step completed",
+                    );
                 }
                 Err(e) => {
                     quest.steps[i].status = QuestStepStatus::Failed;
                     quest.steps[i].error = Some(e.clone());
-                    Self::emit_progress(app, &quest.mission_id, "edit", Some(i), Some(total_steps), Some(&quest.steps[i].description), "failed", &e);
+                    Self::emit_progress(
+                        app,
+                        &quest.mission_id,
+                        "edit",
+                        Some(i),
+                        Some(total_steps),
+                        Some(&quest.steps[i].description),
+                        "failed",
+                        &e,
+                    );
                 }
             }
             self.save_quest(&quest).await;
@@ -253,26 +305,77 @@ impl KyroOrchestrator {
 
         // Review phase
         quest.phase = MissionPhase::Review;
-        self.update_mission_phase(mission_id, MissionPhase::Review).await;
-        Self::emit_progress(app, &quest.mission_id, "review", None, None, None, "running", "Reviewer examining code");
-        let review = self.run_reviewer(&quest, project_path).await.unwrap_or_default();
+        self.update_mission_phase(mission_id, MissionPhase::Review)
+            .await;
+        Self::emit_progress(
+            app,
+            &quest.mission_id,
+            "review",
+            None,
+            None,
+            None,
+            "running",
+            "Reviewer examining code",
+        );
+        let review = self
+            .run_reviewer(&quest, project_path)
+            .await
+            .unwrap_or_default();
         quest.review_notes = Some(review);
-        Self::emit_progress(app, &quest.mission_id, "review", None, None, None, "done", "Review complete");
+        Self::emit_progress(
+            app,
+            &quest.mission_id,
+            "review",
+            None,
+            None,
+            None,
+            "done",
+            "Review complete",
+        );
 
         // Test phase
         quest.phase = MissionPhase::Test;
-        self.update_mission_phase(mission_id, MissionPhase::Test).await;
-        Self::emit_progress(app, &quest.mission_id, "test", None, None, None, "running", "Running tests");
+        self.update_mission_phase(mission_id, MissionPhase::Test)
+            .await;
+        Self::emit_progress(
+            app,
+            &quest.mission_id,
+            "test",
+            None,
+            None,
+            None,
+            "running",
+            "Running tests",
+        );
         let test_out = self.run_tester(project_path).await.unwrap_or_default();
         quest.test_output = Some(test_out);
-        Self::emit_progress(app, &quest.mission_id, "test", None, None, None, "done", "Tests complete");
+        Self::emit_progress(
+            app,
+            &quest.mission_id,
+            "test",
+            None,
+            None,
+            None,
+            "done",
+            "Tests complete",
+        );
 
         // Done
         quest.phase = MissionPhase::Deploy;
         quest.status = MissionStatus::Completed;
-        self.update_mission_phase(mission_id, MissionPhase::Deploy).await;
+        self.update_mission_phase(mission_id, MissionPhase::Deploy)
+            .await;
         self.save_quest(&quest).await;
-        Self::emit_progress(app, &quest.mission_id, "deploy", None, None, None, "done", "Quest complete");
+        Self::emit_progress(
+            app,
+            &quest.mission_id,
+            "deploy",
+            None,
+            None,
+            None,
+            "done",
+            "Quest complete",
+        );
 
         Ok(quest)
     }
@@ -289,15 +392,18 @@ impl KyroOrchestrator {
         message: &str,
     ) {
         if let Some(handle) = app {
-            let _ = handle.emit("quest-progress", QuestProgressEvent {
-                mission_id: mission_id.to_string(),
-                phase: phase.to_string(),
-                step_index,
-                step_total,
-                step_description: step_description.map(String::from),
-                status: status.to_string(),
-                message: message.to_string(),
-            });
+            let _ = handle.emit(
+                "quest-progress",
+                QuestProgressEvent {
+                    mission_id: mission_id.to_string(),
+                    phase: phase.to_string(),
+                    step_index,
+                    step_total,
+                    step_description: step_description.map(String::from),
+                    status: status.to_string(),
+                    message: message.to_string(),
+                },
+            );
         }
     }
 
@@ -307,7 +413,10 @@ impl KyroOrchestrator {
     }
 
     async fn save_quest(&self, quest: &QuestState) {
-        self.quests.write().await.insert(quest.mission_id.clone(), quest.clone());
+        self.quests
+            .write()
+            .await
+            .insert(quest.mission_id.clone(), quest.clone());
     }
 
     // ── Agent implementations ───────────────────────────────────────────
@@ -317,7 +426,9 @@ impl KyroOrchestrator {
         let system = "You are a senior software architect. Given a feature specification, produce a numbered checklist of implementation steps. Each step should be a concrete action like 'Create file X', 'Add function Y to Z', 'Write test for W'. Output ONLY the numbered list, one step per line.";
         let prompt = format!("Project: {}\n\nFeature spec:\n{}", project_path, spec);
 
-        let response = self.llm_chat(&self.config.planner_model, system, &prompt).await?;
+        let response = self
+            .llm_chat(&self.config.planner_model, system, &prompt)
+            .await?;
 
         // Parse numbered list into QuestSteps
         let steps: Vec<QuestStep> = response
@@ -326,7 +437,9 @@ impl KyroOrchestrator {
             .enumerate()
             .map(|(i, line)| {
                 // Strip leading number/bullet
-                let desc = line.trim_start_matches(|c: char| c.is_ascii_digit() || c == '.' || c == ')' || c == '-' || c == ' ');
+                let desc = line.trim_start_matches(|c: char| {
+                    c.is_ascii_digit() || c == '.' || c == ')' || c == '-' || c == ' '
+                });
                 QuestStep {
                     id: format!("step-{}", i + 1),
                     description: desc.trim().to_string(),
@@ -347,42 +460,67 @@ impl KyroOrchestrator {
     }
 
     /// Coder agent: executes a single quest step
-    async fn run_coder_step(&self, step: &QuestStep, spec: &str, project_path: &str) -> Result<String, String> {
+    async fn run_coder_step(
+        &self,
+        step: &QuestStep,
+        spec: &str,
+        project_path: &str,
+    ) -> Result<String, String> {
         let system = "You are an expert programmer. Given a task description, produce the exact code changes needed. Show file paths and code. Be concise and precise.";
         let prompt = format!(
             "Project: {}\nOverall spec: {}\n\nCurrent task: {}",
             project_path, spec, step.description
         );
 
-        self.llm_chat(&self.config.coder_model, system, &prompt).await
+        self.llm_chat(&self.config.coder_model, system, &prompt)
+            .await
     }
 
     /// Reviewer agent: examines completed steps and provides review notes
     async fn run_reviewer(&self, quest: &QuestState, project_path: &str) -> Result<String, String> {
-        let completed: Vec<String> = quest.steps.iter()
+        let completed: Vec<String> = quest
+            .steps
+            .iter()
             .filter(|s| s.status == QuestStepStatus::Done)
-            .map(|s| format!("- {}: {}", s.description, s.output.as_deref().unwrap_or("(no output)")))
+            .map(|s| {
+                format!(
+                    "- {}: {}",
+                    s.description,
+                    s.output.as_deref().unwrap_or("(no output)")
+                )
+            })
             .collect();
 
         let system = "You are a code reviewer. Examine the completed implementation steps and provide a brief review: correctness issues, missing edge cases, style problems. Be concise.";
         let prompt = format!(
             "Project: {}\nSpec: {}\n\nCompleted steps:\n{}",
-            project_path, quest.spec, completed.join("\n")
+            project_path,
+            quest.spec,
+            completed.join("\n")
         );
 
-        self.llm_chat(&self.config.reviewer_model, system, &prompt).await
+        self.llm_chat(&self.config.reviewer_model, system, &prompt)
+            .await
     }
 
     /// Tester agent: runs the project's test suite and returns output
     async fn run_tester(&self, project_path: &str) -> Result<String, String> {
         // Detect test command based on project files
-        let test_cmd = if std::path::Path::new(project_path).join("Cargo.toml").exists() {
+        let test_cmd = if std::path::Path::new(project_path)
+            .join("Cargo.toml")
+            .exists()
+        {
             "cargo test 2>&1"
-        } else if std::path::Path::new(project_path).join("package.json").exists() {
+        } else if std::path::Path::new(project_path)
+            .join("package.json")
+            .exists()
+        {
             "npm test 2>&1"
         } else if std::path::Path::new(project_path).join("go.mod").exists() {
             "go test ./... 2>&1"
-        } else if std::path::Path::new(project_path).join("pytest.ini").exists()
+        } else if std::path::Path::new(project_path)
+            .join("pytest.ini")
+            .exists()
             || std::path::Path::new(project_path).join("setup.py").exists()
         {
             "python -m pytest 2>&1"
@@ -435,7 +573,8 @@ impl KyroOrchestrator {
             "stream": false
         });
 
-        let resp = self.http
+        let resp = self
+            .http
             .post(format!("{}/api/chat", self.config.ollama_url))
             .json(&body)
             .send()
@@ -455,7 +594,9 @@ impl KyroOrchestrator {
             message: OllamaMessage,
         }
 
-        let parsed: OllamaChatResponse = resp.json().await
+        let parsed: OllamaChatResponse = resp
+            .json()
+            .await
             .map_err(|e| format!("Failed to parse Ollama response: {}", e))?;
 
         Ok(parsed.message.content)

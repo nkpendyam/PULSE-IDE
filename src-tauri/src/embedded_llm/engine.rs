@@ -3,10 +3,10 @@
 //! Core inference engine that interfaces with llama.cpp static library
 
 use super::*;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
+use tokio::sync::RwLock;
 
 /// Main embedded LLM engine
 pub struct EmbeddedLLMEngine {
@@ -24,22 +24,22 @@ impl EmbeddedLLMEngine {
     pub async fn new(config: EmbeddedLLMConfig) -> anyhow::Result<Self> {
         // Detect hardware capabilities
         let hardware = Self::detect_hardware()?;
-        
+
         // Adjust config based on hardware
         let config = Self::adjust_config_for_hardware(config, &hardware);
-        
+
         // Initialize memory profiler
         let memory_profiler = MemoryProfiler::new(hardware.clone());
-        
+
         // Select optimal backend
         let backend = Self::select_backend(&config, &hardware).await?;
-        
+
         // Initialize model manager
         let model_manager = ModelManager::new(config.model_paths.clone())?;
-        
+
         // Initialize context cache
         let context_cache = ContextCache::new(1000); // 1000 cached contexts
-        
+
         Ok(Self {
             config,
             backend: Arc::new(RwLock::new(backend)),
@@ -50,11 +50,11 @@ impl EmbeddedLLMEngine {
             loaded_models: Arc::new(RwLock::new(HashMap::new())),
         })
     }
-    
+
     /// Detect hardware capabilities
     fn detect_hardware() -> anyhow::Result<HardwareCapabilities> {
         let cpu_cores = num_cpus::get();
-        
+
         // Detect CPU features
         let mut cpu_features = vec![];
         #[cfg(target_arch = "x86_64")]
@@ -70,14 +70,14 @@ impl EmbeddedLLMEngine {
         {
             cpu_features.push("neon".to_string());
         }
-        
+
         // Get system memory
         let ram_bytes = sysinfo::System::new_all().total_memory() * 1024;
-        
+
         // Detect GPU and VRAM
-        let (gpu_name, vram_bytes, recommended_backend, recommended_tier) = 
+        let (gpu_name, vram_bytes, recommended_backend, recommended_tier) =
             Self::detect_gpu_capabilities();
-        
+
         Ok(HardwareCapabilities {
             vram_bytes,
             ram_bytes,
@@ -89,7 +89,7 @@ impl EmbeddedLLMEngine {
             cpu_features,
         })
     }
-    
+
     /// Detect GPU capabilities
     fn detect_gpu_capabilities() -> (Option<String>, u64, String, MemoryTier) {
         // Try CUDA first (NVIDIA GPUs)
@@ -97,21 +97,39 @@ impl EmbeddedLLMEngine {
         {
             if let Ok(gpu_info) = Self::detect_cuda() {
                 let tier = MemoryTier::from_vram(gpu_info.vram_bytes);
-                log::info!("CUDA GPU detected: {} ({} GB VRAM)", gpu_info.name, gpu_info.vram_bytes / (1024*1024*1024));
-                return (Some(gpu_info.name), gpu_info.vram_bytes, "cuda".to_string(), tier);
+                log::info!(
+                    "CUDA GPU detected: {} ({} GB VRAM)",
+                    gpu_info.name,
+                    gpu_info.vram_bytes / (1024 * 1024 * 1024)
+                );
+                return (
+                    Some(gpu_info.name),
+                    gpu_info.vram_bytes,
+                    "cuda".to_string(),
+                    tier,
+                );
             }
         }
-        
+
         // Try Vulkan (cross-platform GPU)
         #[cfg(feature = "vulkan")]
         {
             if let Ok(gpu_info) = Self::detect_vulkan() {
                 let tier = MemoryTier::from_vram(gpu_info.vram_bytes);
-                log::info!("Vulkan GPU detected: {} ({} GB VRAM)", gpu_info.name, gpu_info.vram_bytes / (1024*1024*1024));
-                return (Some(gpu_info.name), gpu_info.vram_bytes, "vulkan".to_string(), tier);
+                log::info!(
+                    "Vulkan GPU detected: {} ({} GB VRAM)",
+                    gpu_info.name,
+                    gpu_info.vram_bytes / (1024 * 1024 * 1024)
+                );
+                return (
+                    Some(gpu_info.name),
+                    gpu_info.vram_bytes,
+                    "vulkan".to_string(),
+                    tier,
+                );
             }
         }
-        
+
         // Try Metal on macOS (Apple Silicon)
         #[cfg(target_os = "macos")]
         {
@@ -119,46 +137,55 @@ impl EmbeddedLLMEngine {
                 // Metal uses unified memory - only ~75% is available for GPU
                 let usable_vram = (gpu_info.vram_bytes as f64 * 0.75) as u64;
                 let tier = MemoryTier::from_vram(usable_vram);
-                log::info!("Metal GPU detected: {} ({} GB unified memory)", gpu_info.name, gpu_info.vram_bytes / (1024*1024*1024));
+                log::info!(
+                    "Metal GPU detected: {} ({} GB unified memory)",
+                    gpu_info.name,
+                    gpu_info.vram_bytes / (1024 * 1024 * 1024)
+                );
                 return (Some(gpu_info.name), usable_vram, "metal".to_string(), tier);
             }
         }
-        
+
         // Try to detect any GPU - simplified for sysinfo 0.30
         let system = sysinfo::System::new_all();
-        
+
         // Fallback to CPU
         let ram = system.total_memory() * 1024;
         let usable = (ram as f64 * 0.25) as u64; // Use 25% of RAM for CPU inference
-        
+
         log::info!("No dedicated GPU detected, using CPU inference");
-        
+
         (None, usable, "cpu".to_string(), MemoryTier::Cpu)
     }
-    
+
     /// Detect CUDA GPU using nvidia-smi or NVML
     #[cfg(feature = "cuda")]
     fn detect_cuda() -> anyhow::Result<GpuInfo> {
         use std::process::Command;
-        
+
         // Try nvidia-smi first (most reliable)
         let output = Command::new("nvidia-smi")
-            .args(["--query-gpu=name,memory.total", "--format=csv,noheader,nounits"])
+            .args([
+                "--query-gpu=name,memory.total",
+                "--format=csv,noheader,nounits",
+            ])
             .output();
-        
+
         if let Ok(output) = output {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let line = stdout.lines().next().unwrap_or("");
                 let parts: Vec<&str> = line.split(',').collect();
-                
+
                 if parts.len() >= 2 {
                     let name = parts[0].trim().to_string();
-                    let vram_mb: u64 = parts[1].trim().split_whitespace()
+                    let vram_mb: u64 = parts[1]
+                        .trim()
+                        .split_whitespace()
                         .next()
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(8192);
-                    
+
                     return Ok(GpuInfo {
                         name,
                         vram_bytes: vram_mb * 1024 * 1024,
@@ -166,7 +193,7 @@ impl EmbeddedLLMEngine {
                 }
             }
         }
-        
+
         // Fallback: Check /proc/driver/nvidia/gpus on Linux
         #[cfg(target_os = "linux")]
         {
@@ -178,7 +205,7 @@ impl EmbeddedLLMEngine {
                 });
             }
         }
-        
+
         // Fallback: Check CUDA runtime via environment
         if std::env::var("CUDA_VISIBLE_DEVICES").is_ok() {
             return Ok(GpuInfo {
@@ -186,85 +213,98 @@ impl EmbeddedLLMEngine {
                 vram_bytes: 8_589_934_592,
             });
         }
-        
+
         anyhow::bail!("No CUDA GPU detected")
     }
-    
+
     /// Detect Vulkan-capable GPU
     #[cfg(feature = "vulkan")]
     fn detect_vulkan() -> anyhow::Result<GpuInfo> {
         use std::process::Command;
-        
+
         // Try vulkaninfo
-        let output = Command::new("vulkaninfo")
-            .args(["--summary"])
-            .output();
-        
+        let output = Command::new("vulkaninfo").args(["--summary"]).output();
+
         if let Ok(output) = output {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                
+
                 // Parse device name
                 for line in stdout.lines() {
                     if line.contains("deviceName") || line.contains("GPU") {
-                        let name = line.split(':').last()
+                        let name = line
+                            .split(':')
+                            .last()
                             .map(|s| s.trim().to_string())
                             .unwrap_or_else(|| "Vulkan GPU".to_string());
-                        
+
                         // Estimate VRAM based on GPU name
                         let vram = if name.contains("4090") || name.contains("4080") {
                             24 * 1024 * 1024 * 1024 // 24GB
-                        } else if name.contains("4070") || name.contains("3080") || name.contains("3090") {
+                        } else if name.contains("4070")
+                            || name.contains("3080")
+                            || name.contains("3090")
+                        {
                             12 * 1024 * 1024 * 1024 // 12GB
-                        } else if name.contains("3060") || name.contains("3070") || name.contains("4060") {
+                        } else if name.contains("3060")
+                            || name.contains("3070")
+                            || name.contains("4060")
+                        {
                             8 * 1024 * 1024 * 1024 // 8GB
                         } else {
                             6 * 1024 * 1024 * 1024 // 6GB default
                         };
-                        
-                        return Ok(GpuInfo { name, vram_bytes: vram });
+
+                        return Ok(GpuInfo {
+                            name,
+                            vram_bytes: vram,
+                        });
                     }
                 }
             }
         }
-        
+
         anyhow::bail!("No Vulkan GPU detected")
     }
-    
+
     /// Detect Metal GPU on macOS using system_profiler
     #[cfg(target_os = "macos")]
     fn detect_metal() -> anyhow::Result<GpuInfo> {
         use std::process::Command;
-        
+
         // Use system_profiler to get GPU info
         let output = Command::new("system_profiler")
             .args(["SPDisplaysDataType"])
             .output();
-        
+
         if let Ok(output) = output {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                
+
                 // Parse GPU info from system_profiler output
                 let mut gpu_name = "Apple Silicon".to_string();
                 let mut vram = 0u64;
-                
+
                 for line in stdout.lines() {
                     let line = line.trim();
-                    
+
                     // Look for chip type (Apple M1/M2/M3)
                     if line.contains("Chipset Model:") || line.contains("Chip:") {
-                        gpu_name = line.split(':').last()
+                        gpu_name = line
+                            .split(':')
+                            .last()
                             .map(|s| s.trim().to_string())
                             .unwrap_or_else(|| "Apple Silicon".to_string());
                     }
-                    
+
                     // Look for VRAM (for Intel Macs with discrete GPU)
                     if line.contains("VRAM (Total):") || line.contains("Memory:") {
-                        let vram_str = line.split(':').last()
+                        let vram_str = line
+                            .split(':')
+                            .last()
                             .map(|s| s.trim().to_string())
                             .unwrap_or_default();
-                        
+
                         // Parse "X GB" format
                         if let Some(gb) = vram_str.split_whitespace().next() {
                             if let Ok(gb_val) = gb.parse::<u64>() {
@@ -273,26 +313,26 @@ impl EmbeddedLLMEngine {
                         }
                     }
                 }
-                
+
                 // For Apple Silicon, use unified memory
                 if vram == 0 {
                     let system = sysinfo::System::new_all();
                     vram = system.total_memory() * 1024;
-                    
+
                     // Detect specific Apple Silicon chip
                     let chip_name = Self::detect_apple_silicon_chip();
                     if !chip_name.is_empty() {
                         gpu_name = chip_name;
                     }
                 }
-                
+
                 return Ok(GpuInfo {
                     name: gpu_name,
                     vram_bytes: vram,
                 });
             }
         }
-        
+
         // Fallback: Use unified memory as VRAM
         let ram = sysinfo::System::new_all().total_memory() * 1024;
         Ok(GpuInfo {
@@ -300,46 +340,44 @@ impl EmbeddedLLMEngine {
             vram_bytes: ram,
         })
     }
-    
+
     /// Detect specific Apple Silicon chip
     #[cfg(target_os = "macos")]
     fn detect_apple_silicon_chip() -> String {
         use std::process::Command;
-        
+
         let output = Command::new("sysctl")
             .args(["-n", "machdep.cpu.brand_string"])
             .output();
-        
+
         if let Ok(output) = output {
             if output.status.success() {
                 let brand = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                
+
                 // Check for Apple M-series
                 if brand.contains("Apple M") {
                     return brand;
                 }
             }
         }
-        
+
         // Try alternative method
-        let output = Command::new("uname")
-            .args(["-m"])
-            .output();
-        
+        let output = Command::new("uname").args(["-m"]).output();
+
         if let Ok(output) = output {
             let arch = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if arch == "arm64" {
                 return "Apple Silicon".to_string();
             }
         }
-        
+
         String::new()
     }
-    
+
     /// Adjust configuration based on hardware
     fn adjust_config_for_hardware(
-        mut config: EmbeddedLLMConfig, 
-        hardware: &HardwareCapabilities
+        mut config: EmbeddedLLMConfig,
+        hardware: &HardwareCapabilities,
     ) -> EmbeddedLLMConfig {
         // Adjust GPU layers based on VRAM
         config.n_gpu_layers = match hardware.recommended_tier {
@@ -349,7 +387,7 @@ impl EmbeddedLLMEngine {
             MemoryTier::High16GB => 45,
             MemoryTier::Ultra32GB => 50,
         };
-        
+
         // Adjust context size based on available memory
         config.context_size = match hardware.recommended_tier {
             MemoryTier::Cpu => 2048,
@@ -358,7 +396,7 @@ impl EmbeddedLLMEngine {
             MemoryTier::High16GB => 16384,
             MemoryTier::Ultra32GB => 32768,
         };
-        
+
         // Select optimal model
         config.default_model = match hardware.recommended_tier {
             MemoryTier::Cpu => "phi-2b-q4_k_m".to_string(),
@@ -367,92 +405,110 @@ impl EmbeddedLLMEngine {
             MemoryTier::High16GB => "qwen3-14b-q4_k_m".to_string(),
             MemoryTier::Ultra32GB => "qwen3-32b-q4_k_m".to_string(),
         };
-        
+
         config
     }
-    
+
     /// Select optimal inference backend
     async fn select_backend(
         config: &EmbeddedLLMConfig,
         hardware: &HardwareCapabilities,
     ) -> anyhow::Result<Box<dyn InferenceBackend>> {
-        let backend_name = config.preferred_backend.as_ref()
+        let backend_name = config
+            .preferred_backend
+            .as_ref()
             .unwrap_or(&hardware.recommended_backend);
-        
+
         match backend_name.as_str() {
             #[cfg(feature = "cuda")]
             "cuda" => Ok(Box::new(backends::CudaBackend::new()?)),
-            
+
             #[cfg(target_os = "macos")]
             "metal" => Ok(Box::new(backends::MetalBackend::new()?)),
-            
+
             "vulkan" => Ok(Box::new(backends::VulkanBackend::new()?)),
 
             _ => Ok(Box::new(backends::CpuBackend::new(config.n_threads))),
         }
     }
-    
+
     /// Ensure model is downloaded
-    pub async fn ensure_model_downloaded<F>(&self, model_name: &str, progress_callback: F) -> anyhow::Result<()> 
-    where F: Fn(f32) + Send + 'static {
+    pub async fn ensure_model_downloaded<F>(
+        &self,
+        model_name: &str,
+        progress_callback: F,
+    ) -> anyhow::Result<()>
+    where
+        F: Fn(f32) + Send + 'static,
+    {
         let mut manager = self.model_manager.write().await;
-        
+
         // Check if already has a path
         if let Ok(spec) = manager.get_spec(model_name) {
             if !spec.path.is_empty() && std::path::Path::new(&spec.path).exists() {
                 return Ok(());
             }
         }
-        
+
         // Download
-        manager.download_model(model_name, progress_callback).await?;
+        manager
+            .download_model(model_name, progress_callback)
+            .await?;
         Ok(())
     }
 
     /// Load a model into memory
     pub async fn load_model(&self, model_name: &str) -> anyhow::Result<()> {
         let mut loaded = self.loaded_models.write().await;
-        
+
         // Check if already loaded
         if loaded.contains_key(model_name) {
             return Ok(());
         }
-        
+
         // Check memory availability
         let model_spec = self.model_manager.read().await.get_spec(model_name)?;
-        self.memory_profiler.check_available(model_spec.size_bytes)?;
-        
+        self.memory_profiler
+            .check_available(model_spec.size_bytes)?;
+
         // Load model via backend
         let mut backend = self.backend.write().await;
         backend.load_model(&model_spec).await?;
-        
+
         // Track loaded model
-        loaded.insert(model_name.to_string(), ModelStatus {
-            name: model_name.to_string(),
-            loaded: true,
-            loading_progress: 1.0,
-            memory_used_mb: model_spec.size_bytes / (1024 * 1024),
-            backend: self.hardware.recommended_backend.clone(),
-            context_size: self.config.context_size,
-        });
-        
+        loaded.insert(
+            model_name.to_string(),
+            ModelStatus {
+                name: model_name.to_string(),
+                loaded: true,
+                loading_progress: 1.0,
+                memory_used_mb: model_spec.size_bytes / (1024 * 1024),
+                backend: self.hardware.recommended_backend.clone(),
+                context_size: self.config.context_size,
+            },
+        );
+
         log::info!("Model {} loaded successfully", model_name);
         Ok(())
     }
-    
+
     /// Unload a model from memory
     pub async fn unload_model(&self, model_name: &str) -> anyhow::Result<()> {
         let mut loaded = self.loaded_models.write().await;
-        
+
         if let Some(status) = loaded.remove(model_name) {
             let mut backend = self.backend.write().await;
             backend.unload_model(model_name).await?;
-            log::info!("Model {} unloaded (freed {} MB)", model_name, status.memory_used_mb);
+            log::info!(
+                "Model {} unloaded (freed {} MB)",
+                model_name,
+                status.memory_used_mb
+            );
         }
-        
+
         Ok(())
     }
-    
+
     /// Generate completion
     pub async fn complete(
         &mut self,
@@ -472,27 +528,30 @@ impl EmbeddedLLMEngine {
                 memory_used: 0,
             });
         }
-        
+
         // Ensure model is loaded
         let model_name = &self.config.default_model;
         if !self.loaded_models.read().await.contains_key(model_name) {
             self.load_model(model_name).await?;
         }
-        
+
         // Run inference
         let start = Instant::now();
         let mut backend = self.backend.write().await;
         let response = backend.infer(request).await?;
         let elapsed = start.elapsed();
-        
+
         // Cache result
-        self.context_cache.insert(cache_key, CachedContext {
-            response: response.text.clone(),
-            tokens: response.tokens_generated,
-            model: model_name.clone(),
-            timestamp: std::time::SystemTime::now(),
-        });
-        
+        self.context_cache.insert(
+            cache_key,
+            CachedContext {
+                response: response.text.clone(),
+                tokens: response.tokens_generated,
+                model: model_name.clone(),
+                timestamp: std::time::SystemTime::now(),
+            },
+        );
+
         // Update response with timing
         Ok(InferenceResponse {
             time_to_first_token_ms: response.time_to_first_token_ms,
@@ -502,7 +561,7 @@ impl EmbeddedLLMEngine {
             ..response
         })
     }
-    
+
     /// Stream completion with callback
     pub async fn complete_stream(
         &self,
@@ -517,9 +576,14 @@ impl EmbeddedLLMEngine {
 
         let start = Instant::now();
         let mut backend = self.backend.write().await;
-        let response = backend.infer_stream_boxed(request, Box::new(move |s: String| {
-            callback(&s);
-        })).await?;
+        let response = backend
+            .infer_stream_boxed(
+                request,
+                Box::new(move |s: String| {
+                    callback(&s);
+                }),
+            )
+            .await?;
         let elapsed = start.elapsed();
 
         Ok(InferenceResponse {
@@ -529,27 +593,27 @@ impl EmbeddedLLMEngine {
             ..response
         })
     }
-    
+
     /// Get hardware capabilities
     pub fn hardware(&self) -> &HardwareCapabilities {
         &self.hardware
     }
-    
+
     /// Get memory profiler
     pub fn memory_profiler(&self) -> &MemoryProfiler {
         &self.memory_profiler
     }
-    
+
     /// Get loaded models
     pub async fn loaded_models(&self) -> Vec<ModelStatus> {
         self.loaded_models.read().await.values().cloned().collect()
     }
-    
+
     /// Compute cache key for request
     fn compute_cache_key(&self, request: &InferenceRequest) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         request.prompt.hash(&mut hasher);
         request.max_tokens.hash(&mut hasher);

@@ -1,9 +1,9 @@
 //! Role-Based Access Control (RBAC)
-//! 
+//!
 //! Permission system for managing user capabilities
 //! Based on industry best practices for IDE collaboration
 
-use crate::auth::{UserRole, Permission};
+use crate::auth::{Permission, UserRole};
 
 /// Check if a role has a specific permission
 pub fn has_permission(role: &UserRole, permission: &Permission) -> bool {
@@ -63,21 +63,33 @@ pub fn has_permission(role: &UserRole, permission: &Permission) -> bool {
 /// Get all permissions for a role
 pub fn get_permissions(role: &UserRole) -> Vec<Permission> {
     use Permission::*;
-    
+
     match role {
         UserRole::Owner => vec![
-            FileRead, FileWrite, FileDelete, TerminalExecute,
-            ExtensionManage, CollaboratorInvite, CollaboratorRemove,
-            ProjectSettings, AIAccess, AdminAccess,
+            FileRead,
+            FileWrite,
+            FileDelete,
+            TerminalExecute,
+            ExtensionManage,
+            CollaboratorInvite,
+            CollaboratorRemove,
+            ProjectSettings,
+            AIAccess,
+            AdminAccess,
         ],
         UserRole::Admin => vec![
-            FileRead, FileWrite, FileDelete, TerminalExecute,
-            ExtensionManage, CollaboratorInvite, CollaboratorRemove,
-            ProjectSettings, AIAccess, AdminAccess,
+            FileRead,
+            FileWrite,
+            FileDelete,
+            TerminalExecute,
+            ExtensionManage,
+            CollaboratorInvite,
+            CollaboratorRemove,
+            ProjectSettings,
+            AIAccess,
+            AdminAccess,
         ],
-        UserRole::Editor => vec![
-            FileRead, FileWrite, FileDelete, TerminalExecute, AIAccess,
-        ],
+        UserRole::Editor => vec![FileRead, FileWrite, FileDelete, TerminalExecute, AIAccess],
         UserRole::Viewer => vec![FileRead, AIAccess],
         UserRole::Guest => vec![FileRead],
     }
@@ -171,13 +183,22 @@ mod tests {
     fn test_viewer_permissions() {
         assert!(has_permission(&UserRole::Viewer, &Permission::FileRead));
         assert!(!has_permission(&UserRole::Viewer, &Permission::FileWrite));
-        assert!(!has_permission(&UserRole::Viewer, &Permission::TerminalExecute));
+        assert!(!has_permission(
+            &UserRole::Viewer,
+            &Permission::TerminalExecute
+        ));
     }
 
     #[test]
     fn test_editor_permissions() {
         assert!(has_permission(&UserRole::Editor, &Permission::FileWrite));
-        assert!(has_permission(&UserRole::Editor, &Permission::TerminalExecute));
-        assert!(!has_permission(&UserRole::Editor, &Permission::CollaboratorInvite));
+        assert!(has_permission(
+            &UserRole::Editor,
+            &Permission::TerminalExecute
+        ));
+        assert!(!has_permission(
+            &UserRole::Editor,
+            &Permission::CollaboratorInvite
+        ));
     }
 }

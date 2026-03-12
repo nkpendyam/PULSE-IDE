@@ -28,7 +28,9 @@ impl Repository {
 
     /// Get the repository status
     pub fn status(&self) -> KyroResult<Vec<String>> {
-        let statuses = self.repo.statuses(None)
+        let statuses = self
+            .repo
+            .statuses(None)
             .map_err(|e| KyroError::git(format!("Failed to get status: {}", e)))?;
 
         let mut result = Vec::new();
@@ -43,13 +45,17 @@ impl Repository {
 
     /// Stage a file
     pub fn stage(&self, path: &Path) -> KyroResult<()> {
-        let mut index = self.repo.index()
+        let mut index = self
+            .repo
+            .index()
             .map_err(|e| KyroError::git(format!("Failed to get index: {}", e)))?;
 
-        index.add_path(path)
+        index
+            .add_path(path)
             .map_err(|e| KyroError::git(format!("Failed to stage file: {}", e)))?;
 
-        index.write()
+        index
+            .write()
             .map_err(|e| KyroError::git(format!("Failed to write index: {}", e)))?;
 
         Ok(())
@@ -57,19 +63,28 @@ impl Repository {
 
     /// Commit changes
     pub fn commit(&self, message: &str) -> KyroResult<String> {
-        let mut index = self.repo.index()
+        let mut index = self
+            .repo
+            .index()
             .map_err(|e| KyroError::git(format!("Failed to get index: {}", e)))?;
 
-        let tree_id = index.write_tree()
+        let tree_id = index
+            .write_tree()
             .map_err(|e| KyroError::git(format!("Failed to write tree: {}", e)))?;
 
-        let tree = self.repo.find_tree(tree_id)
+        let tree = self
+            .repo
+            .find_tree(tree_id)
             .map_err(|e| KyroError::git(format!("Failed to find tree: {}", e)))?;
 
-        let signature = self.repo.signature()
+        let signature = self
+            .repo
+            .signature()
             .map_err(|e| KyroError::git(format!("Failed to get signature: {}", e)))?;
 
-        let parent_commit = self.repo.head()
+        let parent_commit = self
+            .repo
+            .head()
             .ok()
             .and_then(|head| head.peel_to_commit().ok());
 
@@ -79,14 +94,17 @@ impl Repository {
             vec![]
         };
 
-        let oid = self.repo.commit(
-            Some("HEAD"),
-            &signature,
-            &signature,
-            message,
-            &tree,
-            &parents,
-        ).map_err(|e| KyroError::git(format!("Failed to commit: {}", e)))?;
+        let oid = self
+            .repo
+            .commit(
+                Some("HEAD"),
+                &signature,
+                &signature,
+                message,
+                &tree,
+                &parents,
+            )
+            .map_err(|e| KyroError::git(format!("Failed to commit: {}", e)))?;
 
         Ok(oid.to_string())
     }

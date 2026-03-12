@@ -7,6 +7,8 @@
 //! - Common traits and interfaces
 //! - Async runtime configuration
 
+#![allow(dead_code, unused_variables, unused_imports)]
+
 pub mod error;
 pub mod registry;
 pub mod runtime;

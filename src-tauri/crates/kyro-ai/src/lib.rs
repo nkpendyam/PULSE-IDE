@@ -3,8 +3,10 @@
 //! Provides the AI orchestration layer for autonomous coding,
 //! including mission control and agent coordination.
 
-pub mod orchestrator;
-pub mod agent;
+#![allow(dead_code, unused_variables, unused_imports)]
 
-pub use orchestrator::Orchestrator;
+pub mod agent;
+pub mod orchestrator;
+
 pub use agent::{Agent, AgentRole, AgentStatus};
+pub use orchestrator::Orchestrator;

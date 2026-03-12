@@ -25,14 +25,14 @@ impl MCPServer {
             prompts: Arc::new(RwLock::new(PromptRegistry::new())),
             initialized: false,
         };
-        
+
         server.register_builtin_tools();
         server.register_builtin_resources();
         server.register_builtin_prompts();
-        
+
         server
     }
-    
+
     /// Register built-in tools
     fn register_builtin_tools(&mut self) {
         // Note: In production, these tools would be registered with actual implementations
@@ -288,17 +288,16 @@ impl MCPServer {
 
         log::info!("Registered {} builtin tools", registry.len());
     }
-    
+
     /// Register built-in resources
     fn register_builtin_resources(&mut self) {
         // Would register file://, project://, etc. resources
         log::info!("Registered builtin resources");
     }
-    
+
     /// Register built-in prompts
     fn register_builtin_prompts(&mut self) {
-        let prompts = vec![
-            prompts::PromptTemplate::new(
+        let prompts = [prompts::PromptTemplate::new(
                 "code_review",
                 "Perform a code review",
                 vec![
@@ -310,7 +309,7 @@ impl MCPServer {
                 ],
                 "Review the code in {{file_path}} for:\n1. Security issues\n2. Performance\n3. Best practices\n4. Bugs",
             ),
-            
+
             prompts::PromptTemplate::new(
                 "generate_tests",
                 "Generate tests for code",
@@ -328,7 +327,7 @@ impl MCPServer {
                 ],
                 "Generate comprehensive tests for {{file_path}} using {{framework}}",
             ),
-            
+
             prompts::PromptTemplate::new(
                 "explain_code",
                 "Explain how code works",
@@ -341,7 +340,7 @@ impl MCPServer {
                 ],
                 "Explain this code in simple terms:\n\n{{code}}",
             ),
-            
+
             prompts::PromptTemplate::new(
                 "refactor",
                 "Refactor code for improvement",
@@ -358,16 +357,18 @@ impl MCPServer {
                     },
                 ],
                 "Refactor this code{{#if goal}} to {{goal}}{{/if}}:\n\n{{code}}",
-            ),
-        ];
-        
+            )];
+
         log::info!("Registered {} builtin prompts", prompts.len());
     }
-    
+
     /// Handle MCP request
-    pub async fn handle_request(&mut self, request: MCPRequest) -> anyhow::Result<MCPResponse<serde_json::Value>> {
+    pub async fn handle_request(
+        &mut self,
+        request: MCPRequest,
+    ) -> anyhow::Result<MCPResponse<serde_json::Value>> {
         match request {
-            MCPRequest::Initialize { params } => {
+            MCPRequest::Initialize { params: _ } => {
                 self.initialized = true;
                 Ok(MCPResponse {
                     result: Some(serde_json::to_value(InitializeResult {
@@ -389,10 +390,11 @@ impl MCPServer {
                     error: None,
                 })
             }
-            
+
             MCPRequest::ListTools { params: _ } => {
                 let tools = self.tools.read().await;
-                let definitions: Vec<ToolDefinition> = tools.list()
+                let definitions: Vec<ToolDefinition> = tools
+                    .list()
                     .iter()
                     .map(|t| ToolDefinition {
                         name: t.name.clone(),
@@ -400,7 +402,7 @@ impl MCPServer {
                         input_schema: t.input_schema.clone(),
                     })
                     .collect();
-                
+
                 Ok(MCPResponse {
                     result: Some(serde_json::to_value(ListToolsResult {
                         tools: definitions,
@@ -409,30 +411,35 @@ impl MCPServer {
                     error: None,
                 })
             }
-            
+
             MCPRequest::CallTool { params } => {
                 let tools = self.tools.read().await;
                 match tools.call(&params.name, params.arguments).await {
                     Ok(result) => Ok(MCPResponse {
                         result: Some(serde_json::to_value(CallToolResult {
-                            content: vec![ContentBlock::Text { text: serde_json::to_string(&result)? }],
+                            content: vec![ContentBlock::Text {
+                                text: serde_json::to_string(&result)?,
+                            }],
                             is_error: false,
                         })?),
                         error: None,
                     }),
                     Err(e) => Ok(MCPResponse {
                         result: Some(serde_json::to_value(CallToolResult {
-                            content: vec![ContentBlock::Text { text: e.to_string() }],
+                            content: vec![ContentBlock::Text {
+                                text: e.to_string(),
+                            }],
                             is_error: true,
                         })?),
                         error: None,
                     }),
                 }
             }
-            
+
             MCPRequest::ListResources { params: _ } => {
                 let resources = self.resources.read().await;
-                let definitions: Vec<ResourceDefinition> = resources.list()
+                let definitions: Vec<ResourceDefinition> = resources
+                    .list()
                     .iter()
                     .map(|r| ResourceDefinition {
                         uri: r.uri.clone(),
@@ -441,7 +448,7 @@ impl MCPServer {
                         mime_type: r.mime_type.clone(),
                     })
                     .collect();
-                
+
                 Ok(MCPResponse {
                     result: Some(serde_json::to_value(ListResourcesResult {
                         resources: definitions,
@@ -450,7 +457,7 @@ impl MCPServer {
                     error: None,
                 })
             }
-            
+
             MCPRequest::ReadResource { params } => {
                 let resources = self.resources.read().await;
                 match resources.read(&params.uri).await {
@@ -470,10 +477,11 @@ impl MCPServer {
                     }),
                 }
             }
-            
+
             MCPRequest::ListPrompts { params: _ } => {
                 let prompts = self.prompts.read().await;
-                let definitions: Vec<PromptDefinition> = prompts.list()
+                let definitions: Vec<PromptDefinition> = prompts
+                    .list()
                     .iter()
                     .map(|p| PromptDefinition {
                         name: p.name.clone(),
@@ -481,7 +489,7 @@ impl MCPServer {
                         arguments: p.arguments.clone(),
                     })
                     .collect();
-                
+
                 Ok(MCPResponse {
                     result: Some(serde_json::to_value(ListPromptsResult {
                         prompts: definitions,
@@ -490,7 +498,7 @@ impl MCPServer {
                     error: None,
                 })
             }
-            
+
             MCPRequest::GetPrompt { params } => {
                 let prompts = self.prompts.read().await;
                 match prompts.get(&params.name) {
@@ -510,7 +518,7 @@ impl MCPServer {
             }
         }
     }
-    
+
     /// Get server capabilities
     pub fn capabilities(&self) -> ServerCapabilities {
         ServerCapabilities {
@@ -524,4 +532,3 @@ impl MCPServer {
         }
     }
 }
-

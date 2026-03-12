@@ -14,7 +14,9 @@ pub struct CommandRegistry {
 
 impl CommandRegistry {
     pub fn new() -> Self {
-        Self { commands: HashMap::new() }
+        Self {
+            commands: HashMap::new(),
+        }
     }
 
     /// Register a command
@@ -34,5 +36,7 @@ impl CommandRegistry {
 }
 
 impl Default for CommandRegistry {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

@@ -3,9 +3,9 @@
 //! Handles real-time streaming of LLM responses to the frontend
 
 use super::*;
-use tokio::sync::mpsc::{channel, Sender, Receiver};
 use anyhow::Result;
 use std::sync::Arc;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::RwLock;
 
 /// Streaming responder for real-time responses
@@ -82,14 +82,16 @@ impl StreamingResponder {
             }
 
             // Send final chunk
-            let _ = sender.send(StreamChunk {
-                session_id,
-                message_id,
-                delta: String::new(),
-                is_thinking: false,
-                is_done: true,
-                rag_sources: vec![],
-            }).await;
+            let _ = sender
+                .send(StreamChunk {
+                    session_id,
+                    message_id,
+                    delta: String::new(),
+                    is_thinking: false,
+                    is_done: true,
+                    rag_sources: vec![],
+                })
+                .await;
         });
 
         Ok(())
@@ -104,7 +106,11 @@ impl StreamingResponder {
 
     /// Check if stream is active
     pub async fn is_stream_active(&self, message_id: &str) -> bool {
-        self.active_streams.read().await.iter().any(|id| id.as_str() == message_id)
+        self.active_streams
+            .read()
+            .await
+            .iter()
+            .any(|id| id.as_str() == message_id)
     }
 
     /// Get all active streams

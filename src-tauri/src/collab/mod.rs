@@ -5,20 +5,19 @@
 //! - WebSocket for real-time communication
 //! - Awareness protocol for presence
 
-pub mod sync;
 pub mod awareness;
 pub mod document;
+pub mod sync;
 
+use anyhow::Result;
+use log::info;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock, broadcast};
-use serde::{Deserialize, Serialize};
-use anyhow::{Result, Context};
-use log::{debug, info, warn, error};
+use tokio::sync::{broadcast, mpsc, RwLock};
 
-pub use sync::*;
 pub use awareness::*;
-
+pub use sync::*;
 
 /// Collaboration room
 #[derive(Clone)]
@@ -88,17 +87,33 @@ pub enum CollabMessage {
     #[serde(rename = "sync")]
     Sync { room_id: String, data: SyncMessage },
     #[serde(rename = "awareness")]
-    Awareness { room_id: String, data: AwarenessMessage },
+    Awareness {
+        room_id: String,
+        data: AwarenessMessage,
+    },
     #[serde(rename = "join")]
     Join { room_id: String, user: CollabUser },
     #[serde(rename = "leave")]
     Leave { room_id: String, user_id: String },
     #[serde(rename = "cursor")]
-    Cursor { room_id: String, user_id: String, cursor: CursorPosition },
+    Cursor {
+        room_id: String,
+        user_id: String,
+        cursor: CursorPosition,
+    },
     #[serde(rename = "selection")]
-    Selection { room_id: String, user_id: String, selection: SelectionRange },
+    Selection {
+        room_id: String,
+        user_id: String,
+        selection: SelectionRange,
+    },
     #[serde(rename = "chat")]
-    Chat { room_id: String, user_id: String, message: String, timestamp: u64 },
+    Chat {
+        room_id: String,
+        user_id: String,
+        message: String,
+        timestamp: u64,
+    },
 }
 
 /// Sync message from Yjs
@@ -128,7 +143,7 @@ impl CollabManager {
     pub fn new(user_id: String, user_name: String) -> Self {
         let (message_tx, message_rx) = mpsc::channel(256);
         let (broadcast_tx, _) = broadcast::channel(256);
-        
+
         let local_user = CollabUser {
             id: user_id,
             name: user_name,
@@ -140,7 +155,7 @@ impl CollabManager {
                 .map(|d| d.as_secs())
                 .unwrap_or(0),
         };
-        
+
         Self {
             rooms: HashMap::new(),
             local_user,
@@ -149,20 +164,19 @@ impl CollabManager {
             broadcast_tx,
         }
     }
-    
+
     fn generate_user_color() -> String {
         let colors = [
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
-            "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
             "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1",
         ];
-        use std::hash::{Hash, Hasher, DefaultHasher};
+        use std::hash::{DefaultHasher, Hash, Hasher};
         let mut hasher = DefaultHasher::new();
         std::time::SystemTime::now().hash(&mut hasher);
         let idx = hasher.finish() as usize % colors.len();
         colors[idx].to_string()
     }
-    
+
     /// Create or join a room
     pub async fn join_room(&mut self, room_id: &str) -> Result<&CollabRoom> {
         if !self.rooms.contains_key(room_id) {
@@ -170,43 +184,47 @@ impl CollabManager {
             self.rooms.insert(room_id.to_string(), room);
             info!("Created room: {}", room_id);
         }
-        
-        let room = self.rooms.get_mut(room_id)
+
+        let room = self
+            .rooms
+            .get_mut(room_id)
             .ok_or_else(|| anyhow::anyhow!("Failed to get room after creation"))?;
-        room.users.insert(self.local_user.id.clone(), self.local_user.clone());
-        
+        room.users
+            .insert(self.local_user.id.clone(), self.local_user.clone());
+
         // Broadcast join
         let _ = self.broadcast_tx.send(CollabMessage::Join {
             room_id: room_id.to_string(),
             user: self.local_user.clone(),
         });
-        
-        self.rooms.get(room_id)
+
+        self.rooms
+            .get(room_id)
             .ok_or_else(|| anyhow::anyhow!("Room not found after join"))
     }
-    
+
     /// Leave a room
     pub async fn leave_room(&mut self, room_id: &str) -> Result<()> {
         if let Some(room) = self.rooms.get_mut(room_id) {
             room.users.remove(&self.local_user.id);
-            
+
             // Broadcast leave
             let _ = self.broadcast_tx.send(CollabMessage::Leave {
                 room_id: room_id.to_string(),
                 user_id: self.local_user.id.clone(),
             });
         }
-        
+
         if let Some(room) = self.rooms.get(room_id) {
             if room.users.is_empty() {
                 self.rooms.remove(room_id);
                 info!("Removed empty room: {}", room_id);
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Update cursor position
     pub async fn update_cursor(&mut self, room_id: &str, cursor: CursorPosition) -> Result<()> {
         if let Some(room) = self.rooms.get_mut(room_id) {
@@ -217,50 +235,54 @@ impl CollabManager {
                     .map(|d| d.as_secs())
                     .unwrap_or(0);
             }
-            
+
             // Update awareness
             let mut awareness = room.awareness.write().await;
             awareness.set_local_state_field("cursor", serde_json::to_value(&cursor)?);
         }
-        
+
         // Broadcast cursor update
         let _ = self.broadcast_tx.send(CollabMessage::Cursor {
             room_id: room_id.to_string(),
             user_id: self.local_user.id.clone(),
             cursor,
         });
-        
+
         Ok(())
     }
-    
+
     /// Update selection
-    pub async fn update_selection(&mut self, room_id: &str, selection: SelectionRange) -> Result<()> {
+    pub async fn update_selection(
+        &mut self,
+        room_id: &str,
+        selection: SelectionRange,
+    ) -> Result<()> {
         if let Some(room) = self.rooms.get_mut(room_id) {
             if let Some(user) = room.users.get_mut(&self.local_user.id) {
                 user.selection = Some(selection.clone());
             }
-            
+
             // Update awareness
             let mut awareness = room.awareness.write().await;
             awareness.set_local_state_field("selection", serde_json::to_value(&selection)?);
         }
-        
+
         // Broadcast selection update
         let _ = self.broadcast_tx.send(CollabMessage::Selection {
             room_id: room_id.to_string(),
             user_id: self.local_user.id.clone(),
             selection,
         });
-        
+
         Ok(())
     }
-    
+
     /// Apply text update to document
     pub async fn apply_update(&mut self, room_id: &str, update: &[u8]) -> Result<()> {
         if let Some(room) = self.rooms.get(room_id) {
             let mut doc = room.document.write().await;
             doc.apply_update(update)?;
-            
+
             // Broadcast sync
             let _ = self.message_tx.send(CollabMessage::Sync {
                 room_id: room_id.to_string(),
@@ -270,10 +292,10 @@ impl CollabManager {
                 },
             });
         }
-        
+
         Ok(())
     }
-    
+
     /// Get document content
     pub async fn get_document_content(&self, room_id: &str) -> Option<String> {
         if let Some(room) = self.rooms.get(room_id) {
@@ -283,22 +305,24 @@ impl CollabManager {
             None
         }
     }
-    
+
     /// Get room users
     pub fn get_room_users(&self, room_id: &str) -> Option<Vec<CollabUser>> {
-        self.rooms.get(room_id).map(|r| r.users.values().cloned().collect())
+        self.rooms
+            .get(room_id)
+            .map(|r| r.users.values().cloned().collect())
     }
-    
+
     /// Get message receiver
     pub fn take_message_receiver(&mut self) -> Option<mpsc::Receiver<CollabMessage>> {
         self.message_rx.take()
     }
-    
+
     /// Subscribe to broadcast messages
     pub fn subscribe(&self) -> broadcast::Receiver<CollabMessage> {
         self.broadcast_tx.subscribe()
     }
-    
+
     /// Handle incoming message
     pub async fn handle_message(&mut self, msg: CollabMessage) -> Result<()> {
         match msg {
@@ -322,19 +346,27 @@ impl CollabManager {
             CollabMessage::Leave { room_id, user_id } => {
                 if let Some(room) = self.rooms.get_mut(&room_id) {
                     room.users.remove(&user_id);
-                    
+
                     let mut awareness = room.awareness.write().await;
                     awareness.remove_state(&user_id);
                 }
             }
-            CollabMessage::Cursor { room_id, user_id, cursor } => {
+            CollabMessage::Cursor {
+                room_id,
+                user_id,
+                cursor,
+            } => {
                 if let Some(room) = self.rooms.get_mut(&room_id) {
                     if let Some(user) = room.users.get_mut(&user_id) {
                         user.cursor = Some(cursor);
                     }
                 }
             }
-            CollabMessage::Selection { room_id, user_id, selection } => {
+            CollabMessage::Selection {
+                room_id,
+                user_id,
+                selection,
+            } => {
                 if let Some(room) = self.rooms.get_mut(&room_id) {
                     if let Some(user) = room.users.get_mut(&user_id) {
                         user.selection = Some(selection);
@@ -345,11 +377,10 @@ impl CollabManager {
                 // Handle chat messages
             }
         }
-        
+
         Ok(())
     }
 }
 
 /// Shared collaboration manager
 pub type SharedCollabManager = Arc<RwLock<CollabManager>>;
-

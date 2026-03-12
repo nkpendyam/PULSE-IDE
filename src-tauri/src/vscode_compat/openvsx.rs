@@ -5,7 +5,7 @@
 //!
 //! Based on: https://github.com/eclipse/openvsx
 
-use anyhow::{Result, Context, bail};
+use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -172,8 +172,9 @@ impl OpenVsxClient {
         }
 
         let url = format!("{}/-/search", self.api_url);
-        
-        let response = self.client
+
+        let response = self
+            .client
             .get(&url)
             .query(&params)
             .header("Accept", "application/json")
@@ -185,54 +186,73 @@ impl OpenVsxClient {
             bail!("Open VSX query failed: {}", response.status());
         }
 
-        let search_response: SearchResponse = response.json().await
+        let search_response: SearchResponse = response
+            .json()
+            .await
             .context("Failed to parse Open VSX response")?;
 
-        let extensions: Vec<_> = search_response.extensions.into_iter().map(|ext| {
-            let namespace_clone = ext.namespace.clone();
-            OpenVsxExtension {
-                namespace: ext.namespace,
-                name: ext.name,
-                version: ext.version,
-                display_name: ext.display_name,
-                description: ext.description,
-                publisher: OpenVsxPublisher {
-                    name: namespace_clone,
-                    verified: false,
-                },
-                files: OpenVsxFiles {
-                    download: ext.files.as_ref().and_then(|f| f.download.clone()),
-                    icon: ext.files.as_ref().and_then(|f| f.icon.clone()),
-                    readme: ext.files.as_ref().and_then(|f| f.readme.clone()),
-                    license: None,
-                },
-                statistics: OpenVsxStatistics {
-                    download_count: ext.statistics.as_ref().map(|s| s.download_count).unwrap_or(0),
+        let extensions: Vec<_> = search_response
+            .extensions
+            .into_iter()
+            .map(|ext| {
+                let namespace_clone = ext.namespace.clone();
+                OpenVsxExtension {
+                    namespace: ext.namespace,
+                    name: ext.name,
+                    version: ext.version,
+                    display_name: ext.display_name,
+                    description: ext.description,
+                    publisher: OpenVsxPublisher {
+                        name: namespace_clone,
+                        verified: false,
+                    },
+                    files: OpenVsxFiles {
+                        download: ext.files.as_ref().and_then(|f| f.download.clone()),
+                        icon: ext.files.as_ref().and_then(|f| f.icon.clone()),
+                        readme: ext.files.as_ref().and_then(|f| f.readme.clone()),
+                        license: None,
+                    },
+                    statistics: OpenVsxStatistics {
+                        download_count: ext
+                            .statistics
+                            .as_ref()
+                            .map(|s| s.download_count)
+                            .unwrap_or(0),
+                        review_count: 0,
+                        average_rating: None,
+                    },
+                    categories: ext.categories,
+                    tags: ext.tags,
+                    license: ext.license,
+                    repository: ext.repository,
+                    homepage: None,
+                    bug_tracker: None,
+                    readme: None,
+                    download_count: ext
+                        .statistics
+                        .as_ref()
+                        .map(|s| s.download_count)
+                        .unwrap_or(0),
                     review_count: 0,
                     average_rating: None,
-                },
-                categories: ext.categories,
-                tags: ext.tags,
-                license: ext.license,
-                repository: ext.repository,
-                homepage: None,
-                bug_tracker: None,
-                readme: None,
-                download_count: ext.statistics.as_ref().map(|s| s.download_count).unwrap_or(0),
-                review_count: 0,
-                average_rating: None,
-            }
-        }).collect();
+                }
+            })
+            .collect();
 
         log::info!("Found {} extensions from Open VSX", extensions.len());
         Ok(extensions)
     }
 
     /// Get extension by namespace and name
-    pub async fn get_extension(&self, namespace: &str, name: &str) -> Result<Option<OpenVsxExtension>> {
+    pub async fn get_extension(
+        &self,
+        namespace: &str,
+        name: &str,
+    ) -> Result<Option<OpenVsxExtension>> {
         let url = format!("{}/{}/{}", self.api_url, namespace, name);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -266,7 +286,11 @@ impl OpenVsxClient {
                 license: None,
             },
             statistics: OpenVsxStatistics {
-                download_count: ext_data.statistics.as_ref().map(|s| s.download_count).unwrap_or(0),
+                download_count: ext_data
+                    .statistics
+                    .as_ref()
+                    .map(|s| s.download_count)
+                    .unwrap_or(0),
                 review_count: 0,
                 average_rating: None,
             },
@@ -277,7 +301,11 @@ impl OpenVsxClient {
             homepage: None,
             bug_tracker: None,
             readme: None,
-            download_count: ext_data.statistics.as_ref().map(|s| s.download_count).unwrap_or(0),
+            download_count: ext_data
+                .statistics
+                .as_ref()
+                .map(|s| s.download_count)
+                .unwrap_or(0),
             review_count: 0,
             average_rating: None,
         }))
@@ -292,7 +320,8 @@ impl OpenVsxClient {
     ) -> Result<Option<OpenVsxExtension>> {
         let url = format!("{}/{}/{}/{}", self.api_url, namespace, name, version);
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/json")
             .send()
@@ -326,7 +355,11 @@ impl OpenVsxClient {
                 license: None,
             },
             statistics: OpenVsxStatistics {
-                download_count: ext_data.statistics.as_ref().map(|s| s.download_count).unwrap_or(0),
+                download_count: ext_data
+                    .statistics
+                    .as_ref()
+                    .map(|s| s.download_count)
+                    .unwrap_or(0),
                 review_count: 0,
                 average_rating: None,
             },
@@ -337,7 +370,11 @@ impl OpenVsxClient {
             homepage: None,
             bug_tracker: None,
             readme: None,
-            download_count: ext_data.statistics.as_ref().map(|s| s.download_count).unwrap_or(0),
+            download_count: ext_data
+                .statistics
+                .as_ref()
+                .map(|s| s.download_count)
+                .unwrap_or(0),
             review_count: 0,
             average_rating: None,
         }))
@@ -350,14 +387,20 @@ impl OpenVsxClient {
         name: &str,
         version: &str,
     ) -> Result<PathBuf> {
-        log::info!("Downloading Open VSX extension: {}/{}@{}", namespace, name, version);
+        log::info!(
+            "Downloading Open VSX extension: {}/{}@{}",
+            namespace,
+            name,
+            version
+        );
 
         let url = format!(
             "{}/{}/{}/{}?targetPlatform=universal",
             self.api_url, namespace, name, version
         );
 
-        let response = self.client
+        let response = self
+            .client
             .get(&url)
             .header("Accept", "application/octet-stream")
             .send()
@@ -383,7 +426,8 @@ impl OpenVsxClient {
     pub async fn download_from_url(&self, url: &str) -> Result<PathBuf> {
         log::info!("Downloading extension from URL: {}", url);
 
-        let response = self.client
+        let response = self
+            .client
             .get(url)
             .send()
             .await
@@ -394,9 +438,7 @@ impl OpenVsxClient {
         }
 
         // Extract filename from URL
-        let filename = url.split('/')
-            .last()
-            .unwrap_or("extension.vsix");
+        let filename = url.split('/').next_back().unwrap_or("extension.vsix");
 
         let temp_dir = std::env::temp_dir();
         let vsix_path = temp_dir.join(filename);
@@ -421,7 +463,11 @@ impl OpenVsxClient {
     }
 
     /// Get extensions by category
-    pub async fn get_by_category(&self, category: &str, count: u32) -> Result<Vec<OpenVsxExtension>> {
+    pub async fn get_by_category(
+        &self,
+        category: &str,
+        count: u32,
+    ) -> Result<Vec<OpenVsxExtension>> {
         let query = OpenVsxQuery {
             category: Some(category.to_string()),
             size: count,
@@ -432,7 +478,11 @@ impl OpenVsxClient {
     }
 
     /// Get extensions by namespace (publisher)
-    pub async fn get_by_namespace(&self, namespace: &str, count: u32) -> Result<Vec<OpenVsxExtension>> {
+    pub async fn get_by_namespace(
+        &self,
+        namespace: &str,
+        count: u32,
+    ) -> Result<Vec<OpenVsxExtension>> {
         let query = OpenVsxQuery {
             namespace: Some(namespace.to_string()),
             size: count,
@@ -471,7 +521,7 @@ mod tests {
     #[ignore]
     async fn test_get_extension() {
         let client = OpenVsxClient::new();
-        
+
         // Test with a known extension
         let ext = client.get_extension("vscodevim", "vim").await.unwrap();
         assert!(ext.is_some());

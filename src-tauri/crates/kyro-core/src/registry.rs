@@ -59,7 +59,7 @@ impl ServiceRegistry {
     pub fn register<T: Service>(&self, service: T) -> KyroResult<()> {
         let type_id = TypeId::of::<T>();
         let name = service.name().to_string();
-        
+
         if self.services.contains_key(&type_id) {
             return Err(KyroError::service_init_failed(format!(
                 "Service {} already registered",
@@ -69,7 +69,7 @@ impl ServiceRegistry {
 
         self.services.insert(type_id, Arc::new(service));
         self.service_names.insert(type_id, name.clone());
-        
+
         log::info!("Registered service: {}", name);
         Ok(())
     }
@@ -78,7 +78,7 @@ impl ServiceRegistry {
     pub fn register_arc<T: Service>(&self, service: Arc<T>) -> KyroResult<()> {
         let type_id = TypeId::of::<T>();
         let name = service.name().to_string();
-        
+
         if self.services.contains_key(&type_id) {
             return Err(KyroError::service_init_failed(format!(
                 "Service {} already registered",
@@ -88,7 +88,7 @@ impl ServiceRegistry {
 
         self.services.insert(type_id, service);
         self.service_names.insert(type_id, name.clone());
-        
+
         log::info!("Registered service (Arc): {}", name);
         Ok(())
     }
@@ -101,11 +101,12 @@ impl ServiceRegistry {
     /// ```
     pub fn get<T: Service>(&self) -> KyroResult<Arc<T>> {
         let type_id = TypeId::of::<T>();
-        
+
         self.services
             .get(&type_id)
             .ok_or_else(|| {
-                let name = self.service_names
+                let name = self
+                    .service_names
                     .get(&type_id)
                     .map(|n| n.value().clone())
                     .unwrap_or_else(|| std::any::type_name::<T>().to_string());
@@ -123,7 +124,7 @@ impl ServiceRegistry {
     /// Try to get a service, returning None if not found
     pub fn try_get<T: Service>(&self) -> Option<Arc<T>> {
         let type_id = TypeId::of::<T>();
-        
+
         self.services
             .get(&type_id)
             .and_then(|service| service.value().clone().downcast::<T>().ok())
@@ -138,7 +139,7 @@ impl ServiceRegistry {
     /// Remove a service from the registry
     pub fn remove<T: Service>(&self) -> Option<Arc<T>> {
         let type_id = TypeId::of::<T>();
-        
+
         self.services
             .remove(&type_id)
             .and_then(|(_, service)| service.downcast::<T>().ok())
@@ -165,30 +166,30 @@ impl ServiceRegistry {
     /// Initialize all registered services
     pub async fn init_all(&self) -> KyroResult<()> {
         log::info!("Initializing {} services...", self.len());
-        
+
         // Note: We can't easily call init() on trait objects without additional infrastructure
         // This would require storing mutable references or using interior mutability
         // For now, services should be initialized before registration
-        
+
         Ok(())
     }
 
     /// Shutdown all registered services
     pub async fn shutdown_all(&self) -> KyroResult<()> {
         log::info!("Shutting down {} services...", self.len());
-        
+
         // Note: Same limitation as init_all
         // Services should handle their own cleanup in Drop implementations
-        
+
         Ok(())
     }
 
     /// Perform health checks on all services
     pub async fn health_check_all(&self) -> KyroResult<Vec<(String, KyroResult<()>)>> {
-        let mut results = Vec::new();
-        
+        let results = Vec::new();
+
         // Note: Same limitation - would need additional infrastructure for trait object method calls
-        
+
         Ok(results)
     }
 }
@@ -223,7 +224,7 @@ mod tests {
 
         registry.register(service).unwrap();
         assert!(registry.has::<TestService>());
-        
+
         let retrieved = registry.get::<TestService>().unwrap();
         assert_eq!(retrieved.name(), "test");
     }

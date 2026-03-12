@@ -1,10 +1,10 @@
 //! Collaboration Manager - Manages collaboration rooms
 
-use kyro_core::{KyroError, KyroResult, Service};
+use crate::room::{Room, RoomId};
 use async_trait::async_trait;
 use dashmap::DashMap;
+use kyro_core::{KyroError, KyroResult, Service};
 use std::sync::Arc;
-use crate::room::{Room, RoomId};
 
 /// Collaboration Manager service
 pub struct CollaborationManager {
@@ -23,10 +23,10 @@ impl CollaborationManager {
     pub async fn create_room(&self, name: String) -> KyroResult<RoomId> {
         let room = Room::new(name);
         let id = room.id();
-        
+
         self.rooms.insert(id, Arc::new(room));
         log::info!("Created collaboration room: {}", id);
-        
+
         Ok(id)
     }
 
@@ -85,7 +85,7 @@ mod tests {
     async fn test_collaboration_manager() {
         let manager = CollaborationManager::new();
         let id = manager.create_room("Test Room".to_string()).await.unwrap();
-        
+
         let room = manager.get_room(id).unwrap();
         assert_eq!(room.name(), "Test Room");
     }

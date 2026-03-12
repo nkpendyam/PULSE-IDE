@@ -1,7 +1,6 @@
-
 pub struct VsCodeApi;
 // VS Code Extension API Compatibility Layer
-// 
+//
 // Implements the vscode namespace for extension compatibility
 // Based on: https://code.visualstudio.com/api/references/vscode-api
 
@@ -10,10 +9,10 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 pub mod commands;
+pub mod debug;
+pub mod languages;
 pub mod window;
 pub mod workspace;
-pub mod languages;
-pub mod debug;
 
 /// VS Code Extension Context
 #[derive(Debug, Clone)]
@@ -117,13 +116,16 @@ impl TextDocument {
             let lines: Vec<&str> = self.content.lines().collect();
             let start_line = r.start.line as usize;
             let end_line = r.end.line as usize;
-            
+
             if start_line < lines.len() && end_line < lines.len() {
                 if start_line == end_line {
                     let line = lines[start_line];
                     let start_char = r.start.character as usize;
                     let end_char = r.end.character as usize;
-                    line.chars().skip(start_char).take(end_char - start_char).collect()
+                    line.chars()
+                        .skip(start_char)
+                        .take(end_char - start_char)
+                        .collect()
                 } else {
                     // Multi-line range
                     let mut result = String::new();
@@ -257,7 +259,7 @@ impl Default for TextEditorOptions {
 fn apply_edit(content: &str, edit: &TextEdit) -> String {
     let lines: Vec<&str> = content.lines().collect();
     let mut result = String::new();
-    
+
     for (i, line) in lines.iter().enumerate() {
         if i < edit.range.start.line as usize {
             result.push_str(line);
@@ -275,7 +277,7 @@ fn apply_edit(content: &str, edit: &TextEdit) -> String {
             result.push('\n');
         }
     }
-    
+
     result
 }
 
@@ -386,7 +388,7 @@ mod tests {
         let start = Position::new(0, 5);
         let end = Position::new(2, 10);
         let range = Range::new(start.clone(), end.clone());
-        
+
         assert_eq!(range.start, start);
         assert_eq!(range.end, end);
     }
@@ -401,9 +403,7 @@ mod tests {
             code: Some("E001".to_string()),
             related_information: vec![],
         };
-        
+
         assert_eq!(diag.severity, DiagnosticSeverity::Error);
     }
 }
-
-

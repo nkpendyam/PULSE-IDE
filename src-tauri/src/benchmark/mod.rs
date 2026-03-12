@@ -9,22 +9,22 @@
 //! - Collaboration sync latency
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant};
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
-pub mod startup;
-pub mod file_ops;
 pub mod ai_latency;
+pub mod file_ops;
 pub mod lsp_perf;
 pub mod memory;
+pub mod startup;
 
-pub use startup::StartupBenchmark;
-pub use file_ops::FileOpsBenchmark;
 pub use ai_latency::AILatencyBenchmark;
+pub use file_ops::FileOpsBenchmark;
 pub use lsp_perf::LSPPerfBenchmark;
 pub use memory::MemoryBenchmark;
+pub use startup::StartupBenchmark;
 
 /// Benchmark configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -169,9 +169,7 @@ impl BenchmarkRunner {
         }
 
         // Calculate statistics
-        let durations_ms: Vec<f64> = durations.iter()
-            .map(|d| d.as_secs_f64() * 1000.0)
-            .collect();
+        let durations_ms: Vec<f64> = durations.iter().map(|d| d.as_secs_f64() * 1000.0).collect();
 
         let total_duration_ms: f64 = durations_ms.iter().sum();
         let avg_duration_ms = total_duration_ms / self.config.iterations as f64;
@@ -238,10 +236,20 @@ impl BenchmarkRunner {
         // Create summary
         let summary = BenchmarkSummary {
             total_tests: self.results.len(),
-            passed: self.results.iter().filter(|r| r.avg_duration_ms < 1000.0).count(),
-            failed: self.results.iter().filter(|r| r.avg_duration_ms >= 1000.0).count(),
+            passed: self
+                .results
+                .iter()
+                .filter(|r| r.avg_duration_ms < 1000.0)
+                .count(),
+            failed: self
+                .results
+                .iter()
+                .filter(|r| r.avg_duration_ms >= 1000.0)
+                .count(),
             total_duration_secs: total_duration.as_secs_f64(),
-            critical_failures: self.results.iter()
+            critical_failures: self
+                .results
+                .iter()
                 .filter(|r| r.avg_duration_ms >= 5000.0)
                 .map(|r| r.name.clone())
                 .collect(),
@@ -300,9 +308,7 @@ fn calculate_std_dev(values: &[f64], mean: f64) -> f64 {
     if values.is_empty() {
         return 0.0;
     }
-    let variance = values.iter()
-        .map(|x| (x - mean).powi(2))
-        .sum::<f64>() / values.len() as f64;
+    let variance = values.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / values.len() as f64;
     variance.sqrt()
 }
 
@@ -332,13 +338,13 @@ mod tests {
             ..Default::default()
         };
         let mut runner = BenchmarkRunner::new(config);
-        
-        let result = runner.run_benchmark(
-            "test_benchmark",
-            BenchmarkCategory::Startup,
-            || Ok(Duration::from_millis(10)),
-        ).unwrap();
-        
+
+        let result = runner
+            .run_benchmark("test_benchmark", BenchmarkCategory::Startup, || {
+                Ok(Duration::from_millis(10))
+            })
+            .unwrap();
+
         assert_eq!(result.iterations, 10);
         assert!(result.avg_duration_ms > 0.0);
     }

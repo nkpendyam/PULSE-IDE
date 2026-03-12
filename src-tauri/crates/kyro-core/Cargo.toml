@@ -5,6 +5,9 @@ edition = "2021"
 license = "MIT"
 description = "Core types, utilities, and service registry for Kyro IDE"
 
+[lints]
+workspace = true
+
 [dependencies]
 # Async runtime
 tokio = { version = "1", features = ["full"] }

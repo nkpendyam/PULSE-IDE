@@ -28,10 +28,8 @@ pub struct ModelMetadata {
 
 /// Detect model format from path
 pub fn detect_format(path: &Path) -> Result<ModelFormat> {
-    let extension = path.extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
-    
+    let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+
     match extension {
         "gguf" => Ok(ModelFormat::GGUF),
         "safetensors" => Ok(ModelFormat::Safetensors),
@@ -43,7 +41,7 @@ pub fn detect_format(path: &Path) -> Result<ModelFormat> {
 /// Load model metadata from file
 pub fn load_metadata(path: &Path) -> Result<ModelMetadata> {
     let format = detect_format(path)?;
-    
+
     match format {
         ModelFormat::GGUF => load_gguf_metadata(path),
         ModelFormat::Safetensors => load_safetensors_metadata(path),
@@ -51,7 +49,7 @@ pub fn load_metadata(path: &Path) -> Result<ModelMetadata> {
     }
 }
 
-fn load_gguf_metadata(path: &Path) -> Result<ModelMetadata> {
+fn load_gguf_metadata(_path: &Path) -> Result<ModelMetadata> {
     // Would parse GGUF header
     Ok(ModelMetadata {
         architecture: "llama".to_string(),
@@ -64,7 +62,7 @@ fn load_gguf_metadata(path: &Path) -> Result<ModelMetadata> {
     })
 }
 
-fn load_safetensors_metadata(path: &Path) -> Result<ModelMetadata> {
+fn load_safetensors_metadata(_path: &Path) -> Result<ModelMetadata> {
     // Would parse safetensors metadata
     Ok(ModelMetadata {
         architecture: "llama".to_string(),
@@ -77,7 +75,7 @@ fn load_safetensors_metadata(path: &Path) -> Result<ModelMetadata> {
     })
 }
 
-fn load_pytorch_metadata(path: &Path) -> Result<ModelMetadata> {
+fn load_pytorch_metadata(_path: &Path) -> Result<ModelMetadata> {
     // Would parse PyTorch checkpoint
     Ok(ModelMetadata {
         architecture: "unknown".to_string(),

@@ -60,8 +60,7 @@ fn write_index(output_root: &PathBuf, pages: &[WikiPage]) -> Result<(), String> 
     ));
 
     let readme_path = output_root.join("README.md");
-    std::fs::write(&readme_path, content)
-        .map_err(|e| format!("Cannot write README.md: {}", e))?;
+    std::fs::write(&readme_path, content).map_err(|e| format!("Cannot write README.md: {}", e))?;
 
     Ok(())
 }

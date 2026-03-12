@@ -3,8 +3,8 @@
 //! Enforces whitelist-only file access for agents.
 //! Prevents modification of README, docs, and other protected files.
 
-use std::path::{Path, PathBuf};
 use regex::Regex;
+use std::path::{Path, PathBuf};
 
 use crate::agents::AgentError;
 
@@ -123,7 +123,8 @@ impl FileGuard {
         // Step 2: Check allowed paths
         let is_allowed = self.allowed_paths.iter().any(|allowed| {
             if allowed.ends_with('/') {
-                normalized.starts_with(allowed) || normalized.starts_with(&allowed.trim_end_matches('/'))
+                normalized.starts_with(allowed)
+                    || normalized.starts_with(allowed.trim_end_matches('/'))
             } else {
                 normalized == *allowed || normalized.starts_with(&format!("{}/", allowed))
             }
@@ -146,18 +147,34 @@ impl FileGuard {
             .and_then(|e| e.to_str())
             .unwrap_or("");
 
-        if !["ts", "tsx", "js", "jsx", "rs", "py", "json", "toml", "yaml", "yml"].contains(&extension) {
+        if ![
+            "ts", "tsx", "js", "jsx", "rs", "py", "json", "toml", "yaml", "yml",
+        ]
+        .contains(&extension)
+        {
             return Ok(FileAccess::Allowed);
         }
 
         // Suspicious patterns for non-code content
         let suspicious_patterns = [
             // Marketing/website content
-            (r"(?i)(deploy|hosting|netlify|vercel|github\.io|pages)", "hosting reference"),
-            (r"(?i)(seo|meta\s*tag|google\s*analytics)", "marketing content"),
-            (r"(?i)(landing\s*page|hero\s*section|cta|call\s*to\s*action)", "landing page content"),
+            (
+                r"(?i)(deploy|hosting|netlify|vercel|github\.io|pages)",
+                "hosting reference",
+            ),
+            (
+                r"(?i)(seo|meta\s*tag|google\s*analytics)",
+                "marketing content",
+            ),
+            (
+                r"(?i)(landing\s*page|hero\s*section|cta|call\s*to\s*action)",
+                "landing page content",
+            ),
             // Documentation patterns
-            (r"(?i)^#\s+(readme|documentation|getting\s*started)", "documentation header"),
+            (
+                r"(?i)^#\s+(readme|documentation|getting\s*started)",
+                "documentation header",
+            ),
             // Website patterns
             (r"(?i)(<!DOCTYPE|<html|<head|<body)", "HTML structure"),
         ];
@@ -166,11 +183,7 @@ impl FileGuard {
             if let Ok(re) = Regex::new(pattern) {
                 if re.is_match(content) {
                     // Only warn, don't block - let user decide
-                    log::warn!(
-                        "Suspicious content detected ({}): {}",
-                        reason,
-                        filename
-                    );
+                    log::warn!("Suspicious content detected ({}): {}", reason, filename);
                     // In strict mode, we still allow but log heavily
                     if self.strict_mode {
                         // Just log, don't block - the path check is the hard barrier
@@ -216,7 +229,7 @@ impl FileGuard {
     /// Normalize a path for comparison
     fn normalize_path(&self, path: &str) -> String {
         let mut normalized = path.replace('\\', "/");
-        
+
         // Remove leading "./" or "/"
         while normalized.starts_with("./") || normalized.starts_with('/') {
             if normalized.starts_with("./") {
@@ -270,8 +283,9 @@ pub fn create_backup(path: &str) -> Result<PathBuf, AgentError> {
 
 /// Verify write succeeded
 pub fn verify_write(path: &str, expected_content: &str) -> Result<(), AgentError> {
-    let actual = std::fs::read_to_string(path)
-        .map_err(|e| AgentError::FileAccessDenied(format!("Failed to read file for verification: {}", e)))?;
+    let actual = std::fs::read_to_string(path).map_err(|e| {
+        AgentError::FileAccessDenied(format!("Failed to read file for verification: {}", e))
+    })?;
 
     // Compare lengths (exact comparison might fail due to whitespace normalization)
     if actual.len() != expected_content.len() {
@@ -297,28 +311,58 @@ mod tests {
     fn test_allowed_paths() {
         let guard = FileGuard::default();
 
-        assert_eq!(guard.check_write("src/main.rs").unwrap(), FileAccess::Allowed);
-        assert_eq!(guard.check_write("src-tauri/src/lib.rs").unwrap(), FileAccess::Allowed);
-        assert_eq!(guard.check_write("Cargo.toml").unwrap(), FileAccess::Allowed);
-        assert_eq!(guard.check_write("package.json").unwrap(), FileAccess::Allowed);
+        assert_eq!(
+            guard.check_write("src/main.rs").unwrap(),
+            FileAccess::Allowed
+        );
+        assert_eq!(
+            guard.check_write("src-tauri/src/lib.rs").unwrap(),
+            FileAccess::Allowed
+        );
+        assert_eq!(
+            guard.check_write("Cargo.toml").unwrap(),
+            FileAccess::Allowed
+        );
+        assert_eq!(
+            guard.check_write("package.json").unwrap(),
+            FileAccess::Allowed
+        );
     }
 
     #[test]
     fn test_forbidden_paths() {
         let guard = FileGuard::default();
 
-        assert_eq!(guard.check_write("README.md").unwrap(), FileAccess::Forbidden);
-        assert_eq!(guard.check_write("docs/api.md").unwrap(), FileAccess::Forbidden);
-        assert_eq!(guard.check_write(".github/workflows/ci.yml").unwrap(), FileAccess::Forbidden);
-        assert_eq!(guard.check_write("website/index.html").unwrap(), FileAccess::Forbidden);
+        assert_eq!(
+            guard.check_write("README.md").unwrap(),
+            FileAccess::Forbidden
+        );
+        assert_eq!(
+            guard.check_write("docs/api.md").unwrap(),
+            FileAccess::Forbidden
+        );
+        assert_eq!(
+            guard.check_write(".github/workflows/ci.yml").unwrap(),
+            FileAccess::Forbidden
+        );
+        assert_eq!(
+            guard.check_write("website/index.html").unwrap(),
+            FileAccess::Forbidden
+        );
     }
 
     #[test]
     fn test_not_whitelisted() {
         let guard = FileGuard::default();
 
-        assert_eq!(guard.check_write("random_file.txt").unwrap(), FileAccess::NotWhitelisted);
-        assert_eq!(guard.check_write("tests/test.rs").unwrap(), FileAccess::NotWhitelisted);
+        assert_eq!(
+            guard.check_write("random_file.txt").unwrap(),
+            FileAccess::NotWhitelisted
+        );
+        assert_eq!(
+            guard.check_write("tests/test.rs").unwrap(),
+            FileAccess::NotWhitelisted
+        );
     }
 
     #[test]
@@ -326,8 +370,17 @@ mod tests {
         let guard = FileGuard::default();
 
         // Should handle different path formats
-        assert_eq!(guard.check_write("./src/main.rs").unwrap(), FileAccess::Allowed);
-        assert_eq!(guard.check_write("/src/main.rs").unwrap(), FileAccess::Allowed);
-        assert_eq!(guard.check_write("SRC/main.rs").unwrap(), FileAccess::Allowed);
+        assert_eq!(
+            guard.check_write("./src/main.rs").unwrap(),
+            FileAccess::Allowed
+        );
+        assert_eq!(
+            guard.check_write("/src/main.rs").unwrap(),
+            FileAccess::Allowed
+        );
+        assert_eq!(
+            guard.check_write("SRC/main.rs").unwrap(),
+            FileAccess::Allowed
+        );
     }
 }

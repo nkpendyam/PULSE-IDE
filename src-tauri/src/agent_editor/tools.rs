@@ -2,9 +2,8 @@
 //!
 //! Tools for reading, writing, and editing files
 
-use super::*;
-use serde::{Deserialize, Serialize};
 use crate::agent_editor::approval::{DiffHunk, DiffLine, DiffLineType};
+use serde::{Deserialize, Serialize};
 
 /// Agent tools registry
 pub struct AgentTools {
@@ -29,7 +28,11 @@ impl AgentTools {
     }
 
     /// Edit a file
-    pub async fn edit_file(&self, path: &str, edits: &[EditOperation]) -> anyhow::Result<EditResult> {
+    pub async fn edit_file(
+        &self,
+        path: &str,
+        edits: &[EditOperation],
+    ) -> anyhow::Result<EditResult> {
         self.file_editor.edit(path, edits).await
     }
 
@@ -283,7 +286,13 @@ impl FileEditor {
                 // Context
                 if let Some(hunk) = &mut current_hunk {
                     // End hunk after 3 context lines
-                    if hunk.lines.iter().rev().take(3).all(|l| l.line_type == DiffLineType::Context) {
+                    if hunk
+                        .lines
+                        .iter()
+                        .rev()
+                        .take(3)
+                        .all(|l| l.line_type == DiffLineType::Context)
+                    {
                         hunks.push(hunk.clone());
                         current_hunk = None;
                     } else {
@@ -320,7 +329,9 @@ impl FileEditor {
                     });
                     current_hunk.as_mut().unwrap().old_lines += 1;
                     old_idx += 1;
-                } else if new_idx + 1 < new_lines.len() && new_lines[new_idx + 1] == old_lines[old_idx] {
+                } else if new_idx + 1 < new_lines.len()
+                    && new_lines[new_idx + 1] == old_lines[old_idx]
+                {
                     // Addition
                     current_hunk.as_mut().unwrap().lines.push(DiffLine {
                         line_type: DiffLineType::Addition,
@@ -450,8 +461,17 @@ mod tests {
     fn test_detect_language() {
         let editor = FileEditor::new();
 
-        assert_eq!(editor.detect_language(std::path::Path::new("test.rs")), "rust");
-        assert_eq!(editor.detect_language(std::path::Path::new("test.py")), "python");
-        assert_eq!(editor.detect_language(std::path::Path::new("test.ts")), "typescript");
+        assert_eq!(
+            editor.detect_language(std::path::Path::new("test.rs")),
+            "rust"
+        );
+        assert_eq!(
+            editor.detect_language(std::path::Path::new("test.py")),
+            "python"
+        );
+        assert_eq!(
+            editor.detect_language(std::path::Path::new("test.ts")),
+            "typescript"
+        );
     }
 }

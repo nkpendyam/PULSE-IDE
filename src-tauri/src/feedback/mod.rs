@@ -100,7 +100,9 @@ impl FeedbackDB {
             CREATE INDEX IF NOT EXISTS idx_suggestions_task ON suggestions(task_kind);
             CREATE INDEX IF NOT EXISTS idx_suggestions_outcome ON suggestions(outcome);",
         )?;
-        Ok(Self { conn: Mutex::new(conn) })
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
     }
 
     /// Open the default feedback DB location
@@ -123,7 +125,10 @@ impl FeedbackDB {
         tokens_used: u32,
         latency_ms: u32,
     ) -> Result<i64> {
-        let conn = self.conn.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         conn.execute(
             "INSERT INTO suggestions (model, task_kind, prompt_hash, prompt_preview, response_preview, tokens_used, latency_ms)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -137,7 +142,10 @@ impl FeedbackDB {
 
     /// Mark a suggestion as accepted
     pub fn accept(&self, id: i64) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         conn.execute(
             "UPDATE suggestions SET outcome = 'accepted' WHERE id = ?1",
             params![id],
@@ -147,7 +155,10 @@ impl FeedbackDB {
 
     /// Mark a suggestion as rejected
     pub fn reject(&self, id: i64) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         conn.execute(
             "UPDATE suggestions SET outcome = 'rejected' WHERE id = ?1",
             params![id],
@@ -157,7 +168,10 @@ impl FeedbackDB {
 
     /// Mark a suggestion as corrected and store the user's fix
     pub fn correct(&self, id: i64, user_fix: &str) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         conn.execute(
             "UPDATE suggestions SET outcome = 'corrected', user_fix = ?2 WHERE id = ?1",
             params![id, user_fix],
@@ -167,7 +181,10 @@ impl FeedbackDB {
 
     /// Get aggregate stats, optionally filtered by model and/or task
     pub fn stats(&self, model: Option<&str>, task_kind: Option<&str>) -> Result<FeedbackStats> {
-        let conn = self.conn.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut sql = String::from(
             "SELECT COUNT(*) as total,
                     SUM(CASE WHEN outcome='accepted' THEN 1 ELSE 0 END),
@@ -175,7 +192,7 @@ impl FeedbackDB {
                     SUM(CASE WHEN outcome='corrected' THEN 1 ELSE 0 END),
                     SUM(CASE WHEN outcome='pending' THEN 1 ELSE 0 END),
                     AVG(latency_ms)
-             FROM suggestions WHERE 1=1"
+             FROM suggestions WHERE 1=1",
         );
         let mut binds: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
         if let Some(m) = model {
@@ -187,7 +204,8 @@ impl FeedbackDB {
             binds.push(Box::new(t.to_string()));
         }
 
-        let params_refs: Vec<&dyn rusqlite::types::ToSql> = binds.iter().map(|b| b.as_ref()).collect();
+        let params_refs: Vec<&dyn rusqlite::types::ToSql> =
+            binds.iter().map(|b| b.as_ref()).collect();
         let mut stmt = conn.prepare(&sql)?;
         let row = stmt.query_row(params_refs.as_slice(), |row| {
             let total: u64 = row.get(0)?;
@@ -202,7 +220,11 @@ impl FeedbackDB {
                 rejected,
                 corrected,
                 pending,
-                accept_rate: if total > 0 { accepted as f64 / total as f64 } else { 0.0 },
+                accept_rate: if total > 0 {
+                    accepted as f64 / total as f64
+                } else {
+                    0.0
+                },
                 avg_latency_ms: avg_lat,
             })
         })?;
@@ -211,11 +233,14 @@ impl FeedbackDB {
 
     /// Get recent suggestions (newest first)
     pub fn recent(&self, limit: u32) -> Result<Vec<Suggestion>> {
-        let conn = self.conn.lock().map_err(|e| anyhow::anyhow!("lock: {}", e))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| anyhow::anyhow!("lock: {}", e))?;
         let mut stmt = conn.prepare(
             "SELECT id, model, task_kind, prompt_hash, prompt_preview, response_preview,
                     tokens_used, latency_ms, outcome, user_fix, created_at
-             FROM suggestions ORDER BY id DESC LIMIT ?1"
+             FROM suggestions ORDER BY id DESC LIMIT ?1",
         )?;
         let rows = stmt.query_map(params![limit], |row| {
             Ok(Suggestion {

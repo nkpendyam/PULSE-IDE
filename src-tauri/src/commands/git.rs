@@ -1,7 +1,7 @@
 //! Git commands for KYRO IDE — uses types from git module
 
+use crate::git::{BlameLine, FileDiff, GitBranch, GitCommit, GitManager, GitStatus, StashEntry};
 use tauri::command;
-use crate::git::{GitManager, GitStatus, GitCommit, GitBranch, FileDiff, BlameLine, StashEntry};
 
 #[command]
 pub async fn git_status(path: String) -> Result<GitStatus, String> {
@@ -94,7 +94,11 @@ pub async fn git_discard(project_path: String, file_path: String) -> Result<(), 
 }
 
 #[command]
-pub async fn git_stage_hunk(project_path: String, file_path: String, hunk_index: usize) -> Result<(), String> {
+pub async fn git_stage_hunk(
+    project_path: String,
+    file_path: String,
+    hunk_index: usize,
+) -> Result<(), String> {
     let mgr = GitManager::new();
     mgr.stage_hunk(&project_path, &file_path, hunk_index)
 }

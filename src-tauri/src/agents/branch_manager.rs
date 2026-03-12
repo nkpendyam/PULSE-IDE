@@ -4,7 +4,7 @@
 //! Prevents branch sprawl and ensures main stays up to date.
 
 use std::process::Command;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::agents::AgentError;
 
@@ -72,7 +72,11 @@ impl BranchManager {
     /// Get all branches
     pub fn list_branches(&self) -> Result<Vec<BranchInfo>, AgentError> {
         let output = Command::new("git")
-            .args(["branch", "-vv", "--format=%(refname:short)|%(upstream:short)|%(committerdate:unix)|%(authorname)"])
+            .args([
+                "branch",
+                "-vv",
+                "--format=%(refname:short)|%(upstream:short)|%(committerdate:unix)|%(authorname)",
+            ])
             .current_dir(&self.repo_path)
             .output()
             .map_err(|e| AgentError::BranchError(format!("Failed to list branches: {}", e)))?;
@@ -218,7 +222,16 @@ impl BranchManager {
 
         // Merge
         let output = Command::new("git")
-            .args(["merge", "--no-ff", &current_branch, "-m", &format!("[agent-{}] Merge {} to main", self.agent_name, current_branch)])
+            .args([
+                "merge",
+                "--no-ff",
+                &current_branch,
+                "-m",
+                &format!(
+                    "[agent-{}] Merge {} to main",
+                    self.agent_name, current_branch
+                ),
+            ])
             .current_dir(&self.repo_path)
             .output()
             .map_err(|e| AgentError::BranchError(format!("Failed to merge: {}", e)))?;
@@ -280,10 +293,8 @@ impl BranchManager {
 
         for branch in self.branches_created.clone() {
             // Checkout and merge each branch
-            if self.checkout(&branch).is_ok() {
-                if self.merge_to_main().is_ok() {
-                    merged.push(branch);
-                }
+            if self.checkout(&branch).is_ok() && self.merge_to_main().is_ok() {
+                merged.push(branch);
             }
         }
 

@@ -19,8 +19,8 @@ pub enum RagFileEvent {
 
 /// Source extensions eligible for RAG indexing
 const SOURCE_EXTENSIONS: &[&str] = &[
-    "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "c", "cpp", "h", "hpp",
-    "cs", "rb", "php", "swift", "kt", "scala", "vue", "svelte",
+    "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php",
+    "swift", "kt", "scala", "vue", "svelte",
 ];
 
 fn is_source_file(path: &Path) -> bool {
@@ -43,7 +43,7 @@ fn is_ignored(path: &Path) -> bool {
 /// Start watching a directory for source file changes.
 /// Returns a receiver for `RagFileEvent`s and a handle to stop watching.
 pub fn start_watching(
-    root: PathBuf,
+    _root: PathBuf,
 ) -> Result<(mpsc::UnboundedReceiver<RagFileEvent>, RecommendedWatcher), String> {
     let (tx, rx) = mpsc::unbounded_channel();
 

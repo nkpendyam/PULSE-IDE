@@ -25,7 +25,7 @@ impl MemoryTier {
     /// Determine tier from available VRAM
     pub fn from_vram(vram_bytes: u64) -> Self {
         let vram_gb = vram_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
-        
+
         match vram_gb {
             v if v < 4.0 => Self::Cpu,
             v if v < 8.0 => Self::Low4GB,
@@ -34,7 +34,7 @@ impl MemoryTier {
             _ => Self::Ultra32GB,
         }
     }
-    
+
     /// Get recommended model size for this tier
     pub fn recommended_model_size(&self) -> &'static str {
         match self {
@@ -45,7 +45,7 @@ impl MemoryTier {
             Self::Ultra32GB => "32B",
         }
     }
-    
+
     /// Get recommended context size for this tier
     pub fn recommended_context_size(&self) -> u32 {
         match self {
@@ -56,18 +56,18 @@ impl MemoryTier {
             Self::Ultra32GB => 32768,
         }
     }
-    
+
     /// Get maximum KV cache size in bytes
     pub fn max_kv_cache_bytes(&self) -> u64 {
         match self {
-            Self::Cpu => 512 * 1024 * 1024,      // 512MB
-            Self::Low4GB => 1 * 1024 * 1024 * 1024,   // 1GB
-            Self::Medium8GB => 2 * 1024 * 1024 * 1024,   // 2GB
-            Self::High16GB => 4 * 1024 * 1024 * 1024,   // 4GB
-            Self::Ultra32GB => 8 * 1024 * 1024 * 1024,   // 8GB
+            Self::Cpu => 512 * 1024 * 1024,            // 512MB
+            Self::Low4GB => 1024 * 1024 * 1024,        // 1GB
+            Self::Medium8GB => 2 * 1024 * 1024 * 1024, // 2GB
+            Self::High16GB => 4 * 1024 * 1024 * 1024,  // 4GB
+            Self::Ultra32GB => 8 * 1024 * 1024 * 1024, // 8GB
         }
     }
-    
+
     /// Get GPU layers to offload
     pub fn gpu_layers(&self) -> i32 {
         match self {
@@ -78,15 +78,23 @@ impl MemoryTier {
             Self::Ultra32GB => 50,
         }
     }
-    
+
     /// Get recommended models for this tier
     pub fn recommended_models(&self) -> Vec<&'static str> {
         match self {
             Self::Cpu => vec!["phi-2b-q4_k_m", "tinyllama-1.1b-q4_k_m"],
             Self::Low4GB => vec!["qwen3-4b-q4_k_m", "phi-3.5-3.8b-q4_k_m"],
             Self::Medium8GB => vec!["qwen3-8b-q4_k_m", "llama3-8b-q4_k_m", "nemotron-9b-q4_k_m"],
-            Self::High16GB => vec!["qwen3-14b-q4_k_m", "codellama-13b-q4_k_m", "deepseek-coder-13b-q4_k_m"],
-            Self::Ultra32GB => vec!["qwen3-32b-q4_k_m", "codellama-34b-q4_k_m", "deepseek-coder-33b-q4_k_m"],
+            Self::High16GB => vec![
+                "qwen3-14b-q4_k_m",
+                "codellama-13b-q4_k_m",
+                "deepseek-coder-13b-q4_k_m",
+            ],
+            Self::Ultra32GB => vec![
+                "qwen3-32b-q4_k_m",
+                "codellama-34b-q4_k_m",
+                "deepseek-coder-33b-q4_k_m",
+            ],
         }
     }
 }
@@ -119,16 +127,18 @@ impl MemoryProfiler {
             current_usage: Arc::new(std::sync::atomic::AtomicU64::new(0)),
         }
     }
-    
+
     /// Check if enough memory is available for a model
     pub fn check_available(&self, required_bytes: u64) -> anyhow::Result<()> {
-        let current = self.current_usage.load(std::sync::atomic::Ordering::Relaxed);
+        let current = self
+            .current_usage
+            .load(std::sync::atomic::Ordering::Relaxed);
         let available = self.hardware.vram_bytes.saturating_sub(current);
-        
+
         // Keep 20% headroom
         let safe_limit = (self.hardware.vram_bytes as f64 * 0.8) as u64;
         let projected = current + required_bytes;
-        
+
         if projected > safe_limit {
             anyhow::bail!(
                 "Insufficient memory: required {} MB, available {} MB (safe limit: {} MB)",
@@ -137,62 +147,83 @@ impl MemoryProfiler {
                 safe_limit / (1024 * 1024)
             );
         }
-        
+
         Ok(())
     }
-    
+
     /// Allocate memory (track usage)
     pub fn allocate(&self, bytes: u64) {
-        self.current_usage.fetch_add(bytes, std::sync::atomic::Ordering::Relaxed);
+        self.current_usage
+            .fetch_add(bytes, std::sync::atomic::Ordering::Relaxed);
     }
-    
+
     /// Free memory (track usage)
     pub fn free(&self, bytes: u64) {
-        self.current_usage.fetch_sub(bytes, std::sync::atomic::Ordering::Relaxed);
+        self.current_usage
+            .fetch_sub(bytes, std::sync::atomic::Ordering::Relaxed);
     }
-    
+
     /// Get current memory usage
     pub fn current_usage(&self) -> u64 {
-        self.current_usage.load(std::sync::atomic::Ordering::Relaxed)
+        self.current_usage
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
-    
+
     /// Get memory usage percentage
     pub fn usage_percent(&self) -> f32 {
         let current = self.current_usage() as f64;
         let total = self.hardware.vram_bytes as f64;
         (current / total * 100.0) as f32
     }
-    
+
     /// Get current tier
     pub fn tier(&self) -> MemoryTier {
         self.tier
     }
-    
+
     /// Get hardware info
     pub fn hardware(&self) -> &HardwareCapabilities {
         &self.hardware
     }
-    
+
     /// Monitor memory and suggest model swap if needed
     pub fn suggest_model_for_memory(&self, available_bytes: u64) -> &'static str {
         let tier = MemoryTier::from_vram(available_bytes);
-        tier.recommended_models().first().copied().unwrap_or("phi-2b-q4_k_m")
+        tier.recommended_models()
+            .first()
+            .copied()
+            .unwrap_or("phi-2b-q4_k_m")
     }
 }
 
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_memory_tier_from_vram() {
-        assert_eq!(MemoryTier::from_vram(2 * 1024 * 1024 * 1024), MemoryTier::Cpu);
-        assert_eq!(MemoryTier::from_vram(6 * 1024 * 1024 * 1024), MemoryTier::Low4GB);
-        assert_eq!(MemoryTier::from_vram(10 * 1024 * 1024 * 1024), MemoryTier::Medium8GB);
-        assert_eq!(MemoryTier::from_vram(20 * 1024 * 1024 * 1024), MemoryTier::High16GB);
-        assert_eq!(MemoryTier::from_vram(40 * 1024 * 1024 * 1024), MemoryTier::Ultra32GB);
+        assert_eq!(
+            MemoryTier::from_vram(2 * 1024 * 1024 * 1024),
+            MemoryTier::Cpu
+        );
+        assert_eq!(
+            MemoryTier::from_vram(6 * 1024 * 1024 * 1024),
+            MemoryTier::Low4GB
+        );
+        assert_eq!(
+            MemoryTier::from_vram(10 * 1024 * 1024 * 1024),
+            MemoryTier::Medium8GB
+        );
+        assert_eq!(
+            MemoryTier::from_vram(20 * 1024 * 1024 * 1024),
+            MemoryTier::High16GB
+        );
+        assert_eq!(
+            MemoryTier::from_vram(40 * 1024 * 1024 * 1024),
+            MemoryTier::Ultra32GB
+        );
     }
-    
+
     #[test]
     fn test_tier_models() {
         let tier = MemoryTier::Medium8GB;

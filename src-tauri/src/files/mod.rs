@@ -11,7 +11,7 @@ pub mod local_history;
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::mpsc::{channel, Receiver};
 use tauri::{Emitter, WebviewWindow};
 

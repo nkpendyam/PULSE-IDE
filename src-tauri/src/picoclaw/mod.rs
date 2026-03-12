@@ -22,12 +22,9 @@
 //! 3. Pattern matching for common code idioms
 //! 4. Trie-based autocomplete for API suggestions
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, BTreeMap};
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::collections::{BTreeMap, HashMap};
 
 /// PicoClaw configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -183,7 +180,7 @@ impl CompletionTrie {
     pub fn insert(&mut self, word: &str, data: Option<String>) {
         let mut node = self;
         for c in word.chars() {
-            node = node.children.entry(c).or_insert_with(CompletionTrie::new);
+            node = node.children.entry(c).or_default();
         }
         node.is_word = true;
         node.data = data;
@@ -192,19 +189,24 @@ impl CompletionTrie {
     pub fn search_prefix(&self, prefix: &str) -> Vec<(String, Option<String>)> {
         let mut results = Vec::new();
         let mut node = self;
-        
+
         for c in prefix.chars() {
             match node.children.get(&c) {
                 Some(child) => node = child,
                 None => return results,
             }
         }
-        
+
         self.collect_all(node, prefix, &mut results);
         results
     }
 
-    fn collect_all(&self, node: &CompletionTrie, prefix: &str, results: &mut Vec<(String, Option<String>)>) {
+    fn collect_all(
+        &self,
+        node: &CompletionTrie,
+        prefix: &str,
+        results: &mut Vec<(String, Option<String>)>,
+    ) {
         if node.is_word {
             results.push((prefix.to_string(), node.data.clone()));
         }
@@ -234,18 +236,20 @@ impl NGramModel {
             // Bigrams
             let current = &tokens[i];
             let next = &tokens[i + 1];
-            *self.bigrams
+            *self
+                .bigrams
                 .entry(current.clone())
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .entry(next.clone())
                 .or_insert(0) += 1;
-            
+
             // Trigrams
             if i + 2 < tokens.len() {
                 let next_next = &tokens[i + 2];
-                *self.trigrams
+                *self
+                    .trigrams
                     .entry((current.clone(), next.clone()))
-                    .or_insert_with(HashMap::new)
+                    .or_default()
                     .entry(next_next.clone())
                     .or_insert(0) += 1;
             }
@@ -254,7 +258,7 @@ impl NGramModel {
 
     pub fn predict(&self, context: &[String]) -> Vec<(String, f32)> {
         let mut results = Vec::new();
-        
+
         match context.len() {
             1 => {
                 if let Some(next_words) = self.bigrams.get(&context[0]) {
@@ -266,7 +270,10 @@ impl NGramModel {
                 }
             }
             2.. => {
-                let key = (context[context.len() - 2].clone(), context[context.len() - 1].clone());
+                let key = (
+                    context[context.len() - 2].clone(),
+                    context[context.len() - 1].clone(),
+                );
                 if let Some(next_words) = self.trigrams.get(&key) {
                     let total: u32 = next_words.values().sum();
                     for (word, count) in next_words {
@@ -277,7 +284,7 @@ impl NGramModel {
             }
             _ => {}
         }
-        
+
         results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
         results.truncate(10);
         results
@@ -293,12 +300,12 @@ impl PicoClawEngine {
             tries: HashMap::new(),
             ngrams: HashMap::new(),
         };
-        
+
         // Initialize language patterns
         for lang in &engine.config.enabled_languages.clone() {
             engine.init_language(lang);
         }
-        
+
         engine
     }
 
@@ -306,7 +313,7 @@ impl PicoClawEngine {
     fn init_language(&mut self, language: &str) {
         let patterns = self.create_language_patterns(language);
         let mut trie = CompletionTrie::new();
-        
+
         // Add keywords and builtins to trie
         for keyword in &patterns.keywords {
             trie.insert(keyword, Some(format!("keyword:{}", keyword)));
@@ -314,7 +321,7 @@ impl PicoClawEngine {
         for builtin in &patterns.builtins {
             trie.insert(builtin, Some(format!("builtin:{}", builtin)));
         }
-        
+
         self.patterns.insert(language.to_string(), patterns);
         self.tries.insert(language.to_string(), trie);
         self.ngrams.insert(language.to_string(), NGramModel::new());
@@ -325,93 +332,265 @@ impl PicoClawEngine {
         match language {
             "rust" => LanguagePatterns {
                 keywords: vec![
-                    "fn".to_string(), "let".to_string(), "mut".to_string(), "const".to_string(),
-                    "struct".to_string(), "enum".to_string(), "impl".to_string(), "trait".to_string(),
-                    "pub".to_string(), "mod".to_string(), "use".to_string(), "self".to_string(),
-                    "Self".to_string(), "where".to_string(), "async".to_string(), "await".to_string(),
-                    "match".to_string(), "if".to_string(), "else".to_string(), "loop".to_string(),
-                    "while".to_string(), "for".to_string(), "in".to_string(), "return".to_string(),
+                    "fn".to_string(),
+                    "let".to_string(),
+                    "mut".to_string(),
+                    "const".to_string(),
+                    "struct".to_string(),
+                    "enum".to_string(),
+                    "impl".to_string(),
+                    "trait".to_string(),
+                    "pub".to_string(),
+                    "mod".to_string(),
+                    "use".to_string(),
+                    "self".to_string(),
+                    "Self".to_string(),
+                    "where".to_string(),
+                    "async".to_string(),
+                    "await".to_string(),
+                    "match".to_string(),
+                    "if".to_string(),
+                    "else".to_string(),
+                    "loop".to_string(),
+                    "while".to_string(),
+                    "for".to_string(),
+                    "in".to_string(),
+                    "return".to_string(),
                 ],
                 builtins: vec![
-                    "println!".to_string(), "format!".to_string(), "vec!".to_string(),
-                    "Option".to_string(), "Result".to_string(), "Vec".to_string(),
-                    "String".to_string(), "str".to_string(), "Box".to_string(),
-                    "Rc".to_string(), "Arc".to_string(), "Mutex".to_string(),
-                    "RwLock".to_string(), "HashMap".to_string(), "HashSet".to_string(),
+                    "println!".to_string(),
+                    "format!".to_string(),
+                    "vec!".to_string(),
+                    "Option".to_string(),
+                    "Result".to_string(),
+                    "Vec".to_string(),
+                    "String".to_string(),
+                    "str".to_string(),
+                    "Box".to_string(),
+                    "Rc".to_string(),
+                    "Arc".to_string(),
+                    "Mutex".to_string(),
+                    "RwLock".to_string(),
+                    "HashMap".to_string(),
+                    "HashSet".to_string(),
                 ],
                 function_patterns: vec![
-                    PatternEntry { pattern: "fn $name($args) -> $ret".to_string(), frequency: 100, context: "function".to_string() },
-                    PatternEntry { pattern: "pub fn $name($args)".to_string(), frequency: 80, context: "public_function".to_string() },
-                    PatternEntry { pattern: "async fn $name($args)".to_string(), frequency: 60, context: "async_function".to_string() },
+                    PatternEntry {
+                        pattern: "fn $name($args) -> $ret".to_string(),
+                        frequency: 100,
+                        context: "function".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "pub fn $name($args)".to_string(),
+                        frequency: 80,
+                        context: "public_function".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "async fn $name($args)".to_string(),
+                        frequency: 60,
+                        context: "async_function".to_string(),
+                    },
                 ],
                 variable_patterns: vec![
-                    PatternEntry { pattern: "let $name = $value;".to_string(), frequency: 100, context: "binding".to_string() },
-                    PatternEntry { pattern: "let mut $name = $value;".to_string(), frequency: 80, context: "mutable_binding".to_string() },
+                    PatternEntry {
+                        pattern: "let $name = $value;".to_string(),
+                        frequency: 100,
+                        context: "binding".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "let mut $name = $value;".to_string(),
+                        frequency: 80,
+                        context: "mutable_binding".to_string(),
+                    },
                 ],
                 type_patterns: vec![
-                    PatternEntry { pattern: "struct $name { $fields }".to_string(), frequency: 100, context: "struct".to_string() },
-                    PatternEntry { pattern: "enum $name { $variants }".to_string(), frequency: 80, context: "enum".to_string() },
+                    PatternEntry {
+                        pattern: "struct $name { $fields }".to_string(),
+                        frequency: 100,
+                        context: "struct".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "enum $name { $variants }".to_string(),
+                        frequency: 80,
+                        context: "enum".to_string(),
+                    },
                 ],
             },
             "typescript" | "javascript" => LanguagePatterns {
                 keywords: vec![
-                    "function".to_string(), "const".to_string(), "let".to_string(), "var".to_string(),
-                    "class".to_string(), "interface".to_string(), "type".to_string(), "enum".to_string(),
-                    "export".to_string(), "import".to_string(), "from".to_string(), "async".to_string(),
-                    "await".to_string(), "return".to_string(), "if".to_string(), "else".to_string(),
-                    "for".to_string(), "while".to_string(), "switch".to_string(), "case".to_string(),
-                    "break".to_string(), "continue".to_string(), "try".to_string(), "catch".to_string(),
-                    "throw".to_string(), "new".to_string(), "this".to_string(), "super".to_string(),
+                    "function".to_string(),
+                    "const".to_string(),
+                    "let".to_string(),
+                    "var".to_string(),
+                    "class".to_string(),
+                    "interface".to_string(),
+                    "type".to_string(),
+                    "enum".to_string(),
+                    "export".to_string(),
+                    "import".to_string(),
+                    "from".to_string(),
+                    "async".to_string(),
+                    "await".to_string(),
+                    "return".to_string(),
+                    "if".to_string(),
+                    "else".to_string(),
+                    "for".to_string(),
+                    "while".to_string(),
+                    "switch".to_string(),
+                    "case".to_string(),
+                    "break".to_string(),
+                    "continue".to_string(),
+                    "try".to_string(),
+                    "catch".to_string(),
+                    "throw".to_string(),
+                    "new".to_string(),
+                    "this".to_string(),
+                    "super".to_string(),
                 ],
                 builtins: vec![
-                    "console.log".to_string(), "console.error".to_string(), "console.warn".to_string(),
-                    "Promise".to_string(), "Array".to_string(), "Object".to_string(), "String".to_string(),
-                    "Number".to_string(), "Boolean".to_string(), "Map".to_string(), "Set".to_string(),
-                    "JSON.stringify".to_string(), "JSON.parse".to_string(),
-                    "setTimeout".to_string(), "setInterval".to_string(), "fetch".to_string(),
+                    "console.log".to_string(),
+                    "console.error".to_string(),
+                    "console.warn".to_string(),
+                    "Promise".to_string(),
+                    "Array".to_string(),
+                    "Object".to_string(),
+                    "String".to_string(),
+                    "Number".to_string(),
+                    "Boolean".to_string(),
+                    "Map".to_string(),
+                    "Set".to_string(),
+                    "JSON.stringify".to_string(),
+                    "JSON.parse".to_string(),
+                    "setTimeout".to_string(),
+                    "setInterval".to_string(),
+                    "fetch".to_string(),
                 ],
                 function_patterns: vec![
-                    PatternEntry { pattern: "function $name($args) {".to_string(), frequency: 100, context: "function".to_string() },
-                    PatternEntry { pattern: "const $name = ($args) =>".to_string(), frequency: 90, context: "arrow_function".to_string() },
-                    PatternEntry { pattern: "async function $name($args)".to_string(), frequency: 70, context: "async_function".to_string() },
+                    PatternEntry {
+                        pattern: "function $name($args) {".to_string(),
+                        frequency: 100,
+                        context: "function".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "const $name = ($args) =>".to_string(),
+                        frequency: 90,
+                        context: "arrow_function".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "async function $name($args)".to_string(),
+                        frequency: 70,
+                        context: "async_function".to_string(),
+                    },
                 ],
                 variable_patterns: vec![
-                    PatternEntry { pattern: "const $name = $value;".to_string(), frequency: 100, context: "constant".to_string() },
-                    PatternEntry { pattern: "let $name = $value;".to_string(), frequency: 80, context: "variable".to_string() },
+                    PatternEntry {
+                        pattern: "const $name = $value;".to_string(),
+                        frequency: 100,
+                        context: "constant".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "let $name = $value;".to_string(),
+                        frequency: 80,
+                        context: "variable".to_string(),
+                    },
                 ],
                 type_patterns: vec![
-                    PatternEntry { pattern: "interface $name {".to_string(), frequency: 100, context: "interface".to_string() },
-                    PatternEntry { pattern: "type $name =".to_string(), frequency: 90, context: "type_alias".to_string() },
-                    PatternEntry { pattern: "class $name {".to_string(), frequency: 80, context: "class".to_string() },
+                    PatternEntry {
+                        pattern: "interface $name {".to_string(),
+                        frequency: 100,
+                        context: "interface".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "type $name =".to_string(),
+                        frequency: 90,
+                        context: "type_alias".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "class $name {".to_string(),
+                        frequency: 80,
+                        context: "class".to_string(),
+                    },
                 ],
             },
             "python" => LanguagePatterns {
                 keywords: vec![
-                    "def".to_string(), "class".to_string(), "if".to_string(), "else".to_string(),
-                    "elif".to_string(), "for".to_string(), "while".to_string(), "try".to_string(),
-                    "except".to_string(), "finally".to_string(), "with".to_string(), "as".to_string(),
-                    "import".to_string(), "from".to_string(), "return".to_string(), "yield".to_string(),
-                    "lambda".to_string(), "pass".to_string(), "break".to_string(), "continue".to_string(),
-                    "raise".to_string(), "async".to_string(), "await".to_string(), "True".to_string(),
-                    "False".to_string(), "None".to_string(), "self".to_string(), "cls".to_string(),
+                    "def".to_string(),
+                    "class".to_string(),
+                    "if".to_string(),
+                    "else".to_string(),
+                    "elif".to_string(),
+                    "for".to_string(),
+                    "while".to_string(),
+                    "try".to_string(),
+                    "except".to_string(),
+                    "finally".to_string(),
+                    "with".to_string(),
+                    "as".to_string(),
+                    "import".to_string(),
+                    "from".to_string(),
+                    "return".to_string(),
+                    "yield".to_string(),
+                    "lambda".to_string(),
+                    "pass".to_string(),
+                    "break".to_string(),
+                    "continue".to_string(),
+                    "raise".to_string(),
+                    "async".to_string(),
+                    "await".to_string(),
+                    "True".to_string(),
+                    "False".to_string(),
+                    "None".to_string(),
+                    "self".to_string(),
+                    "cls".to_string(),
                 ],
                 builtins: vec![
-                    "print".to_string(), "len".to_string(), "range".to_string(), "str".to_string(),
-                    "int".to_string(), "float".to_string(), "bool".to_string(), "list".to_string(),
-                    "dict".to_string(), "set".to_string(), "tuple".to_string(), "type".to_string(),
-                    "isinstance".to_string(), "hasattr".to_string(), "getattr".to_string(),
-                    "open".to_string(), "input".to_string(), "format".to_string(),
+                    "print".to_string(),
+                    "len".to_string(),
+                    "range".to_string(),
+                    "str".to_string(),
+                    "int".to_string(),
+                    "float".to_string(),
+                    "bool".to_string(),
+                    "list".to_string(),
+                    "dict".to_string(),
+                    "set".to_string(),
+                    "tuple".to_string(),
+                    "type".to_string(),
+                    "isinstance".to_string(),
+                    "hasattr".to_string(),
+                    "getattr".to_string(),
+                    "open".to_string(),
+                    "input".to_string(),
+                    "format".to_string(),
                 ],
                 function_patterns: vec![
-                    PatternEntry { pattern: "def $name($args):".to_string(), frequency: 100, context: "function".to_string() },
-                    PatternEntry { pattern: "async def $name($args):".to_string(), frequency: 60, context: "async_function".to_string() },
+                    PatternEntry {
+                        pattern: "def $name($args):".to_string(),
+                        frequency: 100,
+                        context: "function".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "async def $name($args):".to_string(),
+                        frequency: 60,
+                        context: "async_function".to_string(),
+                    },
                 ],
-                variable_patterns: vec![
-                    PatternEntry { pattern: "$name = $value".to_string(), frequency: 100, context: "assignment".to_string() },
-                ],
+                variable_patterns: vec![PatternEntry {
+                    pattern: "$name = $value".to_string(),
+                    frequency: 100,
+                    context: "assignment".to_string(),
+                }],
                 type_patterns: vec![
-                    PatternEntry { pattern: "class $name:".to_string(), frequency: 100, context: "class".to_string() },
-                    PatternEntry { pattern: "class $name($base):".to_string(), frequency: 70, context: "derived_class".to_string() },
+                    PatternEntry {
+                        pattern: "class $name:".to_string(),
+                        frequency: 100,
+                        context: "class".to_string(),
+                    },
+                    PatternEntry {
+                        pattern: "class $name($base):".to_string(),
+                        frequency: 70,
+                        context: "derived_class".to_string(),
+                    },
                 ],
             },
             _ => LanguagePatterns {
@@ -425,9 +604,14 @@ impl PicoClawEngine {
     }
 
     /// Get completions for a prefix
-    pub fn complete(&self, prefix: &str, language: &str, context: Option<&str>) -> Vec<CompletionSuggestion> {
+    pub fn complete(
+        &self,
+        prefix: &str,
+        language: &str,
+        context: Option<&str>,
+    ) -> Vec<CompletionSuggestion> {
         let mut suggestions = Vec::new();
-        
+
         // Get trie completions
         if let Some(trie) = self.tries.get(language) {
             let trie_results = trie.search_prefix(prefix);
@@ -446,16 +630,24 @@ impl PicoClawEngine {
                 });
             }
         }
-        
+
         // Get pattern-based completions
         if let Some(patterns) = self.patterns.get(language) {
             // Check for function context
-            if context.map(|c| c.contains("fn ") || c.contains("def ") || c.contains("function ")).unwrap_or(false) {
+            if context
+                .map(|c| c.contains("fn ") || c.contains("def ") || c.contains("function "))
+                .unwrap_or(false)
+            {
                 for pattern in &patterns.function_patterns {
                     if pattern.pattern.starts_with(prefix) {
                         suggestions.push(CompletionSuggestion {
                             text: pattern.pattern.clone(),
-                            label: pattern.pattern.split_whitespace().next().unwrap_or("").to_string(),
+                            label: pattern
+                                .pattern
+                                .split_whitespace()
+                                .next()
+                                .unwrap_or("")
+                                .to_string(),
                             kind: SuggestionKind::Snippet,
                             score: 0.8,
                             source: "pattern".to_string(),
@@ -464,12 +656,10 @@ impl PicoClawEngine {
                 }
             }
         }
-        
+
         // Get N-gram predictions
         if let (Some(ngram), Some(ctx)) = (self.ngrams.get(language), context) {
-            let tokens: Vec<String> = ctx.split_whitespace()
-                .map(|s| s.to_string())
-                .collect();
+            let tokens: Vec<String> = ctx.split_whitespace().map(|s| s.to_string()).collect();
             let predictions = ngram.predict(&tokens);
             for (word, score) in predictions.iter().take(5) {
                 if word.starts_with(prefix) {
@@ -483,7 +673,7 @@ impl PicoClawEngine {
                 }
             }
         }
-        
+
         // Sort by score and deduplicate
         suggestions.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         suggestions.truncate(self.config.max_suggestions);
@@ -495,7 +685,7 @@ impl PicoClawEngine {
         let mut issues = Vec::new();
         let mut suggestions = Vec::new();
         let mut patterns = Vec::new();
-        
+
         // Line-by-line analysis
         for (line_num, line) in code.lines().enumerate() {
             // Check for common issues
@@ -503,7 +693,9 @@ impl PicoClawEngine {
                 if line.contains("unwrap()") && !line.trim().starts_with("//") {
                     issues.push(CodeIssue {
                         severity: IssueSeverity::Warning,
-                        message: "unwrap() may panic. Consider using ? operator or proper error handling".to_string(),
+                        message:
+                            "unwrap() may panic. Consider using ? operator or proper error handling"
+                                .to_string(),
                         line: line_num + 1,
                         column: line.find("unwrap()").unwrap_or(0) + 1,
                         fix: Some("Replace with ? operator or match expression".to_string()),
@@ -519,7 +711,7 @@ impl PicoClawEngine {
                     });
                 }
             }
-            
+
             // Check for long lines
             if line.len() > 120 {
                 issues.push(CodeIssue {
@@ -530,26 +722,32 @@ impl PicoClawEngine {
                     fix: Some("Consider breaking into multiple lines".to_string()),
                 });
             }
-            
+
             // Detect patterns
             if line.contains("TODO") || line.contains("FIXME") {
                 patterns.push(format!("TODO/FIXME at line {}", line_num + 1));
             }
         }
-        
+
         // Calculate complexity score
         let line_count = code.lines().count();
         let nesting = self.calculate_nesting(code);
         let complexity = ((line_count / 10) + (nesting * 5)).min(100) as u8;
-        
+
         // Generate suggestions
         if complexity > 50 {
             suggestions.push("Consider breaking this code into smaller functions".to_string());
         }
-        if issues.iter().filter(|i| i.severity == IssueSeverity::Warning).count() > 3 {
-            suggestions.push("Multiple warnings detected. Review error handling approach".to_string());
+        if issues
+            .iter()
+            .filter(|i| i.severity == IssueSeverity::Warning)
+            .count()
+            > 3
+        {
+            suggestions
+                .push("Multiple warnings detected. Review error handling approach".to_string());
         }
-        
+
         AnalysisResult {
             issues,
             suggestions,
@@ -562,7 +760,7 @@ impl PicoClawEngine {
     fn calculate_nesting(&self, code: &str) -> usize {
         let mut max_nesting: usize = 0;
         let mut current_nesting: usize = 0;
-        
+
         for c in code.chars() {
             match c {
                 '{' | '(' | '[' => {
@@ -575,7 +773,7 @@ impl PicoClawEngine {
                 _ => {}
             }
         }
-        
+
         max_nesting
     }
 
@@ -585,7 +783,7 @@ impl PicoClawEngine {
         let patterns_size = self.patterns.len() * 10_000; // ~10KB per language
         let tries_size = self.tries.len() * 50_000; // ~50KB per trie
         let ngrams_size = self.ngrams.len() * 100_000; // ~100KB per ngram model
-        
+
         patterns_size + tries_size + ngrams_size
     }
 }
@@ -593,8 +791,8 @@ impl PicoClawEngine {
 /// PicoClaw Tauri commands
 pub mod commands {
     use super::*;
-    use tauri::State;
     use std::sync::Mutex;
+    use tauri::State;
 
     /// Global PicoClaw state
     pub struct PicoClawState(pub Mutex<PicoClawEngine>);
@@ -624,9 +822,7 @@ pub mod commands {
 
     /// Get memory usage
     #[tauri::command]
-    pub fn picoclaw_memory_usage(
-        state: State<'_, PicoClawState>,
-    ) -> Result<usize, String> {
+    pub fn picoclaw_memory_usage(state: State<'_, PicoClawState>) -> Result<usize, String> {
         let engine = state.0.lock().map_err(|e| e.to_string())?;
         Ok(engine.memory_usage())
     }
@@ -674,7 +870,7 @@ fn test() {
         trie.insert("function", Some("keyword:function".to_string()));
         trie.insert("fn", Some("keyword:fn".to_string()));
         trie.insert("for", Some("keyword:for".to_string()));
-        
+
         let results = trie.search_prefix("f");
         assert_eq!(results.len(), 3);
     }

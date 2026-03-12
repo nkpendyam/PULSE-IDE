@@ -16,19 +16,18 @@
 //! - System overhead: ~1GB
 //! - Total: ~7.5GB (safe headroom)
 
-pub mod engine;
 pub mod backends;
-pub mod model_manager;
-pub mod memory_tiers;
 pub mod context_cache;
+pub mod engine;
+pub mod memory_tiers;
+pub mod model_manager;
 pub mod real_inference;
 
+pub use crate::embedded_llm::engine::{BackendCapabilities, InferenceBackend};
+pub use context_cache::{CachedContext, ContextCache};
 pub use engine::EmbeddedLLMEngine;
-pub use crate::embedded_llm::engine::{InferenceBackend, BackendCapabilities};
-pub use model_manager::{ModelManager, ModelSpec, Quantization};
-pub use memory_tiers::{MemoryTier, MemoryProfiler};
-pub use context_cache::{ContextCache, CachedContext};
-pub use real_inference::{RealLlamaBackend, DEFAULT_MODELS, get_recommended_model};
+pub use memory_tiers::{MemoryProfiler, MemoryTier};
+pub use model_manager::{ModelManager, ModelSpec};
 
 use serde::{Deserialize, Serialize};
 
@@ -184,4 +183,3 @@ pub struct HardwareCapabilities {
     /// CPU features (AVX2, AVX512, etc.)
     pub cpu_features: Vec<String>,
 }
-

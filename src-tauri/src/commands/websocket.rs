@@ -2,10 +2,10 @@
 //!
 //! Real WebSocket connections using tokio-tungstenite
 
-use tauri::State;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use futures_util::{SinkExt, StreamExt};
+use std::sync::Arc;
+use tauri::State;
+use tokio::sync::RwLock;
 
 /// WebSocket connection status
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -26,11 +26,21 @@ pub enum WsMessage {
     #[serde(rename = "leave")]
     Leave { room_id: String, user_id: String },
     #[serde(rename = "presence")]
-    Presence { user_id: String, cursor: CursorPosition },
+    Presence {
+        user_id: String,
+        cursor: CursorPosition,
+    },
     #[serde(rename = "operation")]
-    Operation { room_id: String, operation: TextOperation },
+    Operation {
+        room_id: String,
+        operation: TextOperation,
+    },
     #[serde(rename = "chat")]
-    Chat { room_id: String, user_id: String, message: String },
+    Chat {
+        room_id: String,
+        user_id: String,
+        message: String,
+    },
     #[serde(rename = "encrypted")]
     Encrypted { room_id: String, data: Vec<u8> },
 }
@@ -92,7 +102,7 @@ pub async fn ws_connect(
         ws.status = WsStatus::Connecting;
         ws.server_url = Some(server_url.clone());
     }
-    
+
     // Real WebSocket connection via tokio-tungstenite
     match tokio_tungstenite::connect_async(&server_url).await {
         Ok((ws_stream, _response)) => {
@@ -103,11 +113,12 @@ pub async fn ws_connect(
             ws.reconnect_attempts = 0;
 
             // Spawn a reader task that drains incoming messages
-            let state_clone = Arc::clone(&state.inner());
+            let state_clone = Arc::clone(state.inner());
             tokio::spawn(async move {
                 while let Some(msg) = read.next().await {
                     match msg {
-                        Ok(_) => { /* Messages received from server — can emit Tauri events in future */ }
+                        Ok(_) => { /* Messages received from server — can emit Tauri events in future */
+                        }
                         Err(e) => {
                             log::warn!("WebSocket read error: {}", e);
                             let mut ws = state_clone.write().await;
@@ -130,9 +141,7 @@ pub async fn ws_connect(
 }
 
 #[tauri::command]
-pub async fn ws_disconnect(
-    state: State<'_, Arc<RwLock<WsState>>>,
-) -> Result<(), String> {
+pub async fn ws_disconnect(state: State<'_, Arc<RwLock<WsState>>>) -> Result<(), String> {
     let mut ws = state.write().await;
     // Close the sender (which drops the connection)
     if let Some(mut sink) = ws.sender.take() {
@@ -144,9 +153,7 @@ pub async fn ws_disconnect(
 }
 
 #[tauri::command]
-pub async fn ws_get_status(
-    state: State<'_, Arc<RwLock<WsState>>>,
-) -> Result<WsStatus, String> {
+pub async fn ws_get_status(state: State<'_, Arc<RwLock<WsState>>>) -> Result<WsStatus, String> {
     let ws = state.read().await;
     Ok(ws.status.clone())
 }
@@ -161,26 +168,33 @@ pub async fn ws_join_room(
         return Err("Not connected to WebSocket server".to_string());
     }
     // Send join message over WebSocket
-    let msg = WsMessage::Join { room_id: room_id.clone(), user_id: "local".to_string() };
+    let msg = WsMessage::Join {
+        room_id: room_id.clone(),
+        user_id: "local".to_string(),
+    };
     if let Some(ref mut sink) = ws.sender {
         let json = serde_json::to_string(&msg).map_err(|e| e.to_string())?;
         sink.send(tokio_tungstenite::tungstenite::Message::Text(json))
-            .await.map_err(|e| format!("Failed to send join: {}", e))?;
+            .await
+            .map_err(|e| format!("Failed to send join: {}", e))?;
     }
     ws.connected_room = Some(room_id);
     Ok(())
 }
 
 #[tauri::command]
-pub async fn ws_leave_room(
-    state: State<'_, Arc<RwLock<WsState>>>,
-) -> Result<(), String> {
+pub async fn ws_leave_room(state: State<'_, Arc<RwLock<WsState>>>) -> Result<(), String> {
     let mut ws = state.write().await;
     if let Some(room_id) = ws.connected_room.take() {
-        let msg = WsMessage::Leave { room_id, user_id: "local".to_string() };
+        let msg = WsMessage::Leave {
+            room_id,
+            user_id: "local".to_string(),
+        };
         if let Some(ref mut sink) = ws.sender {
             let json = serde_json::to_string(&msg).map_err(|e| e.to_string())?;
-            let _ = sink.send(tokio_tungstenite::tungstenite::Message::Text(json)).await;
+            let _ = sink
+                .send(tokio_tungstenite::tungstenite::Message::Text(json))
+                .await;
         }
     }
     Ok(())
@@ -195,11 +209,12 @@ pub async fn ws_send_message(
     if ws.status != WsStatus::Connected {
         return Err("Not connected to WebSocket server".to_string());
     }
-    
+
     let json = serde_json::to_string(&message).map_err(|e| e.to_string())?;
     if let Some(ref mut sink) = ws.sender {
         sink.send(tokio_tungstenite::tungstenite::Message::Text(json))
-            .await.map_err(|e| format!("Failed to send message: {}", e))?;
+            .await
+            .map_err(|e| format!("Failed to send message: {}", e))?;
     }
     Ok(())
 }
@@ -213,12 +228,16 @@ pub async fn ws_send_presence(
     if ws.status != WsStatus::Connected {
         return Err("Not connected".to_string());
     }
-    
-    let msg = WsMessage::Presence { user_id: "local".to_string(), cursor };
+
+    let msg = WsMessage::Presence {
+        user_id: "local".to_string(),
+        cursor,
+    };
     let json = serde_json::to_string(&msg).map_err(|e| e.to_string())?;
     if let Some(ref mut sink) = ws.sender {
         sink.send(tokio_tungstenite::tungstenite::Message::Text(json))
-            .await.map_err(|e| format!("Failed to send presence: {}", e))?;
+            .await
+            .map_err(|e| format!("Failed to send presence: {}", e))?;
     }
     Ok(())
 }
@@ -232,7 +251,7 @@ pub async fn ws_send_operation(
     if ws.status != WsStatus::Connected {
         return Err("Not connected".to_string());
     }
-    
+
     let msg = WsMessage::Operation {
         room_id: ws.connected_room.clone().unwrap_or_default(),
         operation,
@@ -240,7 +259,8 @@ pub async fn ws_send_operation(
     let json = serde_json::to_string(&msg).map_err(|e| e.to_string())?;
     if let Some(ref mut sink) = ws.sender {
         sink.send(tokio_tungstenite::tungstenite::Message::Text(json))
-            .await.map_err(|e| format!("Failed to send operation: {}", e))?;
+            .await
+            .map_err(|e| format!("Failed to send operation: {}", e))?;
     }
     Ok(())
 }

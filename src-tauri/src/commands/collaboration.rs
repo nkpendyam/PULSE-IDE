@@ -1,8 +1,8 @@
 // Collaboration Tauri Commands — Real operation tracking implementation
-use tauri::command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
 
 lazy_static::lazy_static! {
@@ -26,11 +26,20 @@ pub struct ChatEntry {
     pub timestamp: String,
 }
 
+impl Default for CollaborationState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CollaborationState {
     pub fn new() -> Self {
         Self {
-            rooms: HashMap::new(), current_room: None, connected: false,
-            operation_counts: HashMap::new(), chat_history: HashMap::new(),
+            rooms: HashMap::new(),
+            current_room: None,
+            connected: false,
+            operation_counts: HashMap::new(),
+            chat_history: HashMap::new(),
             room_created_at: HashMap::new(),
         }
     }
@@ -100,8 +109,10 @@ pub async fn create_room(request: CreateRoomRequest) -> Result<RoomInfo, String>
     let mut state = COLLAB_STATE.write().await;
     let id = uuid::Uuid::new_v4().to_string();
     let room = RoomInfo {
-        id: id.clone(), name: request.name,
-        users: vec![], created_at: chrono::Utc::now().to_rfc3339(),
+        id: id.clone(),
+        name: request.name,
+        users: vec![],
+        created_at: chrono::Utc::now().to_rfc3339(),
         max_users: request.max_users.unwrap_or(50),
         is_encrypted: request.enable_e2ee.unwrap_or(false),
     };
@@ -115,9 +126,13 @@ pub async fn create_room(request: CreateRoomRequest) -> Result<RoomInfo, String>
 #[command]
 pub async fn join_room(request: JoinRoomRequest) -> Result<RoomInfo, String> {
     let mut state = COLLAB_STATE.write().await;
-    let room = state.rooms.get_mut(&request.room_id).ok_or("Room not found")?;
+    let room = state
+        .rooms
+        .get_mut(&request.room_id)
+        .ok_or("Room not found")?;
     room.users.push(CollaboratorInfo {
-        id: uuid::Uuid::new_v4().to_string(), name: request.username,
+        id: uuid::Uuid::new_v4().to_string(),
+        name: request.username,
         color: format!("#{:06x}", rand::random::<u32>() & 0xFFFFFF),
         cursor_line: None,
         cursor_col: None,
@@ -165,10 +180,18 @@ pub async fn update_presence(room_id: String, presence: PresenceUpdate) -> Resul
 pub async fn get_room_presence(room_id: String) -> Result<Vec<PresenceUpdate>, String> {
     let state = COLLAB_STATE.read().await;
     let room = state.rooms.get(&room_id).ok_or("Room not found")?;
-    Ok(room.users.iter().map(|u| PresenceUpdate {
-        user_id: u.id.clone(), cursor_line: u.cursor_line, cursor_col: u.cursor_col,
-        selection_start: None, selection_end: None, status: u.status.clone(),
-    }).collect())
+    Ok(room
+        .users
+        .iter()
+        .map(|u| PresenceUpdate {
+            user_id: u.id.clone(),
+            cursor_line: u.cursor_line,
+            cursor_col: u.cursor_col,
+            selection_start: None,
+            selection_end: None,
+            status: u.status.clone(),
+        })
+        .collect())
 }
 
 #[command]
@@ -177,8 +200,12 @@ pub async fn send_operation(room_id: String, operation: TextOperation) -> Result
     let _room = state.rooms.get(&room_id).ok_or("Room not found")?;
     // Track the operation
     *state.operation_counts.entry(room_id.clone()).or_insert(0) += 1;
-    log::info!("Operation #{} in {}: {:?}", 
-        state.operation_counts[&room_id], room_id, operation.op_type);
+    log::info!(
+        "Operation #{} in {}: {:?}",
+        state.operation_counts[&room_id],
+        room_id,
+        operation.op_type
+    );
     Ok(())
 }
 
@@ -192,7 +219,11 @@ pub async fn send_chat_message(room_id: String, message: String) -> Result<(), S
         message: message.clone(),
         timestamp: chrono::Utc::now().to_rfc3339(),
     };
-    state.chat_history.entry(room_id.clone()).or_default().push(entry);
+    state
+        .chat_history
+        .entry(room_id.clone())
+        .or_default()
+        .push(entry);
     log::info!("Chat in {}: {}", room_id, message);
     Ok(())
 }
@@ -202,10 +233,16 @@ pub async fn get_collab_stats(room_id: String) -> Result<RoomStats, String> {
     let state = COLLAB_STATE.read().await;
     let room = state.rooms.get(&room_id).ok_or("Room not found")?;
     let op_count = state.operation_counts.get(&room_id).copied().unwrap_or(0);
-    let uptime = state.room_created_at.get(&room_id)
+    let uptime = state
+        .room_created_at
+        .get(&room_id)
         .map(|t| t.elapsed().as_secs())
         .unwrap_or(0);
-    Ok(RoomStats { user_count: room.users.len(), operation_count: op_count, uptime_secs: uptime })
+    Ok(RoomStats {
+        user_count: room.users.len(),
+        operation_count: op_count,
+        uptime_secs: uptime,
+    })
 }
 
 #[command]
@@ -257,7 +294,11 @@ pub async fn broadcast_cursor(room_id: String, cursor: CursorBroadcast) -> Resul
     let room = state.rooms.get_mut(&room_id).ok_or("Room not found")?;
     // Update the user's cursor in presence
     let user_id = cursor.user_id.as_deref().unwrap_or("local");
-    if let Some(user) = room.users.iter_mut().find(|u| u.id == user_id || u.name == user_id) {
+    if let Some(user) = room
+        .users
+        .iter_mut()
+        .find(|u| u.id == user_id || u.name == user_id)
+    {
         user.cursor_line = Some(cursor.line);
         user.cursor_col = Some(cursor.column);
     }

@@ -2,9 +2,9 @@
 //!
 //! Uses local LLM to intelligently resolve merge conflicts
 
-use anyhow::{Result, Context};
-use serde::{Deserialize, Serialize};
 use super::MergeConflict;
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 /// AI merge conflict resolver
 pub struct AiMergeResolver {
@@ -96,15 +96,16 @@ Please provide a merged version that:
 4. Adds comments explaining any non-obvious decisions
 
 Output only the resolved code, wrapped in markdown code fences."#,
-            conflict.file_path,
-            conflict.base_version,
-            conflict.our_version,
-            conflict.their_version
+            conflict.file_path, conflict.base_version, conflict.our_version, conflict.their_version
         )
     }
 
     /// Generate resolution using AI
-    async fn generate_resolution(&self, prompt: &str, conflict: &MergeConflict) -> Result<MergeSuggestion> {
+    async fn generate_resolution(
+        &self,
+        _prompt: &str,
+        conflict: &MergeConflict,
+    ) -> Result<MergeSuggestion> {
         // Simple heuristic-based resolution for now
         // In production, this would use the Swarm AI engine
 
@@ -122,10 +123,7 @@ Output only the resolved code, wrapped in markdown code fences."#,
             explanation: "AI-generated merge combining both versions".to_string(),
             confidence: 0.8,
             strategy: ResolutionStrategy::AiGenerated,
-            alternatives: vec![
-                conflict.our_version.clone(),
-                conflict.their_version.clone(),
-            ],
+            alternatives: vec![conflict.our_version.clone(), conflict.their_version.clone()],
         })
     }
 
@@ -185,14 +183,18 @@ Output only the resolved code, wrapped in markdown code fences."#,
     /// Get resolution statistics
     pub fn get_stats(&self) -> ResolutionStats {
         let total = self.resolution_history.len();
-        let ai_generated = self.resolution_history.iter()
+        let ai_generated = self
+            .resolution_history
+            .iter()
             .filter(|r| matches!(r.strategy, ResolutionStrategy::AiGenerated))
             .count();
-        
+
         let avg_confidence = if total > 0 {
-            self.resolution_history.iter()
+            self.resolution_history
+                .iter()
                 .map(|r| r.confidence)
-                .sum::<f32>() / total as f32
+                .sum::<f32>()
+                / total as f32
         } else {
             0.0
         };
@@ -225,14 +227,14 @@ pub struct ResolutionStats {
 pub fn parse_conflict_markers(content: &str) -> Vec<(usize, usize, usize)> {
     let mut markers = Vec::new();
     let lines: Vec<&str> = content.lines().collect();
-    
+
     let mut i = 0;
     while i < lines.len() {
         if lines[i].starts_with("<<<<<<<") {
             let start = i;
             let mut middle = None;
             let mut end = None;
-            
+
             for j in (i + 1)..lines.len() {
                 if lines[j].starts_with("=======") {
                     middle = Some(j);
@@ -241,7 +243,7 @@ pub fn parse_conflict_markers(content: &str) -> Vec<(usize, usize, usize)> {
                     break;
                 }
             }
-            
+
             if let (Some(middle), Some(end)) = (middle, end) {
                 markers.push((start, middle, end));
                 i = end + 1;
@@ -252,16 +254,21 @@ pub fn parse_conflict_markers(content: &str) -> Vec<(usize, usize, usize)> {
             i += 1;
         }
     }
-    
+
     markers
 }
 
 /// Extract conflict parts from content
-pub fn extract_conflict_parts(content: &str, start: usize, middle: usize, end: usize) -> (String, String) {
+pub fn extract_conflict_parts(
+    content: &str,
+    start: usize,
+    middle: usize,
+    end: usize,
+) -> (String, String) {
     let lines: Vec<&str> = content.lines().collect();
-    
+
     let our_part = lines[start + 1..middle].join("\n");
     let their_part = lines[middle + 1..end].join("\n");
-    
+
     (our_part, their_part)
 }

@@ -1,17 +1,17 @@
 //! VS Code Extension Host Implementation
-//! 
+//!
 //! Full extension host with Node.js subprocess management and VS Code API surface.
 //! Based on patterns from vscode/src/vs/workbench/api/node/extHostExtensionService.ts
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
-use std::sync::Arc;
-use std::io::{BufRead, BufReader, Write};
+use anyhow::{Context, Result};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use anyhow::{Result, Context};
+use std::collections::HashMap;
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
+use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot, RwLock as AsyncRwLock};
 
 use super::api::ExtensionContext;
@@ -110,12 +110,10 @@ impl Default for ExtensionHostConfig {
     fn default() -> Self {
         Self {
             node_path: None,
-            extension_dirs: vec![
-                dirs::data_dir()
-                    .unwrap_or_else(|| PathBuf::from("."))
-                    .join("kyro-ide")
-                    .join("extensions"),
-            ],
+            extension_dirs: vec![dirs::data_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("kyro-ide")
+                .join("extensions")],
             development_mode: false,
             enable_proposed_api: false,
             product_name: "Kyro IDE".to_string(),
@@ -149,13 +147,14 @@ impl ExtensionHost {
     /// Initialize the extension host with Node.js subprocess
     pub fn initialize(&mut self, config: ExtensionHostConfig) -> Result<()> {
         // Find Node.js
-        let node_path = config.node_path
+        let node_path = config
+            .node_path
             .or_else(|| self.find_node())
             .context("Node.js not found. Please install Node.js to use VS Code extensions.")?;
 
         // Create extension host script
         let host_script = self.create_extension_host_script();
-        
+
         // Spawn Node.js process
         let mut child = Command::new(&node_path)
             .arg("-e")
@@ -170,12 +169,12 @@ impl ExtensionHost {
 
         let _stdin = child.stdin.take().context("Failed to get stdin")?;
         let stdout = child.stdout.take().context("Failed to get stdout")?;
-        
+
         // Start message pump
         let pending = self.pending_requests.clone();
         let (shutdown_tx, mut shutdown_rx) = mpsc::channel(1);
         self.shutdown_tx = Some(shutdown_tx);
-        
+
         tokio::spawn(async move {
             Self::message_pump(stdout, pending, &mut shutdown_rx).await;
         });
@@ -191,7 +190,10 @@ impl ExtensionHost {
             }
         }
 
-        log::info!("Extension host initialized with {} extensions", self.extensions.len());
+        log::info!(
+            "Extension host initialized with {} extensions",
+            self.extensions.len()
+        );
         Ok(())
     }
 
@@ -210,11 +212,7 @@ impl ExtensionHost {
                 "/usr/bin/node",
             ]
         } else {
-            vec![
-                "/usr/bin/node",
-                "/usr/local/bin/node",
-                "/snap/bin/node",
-            ]
+            vec!["/usr/bin/node", "/usr/local/bin/node", "/snap/bin/node"]
         };
 
         for path in candidates {
@@ -225,14 +223,21 @@ impl ExtensionHost {
         }
 
         // Try 'which node' or 'where node'
-        Command::new(if cfg!(target_os = "windows") { "where" } else { "which" })
-            .arg("node")
-            .output()
-            .ok()
-            .and_then(|output| {
-                String::from_utf8(output.stdout).ok()
-                    .and_then(|stdout: String| stdout.lines().next().map(|s: &str| PathBuf::from(s.trim())))
-            })
+        Command::new(if cfg!(target_os = "windows") {
+            "where"
+        } else {
+            "which"
+        })
+        .arg("node")
+        .output()
+        .ok()
+        .and_then(|output| {
+            String::from_utf8(output.stdout)
+                .ok()
+                .and_then(|stdout: String| {
+                    stdout.lines().next().map(|s: &str| PathBuf::from(s.trim()))
+                })
+        })
     }
 
     /// Create the Node.js extension host bootstrap script
@@ -462,19 +467,23 @@ sendNotification('host/ready', {});
         shutdown_rx: &mut mpsc::Receiver<()>,
     ) {
         let reader = BufReader::new(stdout);
-        
+
         for line in reader.lines() {
             if shutdown_rx.try_recv().is_ok() {
                 break;
             }
-            
+
             match line {
                 Ok(line) => {
                     if let Ok(response) = serde_json::from_str::<RpcResponse>(&line) {
                         let mut pending_guard = pending.write().await;
                         if let Some(tx) = pending_guard.remove(&response.id) {
                             let result = if let Some(error) = response.error {
-                                Err(anyhow::anyhow!("RPC error: {} - {}", error.code, error.message))
+                                Err(anyhow::anyhow!(
+                                    "RPC error: {} - {}",
+                                    error.code,
+                                    error.message
+                                ))
                             } else {
                                 Ok(response.result.unwrap_or(Value::Null))
                             };
@@ -504,7 +513,7 @@ sendNotification('host/ready', {});
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.is_dir() {
                 let package_json = path.join("package.json");
                 if package_json.exists() {
@@ -522,20 +531,28 @@ sendNotification('host/ready', {});
     pub fn load_extension(&mut self, extension_path: &PathBuf) -> Result<String> {
         // Load package.json
         let package_json_path = extension_path.join("package.json");
-        let manifest_content = std::fs::read_to_string(&package_json_path)
-            .with_context(|| format!("Failed to read package.json from {}", extension_path.display()))?;
+        let manifest_content = std::fs::read_to_string(&package_json_path).with_context(|| {
+            format!(
+                "Failed to read package.json from {}",
+                extension_path.display()
+            )
+        })?;
         let manifest: ExtensionManifest = serde_json::from_str(&manifest_content)
             .with_context(|| "Failed to parse package.json")?;
-        
+
         let extension_id = format!("{}.{}", manifest.publisher, manifest.name);
-        
+
         // Check dependencies
         for dep in &manifest.extension_dependencies {
             if !self.extensions.contains_key(dep) {
-                log::warn!("Extension {} depends on {} which is not installed", extension_id, dep);
+                log::warn!(
+                    "Extension {} depends on {} which is not installed",
+                    extension_id,
+                    dep
+                );
             }
         }
-        
+
         let extension = Extension {
             id: extension_id.clone(),
             manifest,
@@ -545,10 +562,10 @@ sendNotification('host/ready', {});
             extension_path: extension_path.clone(),
             subscriptions: Vec::new(),
         };
-        
+
         self.extensions.insert(extension_id.clone(), extension);
         self.extension_order.push(extension_id.clone());
-        
+
         log::info!("Loaded extension: {}", extension_id);
         Ok(extension_id)
     }
@@ -557,15 +574,17 @@ sendNotification('host/ready', {});
     pub fn activate_extension(&mut self, extension_id: &str) -> Result<()> {
         // Clone manifest and check state before mutable borrow
         let (current_state, manifest) = {
-            let extension = self.extensions.get(extension_id)
+            let extension = self
+                .extensions
+                .get(extension_id)
                 .ok_or_else(|| anyhow::anyhow!("Extension not found: {}", extension_id))?;
             (extension.state.clone(), extension.manifest.clone())
         };
-        
+
         if current_state == ExtensionState::Active {
             return Ok(());
         }
-        
+
         if let Some(extension) = self.extensions.get_mut(extension_id) {
             extension.state = ExtensionState::Activating;
         }
@@ -579,18 +598,17 @@ sendNotification('host/ready', {});
                     log::debug!("Activating extension via RPC: {}", extension_id);
                 }
             }
-            
+
             if let Some(extension) = self.extensions.get_mut(extension_id) {
                 extension.state = ExtensionState::Active;
             }
-            self.activated_extensions.insert(extension_id.to_string(), true);
+            self.activated_extensions
+                .insert(extension_id.to_string(), true);
             log::info!("Activated extension: {}", extension_id);
-        } else {
-            if let Some(extension) = self.extensions.get_mut(extension_id) {
-                extension.state = ExtensionState::Inactive;
-            }
+        } else if let Some(extension) = self.extensions.get_mut(extension_id) {
+            extension.state = ExtensionState::Inactive;
         }
-        
+
         Ok(())
     }
 
@@ -628,16 +646,18 @@ sendNotification('host/ready', {});
                 }
             }
         }
-        
+
         // Default: activate if no activation events specified
         manifest.activation_events.is_empty()
     }
 
     /// Deactivate an extension
     pub fn deactivate_extension(&mut self, extension_id: &str) -> Result<()> {
-        let extension = self.extensions.get_mut(extension_id)
+        let extension = self
+            .extensions
+            .get_mut(extension_id)
             .ok_or_else(|| anyhow::anyhow!("Extension not found: {}", extension_id))?;
-        
+
         if extension.state == ExtensionState::Active {
             // Would send deactivate RPC here
             extension.state = ExtensionState::Inactive;
@@ -645,7 +665,7 @@ sendNotification('host/ready', {});
             extension.subscriptions.clear();
             log::info!("Deactivated extension: {}", extension_id);
         }
-        
+
         Ok(())
     }
 
@@ -656,7 +676,8 @@ sendNotification('host/ready', {});
 
     /// Get active extensions
     pub fn get_active_extensions(&self) -> Vec<&Extension> {
-        self.extensions.values()
+        self.extensions
+            .values()
             .filter(|e| e.state == ExtensionState::Active)
             .collect()
     }
@@ -669,10 +690,15 @@ sendNotification('host/ready', {});
     /// Execute a command from an extension
     pub fn execute_command(&mut self, command_id: &str, args: Vec<Value>) -> Result<Option<Value>> {
         // Find extension that registered this command (immutable search first)
-        let target = self.extensions.values()
+        let target = self
+            .extensions
+            .values()
             .find(|extension| {
-                extension.manifest.contributes.as_ref()
-                    .map(|c| c.commands.iter().any(|cmd| &cmd.command == command_id))
+                extension
+                    .manifest
+                    .contributes
+                    .as_ref()
+                    .map(|c| c.commands.iter().any(|cmd| cmd.command == command_id))
                     .unwrap_or(false)
             })
             .map(|ext| (ext.id.clone(), ext.state.clone()));
@@ -682,7 +708,7 @@ sendNotification('host/ready', {});
                 if state != ExtensionState::Active {
                     self.activate_extension(&ext_id)?;
                 }
-                
+
                 // Would send RPC to execute command
                 Ok(Some(json!({
                     "command": command_id,
@@ -752,8 +778,8 @@ impl Drop for ExtensionHost {
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::fs;
+    use tempfile::TempDir;
 
     #[test]
     fn test_extension_host_creation() {
@@ -766,7 +792,7 @@ mod tests {
     fn test_extension_state_transitions() {
         let state = ExtensionState::Installed;
         assert_eq!(state, ExtensionState::Installed);
-        
+
         let failed = ExtensionState::Failed("test error".to_string());
         if let ExtensionState::Failed(msg) = failed {
             assert_eq!(msg, "test error");
@@ -778,7 +804,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let extension_dir = dir.path().join("test-extension");
         fs::create_dir_all(&extension_dir).unwrap();
-        
+
         let package_json = json!({
             "name": "test-extension",
             "publisher": "test",
@@ -786,15 +812,16 @@ mod tests {
             "engines": { "vscode": "^1.60.0" },
             "main": "./extension.js"
         });
-        
+
         fs::write(
             extension_dir.join("package.json"),
-            serde_json::to_string_pretty(&package_json).unwrap()
-        ).unwrap();
-        
+            serde_json::to_string_pretty(&package_json).unwrap(),
+        )
+        .unwrap();
+
         let mut host = ExtensionHost::new();
         let result = host.load_extension(&extension_dir);
-        
+
         assert!(result.is_ok());
         assert_eq!(host.extensions.len(), 1);
     }
@@ -811,7 +838,7 @@ mod tests {
     fn test_workspace_context() {
         let mut host = ExtensionHost::new();
         host.set_workspace(PathBuf::from("/test/workspace"));
-        
+
         let ctx = host.context.read();
         assert_eq!(ctx.workspace_root, Some(PathBuf::from("/test/workspace")));
     }

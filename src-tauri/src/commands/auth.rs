@@ -1,9 +1,9 @@
 // Authentication Tauri Commands — Real session tracking implementation
-use tauri::command;
+use crate::auth::{AuthConfig, AuthManager, UserRole};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tauri::command;
 use tokio::sync::RwLock;
-use crate::auth::{AuthManager, AuthConfig, UserRole};
 
 struct AuthSession {
     manager: AuthManager,
@@ -29,11 +29,15 @@ pub struct UserInfo {
 #[command]
 pub async fn login_user(username: String, password: String) -> Result<UserInfo, String> {
     let mut state = AUTH_STATE.write().await;
-    let tokens = state.manager.login(&username, &password, None)
+    let tokens = state
+        .manager
+        .login(&username, &password, None)
         .map_err(|e| format!("Login failed: {}", e))?;
     let user = UserInfo {
-        id: tokens.user.id.to_string(), username: tokens.user.username.clone(),
-        email: tokens.user.email.clone(), role: format!("{:?}", tokens.user.role),
+        id: tokens.user.id.to_string(),
+        username: tokens.user.username.clone(),
+        email: tokens.user.email.clone(),
+        role: format!("{:?}", tokens.user.role),
         avatar_url: None,
     };
     state.current_user = Some(user.clone());
@@ -48,13 +52,21 @@ pub async fn logout_user() -> Result<(), String> {
 }
 
 #[command]
-pub async fn register_user(username: String, email: String, password: String) -> Result<UserInfo, String> {
+pub async fn register_user(
+    username: String,
+    email: String,
+    password: String,
+) -> Result<UserInfo, String> {
     let mut state = AUTH_STATE.write().await;
-    let user = state.manager.register(username, email, &password)
+    let user = state
+        .manager
+        .register(username, email, &password)
         .map_err(|e| format!("Registration failed: {}", e))?;
     let info = UserInfo {
-        id: user.id.to_string(), username: user.username.clone(),
-        email: user.email.clone(), role: format!("{:?}", user.role),
+        id: user.id.to_string(),
+        username: user.username.clone(),
+        email: user.email.clone(),
+        role: format!("{:?}", user.role),
         avatar_url: None,
     };
     state.current_user = Some(info.clone());
@@ -84,7 +96,10 @@ pub async fn update_user_role(user_id: String, role: String) -> Result<(), Strin
         "owner" => UserRole::Owner,
         _ => UserRole::Viewer,
     };
-    state.manager.update_user_role(uid, new_role).map_err(|e| format!("Failed: {}", e))
+    state
+        .manager
+        .update_user_role(uid, new_role)
+        .map_err(|e| format!("Failed: {}", e))
 }
 
 #[command]
@@ -96,17 +111,24 @@ pub async fn validate_session(token: String) -> Result<bool, String> {
 #[command]
 pub async fn get_oauth_url(provider: String) -> Result<String, String> {
     let state = AUTH_STATE.read().await;
-    state.manager.get_oauth_url(&provider).map_err(|e| format!("Failed: {}", e))
+    state
+        .manager
+        .get_oauth_url(&provider)
+        .map_err(|e| format!("Failed: {}", e))
 }
 
 #[command]
 pub async fn handle_oauth_callback(provider: String, code: String) -> Result<UserInfo, String> {
     let mut state = AUTH_STATE.write().await;
-    let tokens = state.manager.handle_oauth_callback(&provider, &code)
+    let tokens = state
+        .manager
+        .handle_oauth_callback(&provider, &code)
         .map_err(|e| format!("OAuth failed: {}", e))?;
     let user = UserInfo {
-        id: tokens.user.id.to_string(), username: tokens.user.username.clone(),
-        email: tokens.user.email.clone(), role: format!("{:?}", tokens.user.role),
+        id: tokens.user.id.to_string(),
+        username: tokens.user.username.clone(),
+        email: tokens.user.email.clone(),
+        role: format!("{:?}", tokens.user.role),
         avatar_url: None,
     };
     state.current_user = Some(user.clone());

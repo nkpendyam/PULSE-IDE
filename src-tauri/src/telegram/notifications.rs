@@ -3,9 +3,9 @@
 //! Manages notifications sent from IDE to Telegram
 
 use anyhow::Result;
-use std::collections::VecDeque;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 /// Notification manager
 pub struct NotificationManager {
@@ -86,7 +86,11 @@ impl NotificationManager {
     pub fn queue(&mut self, notification: QueuedNotification) -> Result<()> {
         if self.queue.len() >= self.config.max_queue_size {
             // Remove oldest low priority notification
-            if let Some(pos) = self.queue.iter().position(|n| n.priority == NotificationPriority::Low) {
+            if let Some(pos) = self
+                .queue
+                .iter()
+                .position(|n| n.priority == NotificationPriority::Low)
+            {
                 self.queue.remove(pos);
             } else {
                 // Remove oldest anyway
@@ -95,9 +99,12 @@ impl NotificationManager {
         }
 
         // Insert by priority
-        let insert_pos = self.queue.iter().position(|n| n.priority < notification.priority)
+        let insert_pos = self
+            .queue
+            .iter()
+            .position(|n| n.priority < notification.priority)
             .unwrap_or(self.queue.len());
-        
+
         self.queue.insert(insert_pos, notification);
         Ok(())
     }
@@ -117,8 +124,14 @@ impl NotificationManager {
 
     /// Check if in quiet hours
     pub fn is_quiet_hours(&self) -> bool {
-        if let (Some(start), Some(end)) = (self.config.quiet_hours_start, self.config.quiet_hours_end) {
-            let hour = Utc::now().format("%H").to_string().parse::<u32>().unwrap_or(0) as u8;
+        if let (Some(start), Some(end)) =
+            (self.config.quiet_hours_start, self.config.quiet_hours_end)
+        {
+            let hour = Utc::now()
+                .format("%H")
+                .to_string()
+                .parse::<u32>()
+                .unwrap_or(0) as u8;
             if start < end {
                 hour >= start && hour < end
             } else {
@@ -147,7 +160,10 @@ impl NotificationManager {
 
     /// Get pending critical notifications
     pub fn get_critical_count(&self) -> usize {
-        self.queue.iter().filter(|n| n.priority == NotificationPriority::Critical).count()
+        self.queue
+            .iter()
+            .filter(|n| n.priority == NotificationPriority::Critical)
+            .count()
     }
 }
 
@@ -236,7 +252,9 @@ pub mod templates {
         format!(
             "{} <b>Alert [{}]</b>\n\n\
              {}",
-            emoji, severity.to_uppercase(), message
+            emoji,
+            severity.to_uppercase(),
+            message
         )
     }
 }

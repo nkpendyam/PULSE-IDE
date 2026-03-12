@@ -42,22 +42,22 @@ pub mod utils {
         Fut: std::future::Future<Output = bool>,
     {
         let start = std::time::Instant::now();
-        
+
         while start.elapsed() < timeout {
             if condition().await {
                 return true;
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
-        
+
         false
     }
 
     /// Generate random test data
     pub fn random_string(length: usize) -> String {
-        use std::iter;
         use rand::Rng;
-        
+        use std::iter;
+
         let mut rng = rand::thread_rng();
         iter::repeat_with(|| rng.sample(rand::distributions::Alphanumeric))
             .map(char::from)
@@ -88,9 +88,10 @@ pub mod fixtures {
             version: "1.0.0".to_string(),
             display_name: "Test Extension".to_string(),
             description: Some("A test extension for unit tests".to_string()),
-            engines: std::collections::HashMap::from([
-                ("vscode".to_string(), "^1.80.0".to_string())
-            ]),
+            engines: std::collections::HashMap::from([(
+                "vscode".to_string(),
+                "^1.80.0".to_string(),
+            )]),
             activation_events: vec!["onLanguage:rust".to_string()],
             main: Some("./out/extension.js".to_string()),
             contributes: None,
@@ -99,11 +100,7 @@ pub mod fixtures {
 
     /// Create a test text document
     pub fn test_document(content: &str) -> kyro_ide::vscode_compat::TextDocument {
-        kyro_ide::vscode_compat::TextDocument::new(
-            "file:///test.rs",
-            "rust",
-            content,
-        )
+        kyro_ide::vscode_compat::TextDocument::new("file:///test.rs", "rust", content)
     }
 }
 
@@ -148,7 +145,7 @@ pub mod benchmark {
         let min_duration = *durations.first().unwrap();
         let max_duration = *durations.last().unwrap();
         let avg_duration = Duration::from_nanos(
-            durations.iter().map(|d| d.as_nanos() as u64).sum::<u64>() / iterations
+            durations.iter().map(|d| d.as_nanos() as u64).sum::<u64>() / iterations,
         );
         let p50_duration = durations[(iterations as usize * 50) / 100];
         let p99_duration = durations[(iterations as usize * 99) / 100];

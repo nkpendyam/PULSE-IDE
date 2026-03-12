@@ -90,7 +90,11 @@ pub fn graph_to_mermaid(graph: &DependencyGraph) -> String {
         } else if edge.items.len() <= 3 {
             format!("|{}|", edge.items.join(", "))
         } else {
-            format!("|{} + {} more|", edge.items[..2].join(", "), edge.items.len() - 2)
+            format!(
+                "|{} + {} more|",
+                edge.items[..2].join(", "),
+                edge.items.len() - 2
+            )
         };
         lines.push(format!("  {} -->{}  {}", from_id, label, to_id));
     }
@@ -243,7 +247,16 @@ fn resolve_import(
                 let joined = format!("{}/{}", from_dir, import_path.trim_start_matches("./"));
                 let normalized = normalize_path(&joined);
                 // Try with common extensions
-                for ext in &["", ".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx", "/index.js"] {
+                for ext in &[
+                    "",
+                    ".ts",
+                    ".tsx",
+                    ".js",
+                    ".jsx",
+                    "/index.ts",
+                    "/index.tsx",
+                    "/index.js",
+                ] {
                     let candidate = format!("{}{}", normalized, ext);
                     if let Some(found) = index.get(&candidate) {
                         return Some(found.clone());
@@ -255,9 +268,7 @@ fn resolve_import(
         }
         "python" => {
             // Relative: ".module" → look up
-            let mod_name = import_path
-                .trim_start_matches('.')
-                .replace('.', "/");
+            let mod_name = import_path.trim_start_matches('.').replace('.', "/");
             if let Some(found) = index.get(&mod_name) {
                 return Some(found.clone());
             }
@@ -313,9 +324,5 @@ fn short_name(path: &str) -> String {
 }
 
 fn sanitize_mermaid_id(s: &str) -> String {
-    s.replace('/', "_")
-        .replace('.', "_")
-        .replace('-', "_")
-        .replace(':', "_")
-        .replace(' ', "_")
+    s.replace(['/', '.', '-', ':', ' '], "_")
 }

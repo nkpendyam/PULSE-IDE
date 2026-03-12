@@ -20,9 +20,9 @@ pub enum StepStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PruningStrategy {
     None,
-    SignaturesOnly,       // Strip all function bodies
-    TargetedSignatures,   // Keep body of target function only
-    ImportsOnly,          // Show only imports and struct definitions
+    SignaturesOnly,     // Strip all function bodies
+    TargetedSignatures, // Keep body of target function only
+    ImportsOnly,        // Show only imports and struct definitions
 }
 
 /// A discrete step in the autonomous plan
@@ -75,7 +75,10 @@ impl Planner {
         for id in &self.execution_order {
             if let Some(step) = self.steps.get(id) {
                 if step.status == StepStatus::Pending {
-                    let can_execute = step.dependencies.iter().all(|dep| completed_steps.contains(dep));
+                    let can_execute = step
+                        .dependencies
+                        .iter()
+                        .all(|dep| completed_steps.contains(dep));
                     if can_execute {
                         return Some(step);
                     }
@@ -97,8 +100,8 @@ impl Planner {
 
     /// Check if the overall plan is complete
     pub fn is_complete(&self) -> bool {
-        self.steps.values().all(|step| {
-            step.status == StepStatus::Completed || step.status == StepStatus::Skipped
-        })
+        self.steps
+            .values()
+            .all(|step| step.status == StepStatus::Completed || step.status == StepStatus::Skipped)
     }
 }

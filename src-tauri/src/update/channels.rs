@@ -31,7 +31,7 @@ impl UpdateChannel {
             Self::Locked => ChannelFrequency::Never,
         }
     }
-    
+
     /// Get restart behavior for this channel
     pub fn restart_behavior(&self) -> RestartBehavior {
         match self {
@@ -42,7 +42,7 @@ impl UpdateChannel {
             Self::Locked => RestartBehavior::Never,
         }
     }
-    
+
     /// Get channel name
     pub fn name(&self) -> &'static str {
         match self {
@@ -53,7 +53,7 @@ impl UpdateChannel {
             Self::Locked => "locked",
         }
     }
-    
+
     /// Parse from string
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
@@ -138,7 +138,7 @@ impl UpdatePolicy {
             true
         }
     }
-    
+
     /// Create policy for channel
     pub fn for_channel(channel: UpdateChannel) -> Self {
         match channel {

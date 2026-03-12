@@ -97,7 +97,7 @@ fn model_catalog() -> Vec<AvailableModel> {
 pub fn list_available_models() -> Result<Vec<AvailableModel>, String> {
     let dir = models_dir();
     let mut catalog = model_catalog();
-    
+
     // Check which are already downloaded
     for model in &mut catalog {
         let filename = model.url.rsplit('/').next().unwrap_or(&model.id);
@@ -120,7 +120,9 @@ pub fn list_available_models() -> Result<Vec<AvailableModel>, String> {
 #[command]
 pub async fn download_model(app: AppHandle, model_id: String) -> Result<String, String> {
     let catalog = model_catalog();
-    let model = catalog.iter().find(|m| m.id == model_id)
+    let model = catalog
+        .iter()
+        .find(|m| m.id == model_id)
         .ok_or_else(|| format!("Unknown model: {}", model_id))?;
 
     let dir = models_dir();
@@ -143,7 +145,8 @@ pub async fn download_model(app: AppHandle, model_id: String) -> Result<String, 
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    let response = client.get(&model.url)
+    let response = client
+        .get(&model.url)
         .send()
         .await
         .map_err(|e| format!("Failed to start download: {}", e))?;
@@ -152,7 +155,9 @@ pub async fn download_model(app: AppHandle, model_id: String) -> Result<String, 
         return Err(format!("HTTP {}: {}", response.status(), model.url));
     }
 
-    let total_bytes = response.content_length().unwrap_or(model.size_mb * 1024 * 1024);
+    let total_bytes = response
+        .content_length()
+        .unwrap_or(model.size_mb * 1024 * 1024);
     let mut downloaded: u64 = 0;
     let start = std::time::Instant::now();
 
@@ -166,34 +171,44 @@ pub async fn download_model(app: AppHandle, model_id: String) -> Result<String, 
 
     while let Some(chunk_result) = stream.next().await {
         let chunk = chunk_result.map_err(|e| format!("Download error: {}", e))?;
-        file.write_all(&chunk).await.map_err(|e| format!("Write error: {}", e))?;
+        file.write_all(&chunk)
+            .await
+            .map_err(|e| format!("Write error: {}", e))?;
         downloaded += chunk.len() as u64;
 
         let elapsed = start.elapsed().as_secs_f32().max(0.001);
         let speed_mbps = (downloaded as f32 / (1024.0 * 1024.0)) / elapsed;
         let percent = (downloaded as f32 / total_bytes as f32) * 100.0;
 
-        let _ = app.emit("model-download-progress", DownloadProgress {
-            model_id: model_id.clone(),
-            downloaded_bytes: downloaded,
-            total_bytes,
-            percent,
-            speed_mbps,
-            state: DownloadState::Downloading,
-        });
+        let _ = app.emit(
+            "model-download-progress",
+            DownloadProgress {
+                model_id: model_id.clone(),
+                downloaded_bytes: downloaded,
+                total_bytes,
+                percent,
+                speed_mbps,
+                state: DownloadState::Downloading,
+            },
+        );
     }
 
-    file.flush().await.map_err(|e| format!("Flush error: {}", e))?;
+    file.flush()
+        .await
+        .map_err(|e| format!("Flush error: {}", e))?;
 
     // Emit completion
-    let _ = app.emit("model-download-progress", DownloadProgress {
-        model_id: model_id.clone(),
-        downloaded_bytes: total_bytes,
-        total_bytes,
-        percent: 100.0,
-        speed_mbps: 0.0,
-        state: DownloadState::Complete,
-    });
+    let _ = app.emit(
+        "model-download-progress",
+        DownloadProgress {
+            model_id: model_id.clone(),
+            downloaded_bytes: total_bytes,
+            total_bytes,
+            percent: 100.0,
+            speed_mbps: 0.0,
+            state: DownloadState::Complete,
+        },
+    );
 
     Ok(dest.to_string_lossy().to_string())
 }
@@ -202,7 +217,9 @@ pub async fn download_model(app: AppHandle, model_id: String) -> Result<String, 
 #[command]
 pub fn delete_model(model_id: String) -> Result<(), String> {
     let catalog = model_catalog();
-    let model = catalog.iter().find(|m| m.id == model_id)
+    let model = catalog
+        .iter()
+        .find(|m| m.id == model_id)
         .ok_or_else(|| format!("Unknown model: {}", model_id))?;
 
     let dir = models_dir();

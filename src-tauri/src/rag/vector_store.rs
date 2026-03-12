@@ -1,4 +1,3 @@
-
 use std::sync::Mutex;
 
 /// Brute-force vector index with cosine similarity.
@@ -15,6 +14,12 @@ pub struct Params {
     pub m: usize,
     pub max_elements: usize,
     pub ef_search: usize,
+}
+
+impl Default for Params {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Params {
@@ -105,7 +110,11 @@ impl Hnsw<f32, rand_pcg::Pcg64> {
             .collect();
 
         // Sort by ascending distance (most similar first)
-        scored.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap_or(std::cmp::Ordering::Equal));
+        scored.sort_by(|a, b| {
+            a.distance
+                .partial_cmp(&b.distance)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         scored.truncate(k);
         scored
     }
@@ -126,18 +135,18 @@ fn dot_norm(a: &[f32]) -> f32 {
 // Based on: https://github.com/rust-cv/hnsw
 
 use std::collections::HashMap;
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::io::{BufReader, BufWriter};
 
 use serde::{Deserialize, Serialize};
 
-use ndarray::Array1;
-use rand_pcg::Pcg64;
-use rand::SeedableRng;
-use log::{debug, info};
-use tokio::sync::RwLock;
 use bincode;
+use log::{debug, info};
+use ndarray::Array1;
+use rand::SeedableRng;
+use rand_pcg::Pcg64;
+use tokio::sync::RwLock;
 
 /// Vector dimension (nomic-embed-text uses 768, all-MiniLM uses 384)
 pub const DEFAULT_DIMENSION: usize = 768;
@@ -205,18 +214,21 @@ impl HnswVectorStore {
     /// Create a new vector store
     pub fn new(config: VectorStoreConfig) -> anyhow::Result<Self> {
         std::fs::create_dir_all(&config.storage_path)?;
-        
+
         let params = Params::new()
             .max_elements(config.max_elements)
             .m(config.m)
             .ef_construction(config.ef_construction)
             .ef_search(config.ef_search);
-        
+
         let rng = Pcg64::from_entropy();
         let index = Hnsw::new(params, config.dimension, rng);
-        
-        info!("Created HNSW vector store with dimension {}", config.dimension);
-        
+
+        info!(
+            "Created HNSW vector store with dimension {}",
+            config.dimension
+        );
+
         Ok(Self {
             config,
             index,
@@ -225,13 +237,13 @@ impl HnswVectorStore {
             next_index: 0,
         })
     }
-    
+
     /// Load vector store from disk
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let config_path = path.join("config.bin");
-        let index_path = path.join("index.bin");
+        let _index_path = path.join("index.bin");
         let metadata_path = path.join("metadata.bin");
-        
+
         let config: VectorStoreConfig = if config_path.exists() {
             let file = std::fs::File::open(&config_path)?;
             let reader = BufReader::new(file);
@@ -242,7 +254,7 @@ impl HnswVectorStore {
                 ..Default::default()
             });
         };
-        
+
         let metadata: HashMap<usize, VectorMetadata> = if metadata_path.exists() {
             let file = std::fs::File::open(&metadata_path)?;
             let reader = BufReader::new(file);
@@ -250,25 +262,26 @@ impl HnswVectorStore {
         } else {
             HashMap::new()
         };
-        
+
         // Build id_to_index from metadata
-        let id_to_index: HashMap<String, usize> = metadata.iter()
+        let id_to_index: HashMap<String, usize> = metadata
+            .iter()
             .map(|(idx, meta)| (meta.id.clone(), *idx))
             .collect();
-        
+
         let next_index = metadata.keys().max().map(|m| m + 1).unwrap_or(0);
-        
+
         let params = Params::new()
             .max_elements(config.max_elements)
             .m(config.m)
             .ef_construction(config.ef_construction)
             .ef_search(config.ef_search);
-        
+
         let rng = Pcg64::from_entropy();
         let index = Hnsw::new(params, config.dimension, rng);
-        
+
         info!("Loaded vector store with {} vectors", metadata.len());
-        
+
         Ok(Self {
             config,
             index,
@@ -277,30 +290,35 @@ impl HnswVectorStore {
             next_index,
         })
     }
-    
+
     /// Save vector store to disk
     pub fn save(&self) -> anyhow::Result<()> {
         let path = &self.config.storage_path;
         std::fs::create_dir_all(path)?;
-        
+
         // Save config
         let config_path = path.join("config.bin");
         let file = std::fs::File::create(&config_path)?;
         let writer = BufWriter::new(file);
         bincode::serialize_into(writer, &self.config)?;
-        
+
         // Save metadata
         let metadata_path = path.join("metadata.bin");
         let file = std::fs::File::create(&metadata_path)?;
         let writer = BufWriter::new(file);
         bincode::serialize_into(writer, &self.metadata)?;
-        
+
         info!("Saved vector store with {} vectors", self.metadata.len());
         Ok(())
     }
-    
+
     /// Insert a vector with metadata
-    pub fn insert(&mut self, id: &str, vector: &[f32], metadata: VectorMetadata) -> anyhow::Result<()> {
+    pub fn insert(
+        &mut self,
+        id: &str,
+        vector: &[f32],
+        metadata: VectorMetadata,
+    ) -> anyhow::Result<()> {
         if vector.len() != self.config.dimension {
             return Err(anyhow::anyhow!(
                 "Vector dimension mismatch: expected {}, got {}",
@@ -308,27 +326,27 @@ impl HnswVectorStore {
                 vector.len()
             ));
         }
-        
+
         // Remove existing if present
         if let Some(_old_idx) = self.id_to_index.remove(id) {
             self.metadata.remove(&_old_idx);
         }
-        
+
         let idx = self.next_index;
         self.next_index += 1;
-        
+
         // Insert into HNSW index
         let point: Array1<f32> = Array1::from_vec(vector.to_vec());
-        self.index.insert((&point).into(), idx);
-        
+        self.index.insert(&point, idx);
+
         // Store metadata
         self.metadata.insert(idx, metadata);
         self.id_to_index.insert(id.to_string(), idx);
-        
+
         debug!("Inserted vector {} at index {}", id, idx);
         Ok(())
     }
-    
+
     /// Search for nearest neighbors
     pub fn search(&self, query: &[f32], k: usize) -> anyhow::Result<Vec<VectorSearchResult>> {
         if query.len() != self.config.dimension {
@@ -338,10 +356,10 @@ impl HnswVectorStore {
                 query.len()
             ));
         }
-        
+
         let query_point: Array1<f32> = Array1::from_vec(query.to_vec());
         let results = self.index.search(&query_point, k, self.config.ef_search);
-        
+
         let search_results: Vec<VectorSearchResult> = results
             .into_iter()
             .filter_map(|result| {
@@ -350,7 +368,7 @@ impl HnswVectorStore {
                     // For cosine similarity, distance is 1 - similarity
                     let distance = result.distance;
                     let score = 1.0 - distance;
-                    
+
                     VectorSearchResult {
                         metadata: meta.clone(),
                         score,
@@ -359,16 +377,18 @@ impl HnswVectorStore {
                 })
             })
             .collect();
-        
+
         debug!("Found {} results for query", search_results.len());
         Ok(search_results)
     }
-    
+
     /// Get vector by ID
     pub fn get(&self, id: &str) -> Option<&VectorMetadata> {
-        self.id_to_index.get(id).and_then(|idx| self.metadata.get(idx))
+        self.id_to_index
+            .get(id)
+            .and_then(|idx| self.metadata.get(idx))
     }
-    
+
     /// Remove vector by ID
     pub fn remove(&mut self, id: &str) -> Option<VectorMetadata> {
         if let Some(idx) = self.id_to_index.remove(id) {
@@ -377,41 +397,44 @@ impl HnswVectorStore {
             None
         }
     }
-    
+
     /// Remove all vectors for a file
     pub fn remove_file(&mut self, file_path: &str) -> usize {
-        let ids_to_remove: Vec<String> = self.metadata.values()
+        let ids_to_remove: Vec<String> = self
+            .metadata
+            .values()
             .filter(|m| m.file_path == file_path)
             .map(|m| m.id.clone())
             .collect();
-        
+
         let count = ids_to_remove.len();
         for id in ids_to_remove {
             self.remove(&id);
         }
-        
+
         count
     }
-    
+
     /// Get total number of vectors
     pub fn len(&self) -> usize {
         self.metadata.len()
     }
-    
+
     /// Check if store is empty
     pub fn is_empty(&self) -> bool {
         self.metadata.is_empty()
     }
-    
+
     /// Get all file paths in the index
     pub fn get_indexed_files(&self) -> Vec<String> {
-        self.metadata.values()
+        self.metadata
+            .values()
             .map(|m| m.file_path.clone())
             .collect::<std::collections::HashSet<_>>()
             .into_iter()
             .collect()
     }
-    
+
     /// Get statistics
     pub fn stats(&self) -> VectorStoreStats {
         let files = self.get_indexed_files();
@@ -422,7 +445,7 @@ impl HnswVectorStore {
             languages: self.get_language_distribution(),
         }
     }
-    
+
     fn get_language_distribution(&self) -> HashMap<String, usize> {
         let mut dist = HashMap::new();
         for meta in self.metadata.values() {
@@ -447,7 +470,7 @@ pub type SharedVectorStore = Arc<RwLock<HnswVectorStore>>;
 #[cfg(all(test, feature = "fixme_tests"))]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_insert_and_search() {
         let config = VectorStoreConfig {
@@ -455,58 +478,74 @@ mod tests {
             ..Default::default()
         };
         let mut store = HnswVectorStore::new(config).unwrap();
-        
+
         // Insert vectors
         let v1 = vec![1.0, 0.0, 0.0, 0.0];
         let v2 = vec![0.0, 1.0, 0.0, 0.0];
         let v3 = vec![0.9, 0.1, 0.0, 0.0];
-        
-        store.insert("1", &v1, VectorMetadata {
-            id: "1".to_string(),
-            file_path: "test.rs".to_string(),
-            start_line: 0,
-            end_line: 10,
-            content: "fn main() {}".to_string(),
-            language: "rust".to_string(),
-            symbol_type: Some("function".to_string()),
-            symbol_name: Some("main".to_string()),
-            created_at: 0,
-            updated_at: 0,
-        }).unwrap();
-        
-        store.insert("2", &v2, VectorMetadata {
-            id: "2".to_string(),
-            file_path: "test.py".to_string(),
-            start_line: 0,
-            end_line: 5,
-            content: "def hello(): pass".to_string(),
-            language: "python".to_string(),
-            symbol_type: Some("function".to_string()),
-            symbol_name: Some("hello".to_string()),
-            created_at: 0,
-            updated_at: 0,
-        }).unwrap();
-        
-        store.insert("3", &v3, VectorMetadata {
-            id: "3".to_string(),
-            file_path: "test.rs".to_string(),
-            start_line: 20,
-            end_line: 30,
-            content: "fn helper() {}".to_string(),
-            language: "rust".to_string(),
-            symbol_type: Some("function".to_string()),
-            symbol_name: Some("helper".to_string()),
-            created_at: 0,
-            updated_at: 0,
-        }).unwrap();
-        
+
+        store
+            .insert(
+                "1",
+                &v1,
+                VectorMetadata {
+                    id: "1".to_string(),
+                    file_path: "test.rs".to_string(),
+                    start_line: 0,
+                    end_line: 10,
+                    content: "fn main() {}".to_string(),
+                    language: "rust".to_string(),
+                    symbol_type: Some("function".to_string()),
+                    symbol_name: Some("main".to_string()),
+                    created_at: 0,
+                    updated_at: 0,
+                },
+            )
+            .unwrap();
+
+        store
+            .insert(
+                "2",
+                &v2,
+                VectorMetadata {
+                    id: "2".to_string(),
+                    file_path: "test.py".to_string(),
+                    start_line: 0,
+                    end_line: 5,
+                    content: "def hello(): pass".to_string(),
+                    language: "python".to_string(),
+                    symbol_type: Some("function".to_string()),
+                    symbol_name: Some("hello".to_string()),
+                    created_at: 0,
+                    updated_at: 0,
+                },
+            )
+            .unwrap();
+
+        store
+            .insert(
+                "3",
+                &v3,
+                VectorMetadata {
+                    id: "3".to_string(),
+                    file_path: "test.rs".to_string(),
+                    start_line: 20,
+                    end_line: 30,
+                    content: "fn helper() {}".to_string(),
+                    language: "rust".to_string(),
+                    symbol_type: Some("function".to_string()),
+                    symbol_name: Some("helper".to_string()),
+                    created_at: 0,
+                    updated_at: 0,
+                },
+            )
+            .unwrap();
+
         // Search
         let query = vec![0.95, 0.05, 0.0, 0.0];
         let results = store.search(&query, 2).unwrap();
-        
+
         assert_eq!(results.len(), 2);
         assert!(results[0].score > results[1].score);
     }
 }
-
-

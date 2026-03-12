@@ -1,8 +1,8 @@
 //! File system commands for KYRO IDE
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -27,7 +27,11 @@ pub async fn read_file(path: String) -> Result<FileContent, String> {
     let path = PathBuf::from(&path);
     let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
     let language = detect_language(&path);
-    Ok(FileContent { path: path.to_string_lossy().to_string(), content, language })
+    Ok(FileContent {
+        path: path.to_string_lossy().to_string(),
+        content,
+        language,
+    })
 }
 
 #[command]
@@ -53,7 +57,9 @@ pub async fn list_directory(path: String) -> Result<Vec<FileNode>, String> {
             path: entry_path.to_string_lossy().to_string(),
             is_directory: entry_path.is_dir(),
             children: None,
-            extension: entry_path.extension().map(|e| e.to_string_lossy().to_string()),
+            extension: entry_path
+                .extension()
+                .map(|e| e.to_string_lossy().to_string()),
             size: metadata.as_ref().map(|m| m.len()),
         };
         nodes.push(node);
@@ -101,35 +107,74 @@ pub async fn get_file_tree(path: String, max_depth: Option<usize>) -> Result<Fil
 }
 
 fn build_file_tree(path: &PathBuf, depth: usize) -> Result<FileNode, String> {
-    let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     let is_dir = path.is_dir();
     let metadata = path.metadata().ok();
     let children = if is_dir && depth > 0 {
         let entries = fs::read_dir(path).map_err(|e| format!("Failed to read directory: {}", e))?;
-        let mut child_nodes: Vec<FileNode> = entries.filter_map(|e| e.ok())
-            .filter_map(|e| build_file_tree(&e.path(), depth - 1).ok()).collect();
+        let mut child_nodes: Vec<FileNode> = entries
+            .filter_map(|e| e.ok())
+            .filter_map(|e| build_file_tree(&e.path(), depth - 1).ok())
+            .collect();
         child_nodes.sort_by(|a, b| match (a.is_directory, b.is_directory) {
             (true, false) => std::cmp::Ordering::Less,
             (false, true) => std::cmp::Ordering::Greater,
             _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
         });
         Some(child_nodes)
-    } else { None };
-    Ok(FileNode { name, path: path.to_string_lossy().to_string(), is_directory: is_dir, children, extension: path.extension().map(|e| e.to_string_lossy().to_string()), size: metadata.as_ref().map(|m| m.len()) })
+    } else {
+        None
+    };
+    Ok(FileNode {
+        name,
+        path: path.to_string_lossy().to_string(),
+        is_directory: is_dir,
+        children,
+        extension: path.extension().map(|e| e.to_string_lossy().to_string()),
+        size: metadata.as_ref().map(|m| m.len()),
+    })
 }
 
 pub fn detect_language(path: &PathBuf) -> String {
-    let ext = path.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    let ext = path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
     match ext.as_str() {
-        "rs" => "rust", "py" => "python", "js" => "javascript", "jsx" => "javascript",
-        "ts" => "typescript", "tsx" => "typescript", "go" => "go", "java" => "java",
-        "kt" => "kotlin", "swift" => "swift", "c" => "c", "cpp" | "cc" | "cxx" => "cpp",
-        "h" | "hpp" => "cpp", "cs" => "csharp", "rb" => "ruby", "php" => "php",
-        "sh" => "shell", "html" | "htm" => "html", "css" => "css", "scss" | "sass" => "scss",
-        "json" => "json", "yaml" | "yml" => "yaml", "xml" => "xml", "toml" => "toml",
-        "md" => "markdown", "sql" => "sql", "vue" => "vue", "svelte" => "svelte",
+        "rs" => "rust",
+        "py" => "python",
+        "js" => "javascript",
+        "jsx" => "javascript",
+        "ts" => "typescript",
+        "tsx" => "typescript",
+        "go" => "go",
+        "java" => "java",
+        "kt" => "kotlin",
+        "swift" => "swift",
+        "c" => "c",
+        "cpp" | "cc" | "cxx" => "cpp",
+        "h" | "hpp" => "cpp",
+        "cs" => "csharp",
+        "rb" => "ruby",
+        "php" => "php",
+        "sh" => "shell",
+        "html" | "htm" => "html",
+        "css" => "css",
+        "scss" | "sass" => "scss",
+        "json" => "json",
+        "yaml" | "yml" => "yaml",
+        "xml" => "xml",
+        "toml" => "toml",
+        "md" => "markdown",
+        "sql" => "sql",
+        "vue" => "vue",
+        "svelte" => "svelte",
         _ => "plaintext",
-    }.to_string()
+    }
+    .to_string()
 }
 
 // ============ First-Run Experience Commands ============
@@ -139,12 +184,12 @@ fn get_config_dir() -> Result<PathBuf, String> {
     let config_dir = dirs::config_dir()
         .ok_or_else(|| "Could not find config directory".to_string())?
         .join("kyro-ide");
-    
+
     if !config_dir.exists() {
         fs::create_dir_all(&config_dir)
             .map_err(|e| format!("Failed to create config directory: {}", e))?;
     }
-    
+
     Ok(config_dir)
 }
 
@@ -153,7 +198,7 @@ fn get_config_dir() -> Result<PathBuf, String> {
 pub async fn is_first_run_complete() -> Result<bool, String> {
     let config_dir = get_config_dir()?;
     let first_run_file = config_dir.join(".first_run_complete");
-    
+
     Ok(first_run_file.exists())
 }
 
@@ -162,12 +207,12 @@ pub async fn is_first_run_complete() -> Result<bool, String> {
 pub async fn save_first_run_complete() -> Result<(), String> {
     let config_dir = get_config_dir()?;
     let first_run_file = config_dir.join(".first_run_complete");
-    
+
     // Write current timestamp
     let content = chrono::Utc::now().to_rfc3339();
     fs::write(&first_run_file, content)
         .map_err(|e| format!("Failed to save first run status: {}", e))?;
-    
+
     Ok(())
 }
 
@@ -211,20 +256,22 @@ pub async fn fs_list_supported_languages() -> Result<Vec<String>, String> {
 #[command]
 pub async fn get_file_metadata(path: String) -> Result<FileMetadata, String> {
     let path = PathBuf::from(&path);
-    let metadata = fs::metadata(&path)
-        .map_err(|e| format!("Failed to get file metadata: {}", e))?;
-    
+    let metadata =
+        fs::metadata(&path).map_err(|e| format!("Failed to get file metadata: {}", e))?;
+
     Ok(FileMetadata {
         path: path.to_string_lossy().to_string(),
         size: metadata.len(),
         is_directory: metadata.is_dir(),
         is_file: metadata.is_file(),
         is_readonly: metadata.permissions().readonly(),
-        modified: metadata.modified()
+        modified: metadata
+            .modified()
             .ok()
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs()),
-        created: metadata.created()
+        created: metadata
+            .created()
             .ok()
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs()),
@@ -262,9 +309,9 @@ pub async fn is_file(path: String) -> Result<bool, String> {
 
 // ============ File Watcher Commands ============
 
-use tauri::State;
-use std::sync::{Arc, Mutex};
 use crate::files::FileWatcher;
+use std::sync::{Arc, Mutex};
+use tauri::State;
 
 /// Start watching a directory for changes
 #[command]
@@ -272,7 +319,9 @@ pub async fn watch_directory(
     path: String,
     watcher: State<'_, Arc<Mutex<FileWatcher>>>,
 ) -> Result<(), String> {
-    let mut watcher = watcher.lock().map_err(|e| format!("Failed to lock watcher: {}", e))?;
+    let mut watcher = watcher
+        .lock()
+        .map_err(|e| format!("Failed to lock watcher: {}", e))?;
     watcher.watch(&path)
 }
 
@@ -282,6 +331,8 @@ pub async fn unwatch_directory(
     path: String,
     watcher: State<'_, Arc<Mutex<FileWatcher>>>,
 ) -> Result<(), String> {
-    let mut watcher = watcher.lock().map_err(|e| format!("Failed to lock watcher: {}", e))?;
+    let mut watcher = watcher
+        .lock()
+        .map_err(|e| format!("Failed to lock watcher: {}", e))?;
     watcher.unwatch(&path)
 }

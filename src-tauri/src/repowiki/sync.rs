@@ -3,7 +3,7 @@
 //! Reuses the notify crate (already a dependency) to watch the project tree,
 //! debounces change events, and calls `RepoWikiEngine::update_wiki()`.
 
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;

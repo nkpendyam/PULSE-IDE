@@ -2,8 +2,8 @@
 //!
 //! Retrieves relevant code chunks based on semantic similarity
 
-use serde::{Deserialize, Serialize};
 use super::indexer::TextChunk;
+use serde::{Deserialize, Serialize};
 
 /// Retrieval result with relevance score
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +47,11 @@ impl Retriever {
             .filter(|r| r.score > 0.0)
             .collect();
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(self.max_results);
         results
     }

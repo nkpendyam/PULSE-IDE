@@ -60,7 +60,8 @@ impl InferenceBackend for CpuBackend {
         {
             Ok(response) if response.status().is_success() => {
                 let json: serde_json::Value = response.json().await?;
-                let text = json.get("response")
+                let text = json
+                    .get("response")
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -87,7 +88,9 @@ impl InferenceBackend for CpuBackend {
                 // Fallback when no LLM is available
                 let tokens = (request.prompt.len() / 4) as u32;
                 Ok(InferenceResponse {
-                    text: "[No LLM backend available — start Ollama or an OpenAI-compatible server]".to_string(),
+                    text:
+                        "[No LLM backend available — start Ollama or an OpenAI-compatible server]"
+                            .to_string(),
                     tokens_generated: tokens.min(request.max_tokens),
                     time_to_first_token_ms: 0,
                     total_time_ms: start.elapsed().as_millis() as u64,
@@ -299,7 +302,7 @@ impl InferenceBackend for VulkanBackend {
         Ok(())
     }
 
-    async fn infer(&mut self, request: &InferenceRequest) -> Result<InferenceResponse> {
+    async fn infer(&mut self, _request: &InferenceRequest) -> Result<InferenceResponse> {
         // Vulkan would be ~30 tok/s on mid-range GPU
         Ok(InferenceResponse {
             text: "// Vulkan generated code".to_string(),

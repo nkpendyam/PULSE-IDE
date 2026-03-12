@@ -1,11 +1,11 @@
 //! JWT Token Handler
-//! 
+//!
 //! Secure JWT token generation and validation using jwt-simple
 //! Based on: https://github.com/jedisct1/rust-jwt-simple
 
 use crate::auth::{Claims, UserRole};
+use serde::Serialize;
 use uuid::Uuid;
-use serde::{Deserialize, Serialize};
 
 /// Generate a JWT access token
 pub fn generate_token(
@@ -82,7 +82,7 @@ pub fn validate_token(token: &str, secret: &str) -> anyhow::Result<Claims> {
     // Verify signature
     let message = format!("{}.{}", parts[0], parts[1]);
     let expected_signature = hmac_sign(&message, secret);
-    
+
     if parts[2] != expected_signature {
         return Err(anyhow::anyhow!("Invalid token signature"));
     }
@@ -118,16 +118,16 @@ fn base64_decode(input: &str) -> anyhow::Result<String> {
 
 /// HMAC-SHA256 signature
 fn hmac_sign(message: &str, secret: &str) -> String {
-    use sha2::{Sha256, Digest};
     use hmac::{Hmac, Mac};
+    use sha2::{Digest, Sha256};
 
     type HmacSha256 = Hmac<Sha256>;
-    
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-        .expect("HMAC can take key of any size");
+
+    let mut mac =
+        HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
     mac.update(message.as_bytes());
     let result = mac.finalize();
-    
+
     base64_encode(&hex::encode(result.into_bytes()))
 }
 
@@ -139,14 +139,8 @@ mod tests {
     fn test_token_generation_and_validation() {
         let user_id = Uuid::new_v4();
         let secret = "test-secret-key";
-        
-        let token = generate_token(
-            user_id,
-            "testuser",
-            &UserRole::Editor,
-            3600,
-            secret,
-        ).unwrap();
+
+        let token = generate_token(user_id, "testuser", &UserRole::Editor, 3600, secret).unwrap();
 
         let claims = validate_token(&token, secret).unwrap();
         assert_eq!(claims.user_id, user_id);
@@ -156,14 +150,15 @@ mod tests {
     #[test]
     fn test_invalid_signature() {
         let user_id = Uuid::new_v4();
-        
+
         let token = generate_token(
             user_id,
             "testuser",
             &UserRole::Editor,
             3600,
             "correct-secret",
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = validate_token(&token, "wrong-secret");
         assert!(result.is_err());

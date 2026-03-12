@@ -1,8 +1,8 @@
 //! Mission types for the Kyro Orchestrator.
 //! Represents user goals and agent workflows (plan → edit → test → review → deploy).
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Phase of a mission in the build/test/deploy pipeline
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

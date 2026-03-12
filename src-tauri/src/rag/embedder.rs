@@ -26,7 +26,10 @@ impl Embedder {
     pub fn new(model_name: &str) -> Self {
         Self {
             model_name: model_name.to_string(),
-            stop_words: vec!["the", "is", "in", "and", "a", "to", "for", "of", "with", "this", "function", "const", "let", "var", "pub", "fn", "impl"],
+            stop_words: vec![
+                "the", "is", "in", "and", "a", "to", "for", "of", "with", "this", "function",
+                "const", "let", "var", "pub", "fn", "impl",
+            ],
         }
     }
 
@@ -49,7 +52,7 @@ impl Embedder {
                     *term_freqs.entry(token).or_insert(0.0) += 1.0;
                 }
             }
-            
+
             // Normalize TF
             for (_, freq) in term_freqs.iter_mut() {
                 *freq /= total_tokens;

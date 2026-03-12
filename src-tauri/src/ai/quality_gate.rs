@@ -51,7 +51,11 @@ impl Default for QualityGateConfig {
             check_types: true,
             check_tests: false, // Expensive
             check_formatting: true,
-            validators: vec!["rust".to_string(), "typescript".to_string(), "python".to_string()],
+            validators: vec![
+                "rust".to_string(),
+                "typescript".to_string(),
+                "python".to_string(),
+            ],
         }
     }
 }
@@ -176,7 +180,7 @@ impl AiQualityGate {
     async fn check_rust_syntax(&self, code: &str) -> Result<bool> {
         let mut parser = tree_sitter::Parser::new();
         parser.set_language(&tree_sitter_rust::LANGUAGE.into())?;
-        
+
         let tree = parser.parse(code, None);
         Ok(tree.is_some())
     }
@@ -185,7 +189,7 @@ impl AiQualityGate {
     async fn check_ts_syntax(&self, code: &str) -> Result<bool> {
         let mut parser = tree_sitter::Parser::new();
         parser.set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())?;
-        
+
         let tree = parser.parse(code, None);
         Ok(tree.is_some())
     }
@@ -194,16 +198,24 @@ impl AiQualityGate {
     async fn check_python_syntax(&self, code: &str) -> Result<bool> {
         let mut parser = tree_sitter::Parser::new();
         parser.set_language(&tree_sitter_python::LANGUAGE.into())?;
-        
+
         let tree = parser.parse(code, None);
         Ok(tree.is_some())
     }
 
     /// Check types (language-specific)
-    async fn check_types(&self, code: &str, language: &str, context: &QualityContext) -> CheckResult {
+    async fn check_types(
+        &self,
+        code: &str,
+        language: &str,
+        context: &QualityContext,
+    ) -> CheckResult {
         // For Rust, run cargo check on a temp file
         if language == "rust" && context.project_path.is_some() {
-            match self.run_cargo_check(code, context.project_path.unwrap()).await {
+            match self
+                .run_cargo_check(code, context.project_path.unwrap())
+                .await
+            {
                 Ok(errors) if errors.is_empty() => {
                     return CheckResult {
                         name: "types".to_string(),
@@ -243,7 +255,7 @@ impl AiQualityGate {
     /// Run cargo check on code
     async fn run_cargo_check(&self, _code: &str, project_path: &Path) -> Result<Vec<String>> {
         let output = Command::new("cargo")
-            .args(&["check", "--message-format=short"])
+            .args(["check", "--message-format=short"])
             .current_dir(project_path)
             .output()?;
 
@@ -258,10 +270,10 @@ impl AiQualityGate {
     }
 
     /// Check formatting
-    async fn check_formatting(&self, code: &str, language: &str) -> CheckResult {
+    async fn check_formatting(&self, code: &str, _language: &str) -> CheckResult {
         // Check for basic formatting issues
         let issues = self.detect_formatting_issues(code);
-        
+
         if issues.is_empty() {
             CheckResult {
                 name: "formatting".to_string(),
@@ -283,7 +295,7 @@ impl AiQualityGate {
     /// Detect formatting issues
     fn detect_formatting_issues(&self, code: &str) -> Vec<String> {
         let mut issues = Vec::new();
-        
+
         // Check for mixed tabs/spaces
         let has_tabs = code.contains('\t');
         let has_spaces = code.contains("    ");
@@ -305,10 +317,15 @@ impl AiQualityGate {
     }
 
     /// Check by generating tests (expensive)
-    async fn check_tests(&self, code: &str, language: &str, _context: &QualityContext) -> CheckResult {
+    async fn check_tests(
+        &self,
+        code: &str,
+        language: &str,
+        _context: &QualityContext,
+    ) -> CheckResult {
         // This would generate and run tests - expensive operation
         // For now, just check if code looks testable
-        
+
         let has_functions = match language {
             "rust" => code.contains("fn "),
             "typescript" | "javascript" => code.contains("function ") || code.contains("=>"),
@@ -320,10 +337,10 @@ impl AiQualityGate {
             name: "tests".to_string(),
             passed: true,
             score: if has_functions { 0.8 } else { 0.6 },
-            message: Some(if has_functions { 
-                "Code appears testable".to_string() 
-            } else { 
-                "No functions detected".to_string() 
+            message: Some(if has_functions {
+                "Code appears testable".to_string()
+            } else {
+                "No functions detected".to_string()
             }),
         }
     }
@@ -335,7 +352,7 @@ impl AiQualityGate {
         // - Matches existing patterns in codebase
         // - Not too long (complexity)
         // - Uses imports from context
-        
+
         let mut confidence = 0.7; // Base confidence
 
         // Boost for RAG context
@@ -414,14 +431,18 @@ mod tests {
     #[tokio::test]
     async fn test_syntax_check_rust() {
         let gate = AiQualityGate::default();
-        let result = gate.check_syntax("fn main() { println!(\"Hello\"); }", "rust").await;
+        let result = gate
+            .check_syntax("fn main() { println!(\"Hello\"); }", "rust")
+            .await;
         assert!(result.passed);
     }
 
     #[tokio::test]
     async fn test_syntax_check_python() {
         let gate = AiQualityGate::default();
-        let result = gate.check_syntax("def hello():\n    print('Hello')", "python").await;
+        let result = gate
+            .check_syntax("def hello():\n    print('Hello')", "python")
+            .await;
         assert!(result.passed);
     }
 
@@ -432,4 +453,3 @@ mod tests {
         assert!(!gate.quick_validate("todo!()", "rust"));
     }
 }
-

@@ -9,12 +9,12 @@
 //! - Shared context and memory between agents
 //! - Task queuing and prioritization
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use tokio::sync::{RwLock, Mutex, mpsc, Semaphore};
 use std::time::{Duration, Instant};
+use tokio::sync::{mpsc, Mutex, RwLock, Semaphore};
 use uuid::Uuid;
 
 /// Maximum number of parallel agents
@@ -190,30 +190,39 @@ pub struct OrchestratorConfig {
 impl Default for OrchestratorConfig {
     fn default() -> Self {
         let mut agent_configs = HashMap::new();
-        agent_configs.insert(AgentType::CodeGenerator, AgentConfig {
-            agent_type: AgentType::CodeGenerator,
-            model: "codellama:34b-instruct".to_string(),
-            max_tokens: 4096,
-            temperature: 0.7,
-            timeout_secs: 180,
-            retry_count: 3,
-        });
-        agent_configs.insert(AgentType::CodeReviewer, AgentConfig {
-            agent_type: AgentType::CodeReviewer,
-            model: "llama3:70b".to_string(),
-            max_tokens: 2048,
-            temperature: 0.3,
-            timeout_secs: 120,
-            retry_count: 2,
-        });
-        agent_configs.insert(AgentType::TestGenerator, AgentConfig {
-            agent_type: AgentType::TestGenerator,
-            model: "codellama:13b-instruct".to_string(),
-            max_tokens: 2048,
-            temperature: 0.5,
-            timeout_secs: 120,
-            retry_count: 3,
-        });
+        agent_configs.insert(
+            AgentType::CodeGenerator,
+            AgentConfig {
+                agent_type: AgentType::CodeGenerator,
+                model: "codellama:34b-instruct".to_string(),
+                max_tokens: 4096,
+                temperature: 0.7,
+                timeout_secs: 180,
+                retry_count: 3,
+            },
+        );
+        agent_configs.insert(
+            AgentType::CodeReviewer,
+            AgentConfig {
+                agent_type: AgentType::CodeReviewer,
+                model: "llama3:70b".to_string(),
+                max_tokens: 2048,
+                temperature: 0.3,
+                timeout_secs: 120,
+                retry_count: 2,
+            },
+        );
+        agent_configs.insert(
+            AgentType::TestGenerator,
+            AgentConfig {
+                agent_type: AgentType::TestGenerator,
+                model: "codellama:13b-instruct".to_string(),
+                max_tokens: 2048,
+                temperature: 0.5,
+                timeout_secs: 120,
+                retry_count: 3,
+            },
+        );
 
         Self {
             max_parallel_agents: MAX_PARALLEL_AGENTS,
@@ -230,7 +239,7 @@ impl ParallelAgentsOrchestrator {
     pub fn new(config: OrchestratorConfig) -> Self {
         let (shutdown_tx, shutdown_rx) = mpsc::channel(1);
         let semaphore = Arc::new(Semaphore::new(config.max_parallel_agents));
-        
+
         Self {
             agents: Arc::new(RwLock::new(HashMap::new())),
             task_queue: Arc::new(Mutex::new(VecDeque::new())),
@@ -254,7 +263,7 @@ impl ParallelAgentsOrchestrator {
             completed_tasks: 0,
             failed_tasks: 0,
         };
-        
+
         self.agents.write().await.insert(id.clone(), agent);
         log::info!("Registered agent: {}", id);
         Ok(id)
@@ -268,10 +277,15 @@ impl ParallelAgentsOrchestrator {
     }
 
     /// Submit a task
-    pub async fn submit_task(&self, agent_type: AgentType, prompt: String, context: Option<String>) -> Result<String> {
+    pub async fn submit_task(
+        &self,
+        agent_type: AgentType,
+        prompt: String,
+        context: Option<String>,
+    ) -> Result<String> {
         let task_id = Uuid::new_v4().to_string();
         let priority = agent_type.priority();
-        
+
         let task = AgentTask {
             id: task_id.clone(),
             agent_type,
@@ -289,7 +303,8 @@ impl ParallelAgentsOrchestrator {
 
         // Insert by priority
         if self.config.enable_priority_queue {
-            let pos = queue.iter()
+            let pos = queue
+                .iter()
                 .position(|t| t.priority < task.priority)
                 .unwrap_or(queue.len());
             queue.insert(pos, task);
@@ -315,12 +330,15 @@ impl ParallelAgentsOrchestrator {
         };
 
         // Acquire semaphore permit
-        let _permit = self.semaphore.acquire().await
+        let _permit = self
+            .semaphore
+            .acquire()
+            .await
             .map_err(|e| anyhow::anyhow!("Semaphore error: {}", e))?;
 
         // Find available agent
         let agent_id = self.find_available_agent(&task.agent_type).await?;
-        
+
         // Execute task
         let result = self.execute_task(task, &agent_id).await?;
         Ok(Some(result))
@@ -329,10 +347,9 @@ impl ParallelAgentsOrchestrator {
     /// Find an available agent for the task type
     async fn find_available_agent(&self, agent_type: &AgentType) -> Result<String> {
         let agents = self.agents.read().await;
-        
+
         for (id, agent) in agents.iter() {
-            if agent.status == AgentStatus::Idle && 
-               agent.config.agent_type == *agent_type {
+            if agent.status == AgentStatus::Idle && agent.config.agent_type == *agent_type {
                 return Ok(id.clone());
             }
         }
@@ -364,7 +381,8 @@ impl ParallelAgentsOrchestrator {
         // Get agent config
         let agent_config = {
             let agents = self.agents.read().await;
-            agents.get(agent_id)
+            agents
+                .get(agent_id)
                 .map(|a| a.config.clone())
                 .ok_or_else(|| anyhow::anyhow!("Agent not found"))?
         };
@@ -372,8 +390,9 @@ impl ParallelAgentsOrchestrator {
         // Execute with timeout
         let result = tokio::time::timeout(
             Duration::from_secs(agent_config.timeout_secs),
-            self.run_agent_inference(&task, &agent_config)
-        ).await;
+            self.run_agent_inference(&task, &agent_config),
+        )
+        .await;
 
         let execution_time_ms = start_time.elapsed().as_millis() as u64;
 
@@ -426,7 +445,10 @@ impl ParallelAgentsOrchestrator {
         };
 
         // Store result
-        self.results.write().await.insert(task.id.clone(), result.clone());
+        self.results
+            .write()
+            .await
+            .insert(task.id.clone(), result.clone());
 
         // Update agent stats
         {
@@ -447,7 +469,9 @@ impl ParallelAgentsOrchestrator {
     async fn run_agent_inference(&self, task: &AgentTask, config: &AgentConfig) -> Result<String> {
         // Get shared memory for context
         let memory = self.shared_memory.read().await;
-        let context = task.context.as_ref()
+        let context = task
+            .context
+            .as_ref()
             .or(memory.get(&format!("context_{}", task.agent_type.priority())))
             .cloned();
 
@@ -469,7 +493,11 @@ impl ParallelAgentsOrchestrator {
             None => task.prompt.clone(),
         };
 
-        log::info!("Agent {:?} executing task with model {}", task.agent_type, config.model);
+        log::info!(
+            "Agent {:?} executing task with model {}",
+            task.agent_type,
+            config.model
+        );
 
         // Try Ollama API first
         let client = reqwest::Client::new();
@@ -493,7 +521,8 @@ impl ParallelAgentsOrchestrator {
         {
             Ok(response) if response.status().is_success() => {
                 let json: serde_json::Value = response.json().await?;
-                let text = json.get("response")
+                let text = json
+                    .get("response")
                     .and_then(|v| v.as_str())
                     .unwrap_or("")
                     .to_string();
@@ -529,7 +558,8 @@ impl ParallelAgentsOrchestrator {
             {
                 Ok(response) if response.status().is_success() => {
                     let json: serde_json::Value = response.json().await?;
-                    let text = json.get("choices")
+                    let text = json
+                        .get("choices")
                         .and_then(|c| c.get(0))
                         .and_then(|c| c.get("message"))
                         .and_then(|m| m.get("content"))
@@ -572,10 +602,12 @@ impl ParallelAgentsOrchestrator {
         let queue = self.task_queue.lock().await;
         let results = self.results.read().await;
 
-        let active_agents = agents.values()
+        let active_agents = agents
+            .values()
             .filter(|a| a.status == AgentStatus::Busy)
             .count();
-        let idle_agents = agents.values()
+        let idle_agents = agents
+            .values()
             .filter(|a| a.status == AgentStatus::Idle)
             .count();
 
@@ -591,14 +623,16 @@ impl ParallelAgentsOrchestrator {
 
     /// Shutdown the orchestrator
     pub async fn shutdown(&self) -> Result<()> {
-        self.shutdown_tx.send(()).await
+        self.shutdown_tx
+            .send(())
+            .await
             .map_err(|e| anyhow::anyhow!("Shutdown error: {}", e))
     }
 
     /// Run multiple tasks in parallel
     pub async fn run_parallel(&self, tasks: Vec<(AgentType, String)>) -> Result<Vec<AgentResult>> {
         let mut task_ids = Vec::new();
-        
+
         // Submit all tasks
         for (agent_type, prompt) in tasks {
             let task_id = self.submit_task(agent_type, prompt, None).await?;
@@ -618,7 +652,7 @@ impl ParallelAgentsOrchestrator {
                 }
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
-            
+
             // Get stored result
             if let Some(result) = self.get_result(&task_id).await {
                 results.push(result);
@@ -643,8 +677,8 @@ pub struct OrchestratorStatus {
 /// Tauri commands for parallel agents
 pub mod commands {
     use super::*;
-    use tauri::State;
     use std::sync::Mutex as StdMutex;
+    use tauri::State;
 
     /// Global orchestrator state
     pub struct OrchestratorState(pub StdMutex<Option<ParallelAgentsOrchestrator>>);
@@ -657,7 +691,7 @@ pub mod commands {
     ) -> Result<(), String> {
         let config = config.unwrap_or_default();
         let orchestrator = ParallelAgentsOrchestrator::new(config);
-        
+
         let mut state = state.0.lock().map_err(|e| e.to_string())?;
         *state = Some(orchestrator);
         Ok(())
@@ -670,10 +704,13 @@ pub mod commands {
         config: AgentConfig,
     ) -> Result<String, String> {
         let state = state.0.lock().map_err(|e| e.to_string())?;
-        let orchestrator = state.as_ref()
+        let orchestrator = state
+            .as_ref()
             .ok_or_else(|| "Orchestrator not initialized".to_string())?;
-        
-        orchestrator.register_agent(config).await
+
+        orchestrator
+            .register_agent(config)
+            .await
             .map_err(|e| e.to_string())
     }
 
@@ -686,10 +723,13 @@ pub mod commands {
         context: Option<String>,
     ) -> Result<String, String> {
         let state = state.0.lock().map_err(|e| e.to_string())?;
-        let orchestrator = state.as_ref()
+        let orchestrator = state
+            .as_ref()
             .ok_or_else(|| "Orchestrator not initialized".to_string())?;
-        
-        orchestrator.submit_task(agent_type, prompt, context).await
+
+        orchestrator
+            .submit_task(agent_type, prompt, context)
+            .await
             .map_err(|e| e.to_string())
     }
 
@@ -700,9 +740,10 @@ pub mod commands {
         task_id: String,
     ) -> Result<Option<AgentResult>, String> {
         let state = state.0.lock().map_err(|e| e.to_string())?;
-        let orchestrator = state.as_ref()
+        let orchestrator = state
+            .as_ref()
             .ok_or_else(|| "Orchestrator not initialized".to_string())?;
-        
+
         Ok(orchestrator.get_result(&task_id).await)
     }
 
@@ -712,9 +753,10 @@ pub mod commands {
         state: State<'_, OrchestratorState>,
     ) -> Result<OrchestratorStatus, String> {
         let state = state.0.lock().map_err(|e| e.to_string())?;
-        let orchestrator = state.as_ref()
+        let orchestrator = state
+            .as_ref()
             .ok_or_else(|| "Orchestrator not initialized".to_string())?;
-        
+
         Ok(orchestrator.status().await)
     }
 
@@ -725,10 +767,13 @@ pub mod commands {
         tasks: Vec<(AgentType, String)>,
     ) -> Result<Vec<AgentResult>, String> {
         let state = state.0.lock().map_err(|e| e.to_string())?;
-        let orchestrator = state.as_ref()
+        let orchestrator = state
+            .as_ref()
             .ok_or_else(|| "Orchestrator not initialized".to_string())?;
-        
-        orchestrator.run_parallel(tasks).await
+
+        orchestrator
+            .run_parallel(tasks)
+            .await
             .map_err(|e| e.to_string())
     }
 }
@@ -756,11 +801,14 @@ mod tests {
     #[tokio::test]
     async fn test_task_submission() {
         let orchestrator = ParallelAgentsOrchestrator::new(OrchestratorConfig::default());
-        let task_id = orchestrator.submit_task(
-            AgentType::CodeGenerator,
-            "Write a hello world function".to_string(),
-            None,
-        ).await.unwrap();
+        let task_id = orchestrator
+            .submit_task(
+                AgentType::CodeGenerator,
+                "Write a hello world function".to_string(),
+                None,
+            )
+            .await
+            .unwrap();
         assert!(!task_id.is_empty());
     }
 }
