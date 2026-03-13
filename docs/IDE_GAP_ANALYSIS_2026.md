@@ -3,6 +3,8 @@
 **Date**: March 12, 2026  
 **Compared Against**: VS Code 1.111, Cursor 2.6, Windsurf (Codeium), Zed 0.218+, JetBrains Fleet/AI Assistant
 
+> Note: This document is still useful as a broad gap catalog, but parts of it are now outdated. Since this was written, Kyro has added or wired editor unification, autopilot controls, checkpoints, remote/dev-container UI, project rules, terminal AI, and settings search. Use `docs/status/COMPETITIVE_READINESS.md` as the current high-level summary.
+
 ---
 
 ## Executive Summary

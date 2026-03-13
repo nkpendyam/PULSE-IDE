@@ -1,12 +1,25 @@
 # KYRO IDE - Project Status
 
-**Last Updated**: 2025-02-27
-**Version**: v1.0.0
+**Last Updated**: 2026-03-13
+**Version**: v0.2.0
 **Repository**: https://github.com/nkpendyam/Kyro_IDE
 
 ---
 
-## Implementation Status - ALL PHASES COMPLETE ✅ 100%
+## Competitive Reality
+
+Kyro is **not yet at full feature parity** with VS Code, Cursor, Windsurf, or Zed.
+
+What is true today:
+- Core Windows development workflow is green: lint, unit tests, frontend build, Rust tests, clippy, and `scripts/check-all.ps1` all pass.
+- The IDE shell is real and usable: editor, LSP bridge, ghost text, inline chat widget, terminal AI, extension marketplace, collaboration presence, project rules, autopilot controls, and remote/dev-container surfaces all exist.
+- Several earlier status claims of “100% complete” were too strong and have been superseded by the current gap-analysis work.
+
+What is not true yet:
+- Kyro does not yet match the depth, reliability, extension breadth, and ecosystem maturity of top-tier competitor IDEs.
+- Some advanced features exist only as first-pass implementations and still need deeper integration, broader test coverage, or production hardening.
+
+## Implementation Status - Strong Foundation, Not Full Parity
 
 ### Phase 1: Foundation ✅ 100%
 

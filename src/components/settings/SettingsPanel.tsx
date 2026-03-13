@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useExtendedKyroStore } from '@/store/extendedStore';
 import { useKyroStore } from '@/store/kyroStore';
 import { invoke } from '@tauri-apps/api/core';
-import { Settings, Sun, Moon, Monitor, Save, RotateCcw, Cpu, Sparkles } from 'lucide-react';
+import { Settings, Sun, Moon, Monitor, Save, RotateCcw, Sparkles, Search } from 'lucide-react';
 
 // Reusable toggle switch component
 function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) {
@@ -26,6 +26,28 @@ export function SettingsPanel() {
   const ghostTextConfig = useKyroStore(s => s.ghostTextConfig);
   const setGhostTextConfig = useKyroStore(s => s.setGhostTextConfig);
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const matchesSearch = useCallback((terms: string[]) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.trim().toLowerCase();
+    return terms.some(term => term.toLowerCase().includes(query));
+  }, [searchQuery]);
+
+  const showAppearance = matchesSearch(['appearance', 'theme', 'light', 'dark', 'system']);
+  const showEditor = matchesSearch(['editor', 'font size', 'tab size', 'word wrap', 'minimap', 'format on save', 'auto save']);
+  const showAdvancedEditor = matchesSearch([
+    'advanced editor',
+    'sticky scroll',
+    'bracket colorization',
+    'inline suggestions',
+    'render whitespace',
+    'line numbers',
+    'auto save mode',
+    'format on save',
+  ]);
+  const showAi = matchesSearch(['ai', 'ghost text', 'temperature', 'max tokens', 'debounce', 'cache']);
+  const showUpdates = matchesSearch(['updates', 'update channel', 'auto update', 'stable', 'beta', 'nightly']);
 
   const handleSave = async () => {
     setSaving(true);
@@ -61,8 +83,22 @@ export function SettingsPanel() {
         <h3 className="text-[#c9d1d9] font-medium">Settings</h3>
       </div>
 
+      <div className="px-4 py-3 border-b border-[#30363d]">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b949e]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search settings..."
+            className="w-full pl-9 pr-3 py-2 bg-[#161b22] border border-[#30363d] rounded text-sm text-[#c9d1d9] placeholder-[#8b949e] focus:outline-none focus:border-[#58a6ff]"
+          />
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Appearance */}
+        {showAppearance && (
         <section>
           <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Appearance</h4>
           
@@ -106,8 +142,10 @@ export function SettingsPanel() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Editor */}
+        {showEditor && (
         <section>
           <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Editor</h4>
           
@@ -164,8 +202,10 @@ export function SettingsPanel() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Advanced Editor */}
+        {showAdvancedEditor && (
         <section>
           <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Advanced Editor</h4>
           
@@ -247,8 +287,10 @@ export function SettingsPanel() {
             </div>
           </div>
         </section>
+        )}
 
         {/* AI Settings */}
+        {showAi && (
         <section>
           <h4 className="text-sm text-[#c9d1d9] font-medium mb-3 flex items-center gap-1.5">
             <Sparkles size={14} className="text-[#a371f7]" /> AI / Ghost Text
@@ -325,8 +367,10 @@ export function SettingsPanel() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Updates */}
+        {showUpdates && (
         <section>
           <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Updates</h4>
           
@@ -365,6 +409,13 @@ export function SettingsPanel() {
             </div>
           </div>
         </section>
+        )}
+
+        {!showAppearance && !showEditor && !showAdvancedEditor && !showAi && !showUpdates && (
+          <div className="rounded border border-[#30363d] bg-[#161b22] p-4 text-sm text-[#8b949e]">
+            No settings matched "{searchQuery}".
+          </div>
+        )}
       </div>
 
       {/* Footer */}
