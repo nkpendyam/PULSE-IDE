@@ -24,6 +24,13 @@ interface RunResultAnalysis {
   action?: string;
 }
 
+interface FixAttemptHistoryItem {
+  command: string;
+  status: RunResultAnalysis['status'];
+  summary: string;
+  timestamp: number;
+}
+
 // Common error patterns for quick local detection
 const ERROR_PATTERNS: Array<{ pattern: RegExp; type: string }> = [
   { pattern: /error\[E\d+\]:/i, type: 'rust_compiler' },
@@ -120,7 +127,12 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
   const [isRunningFix, setIsRunningFix] = useState(false);
   const [isAnalyzingRun, setIsAnalyzingRun] = useState(false);
   const [runResult, setRunResult] = useState<RunResultAnalysis | null>(null);
+  const [fixHistory, setFixHistory] = useState<FixAttemptHistoryItem[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  const appendFixHistory = useCallback((item: FixAttemptHistoryItem) => {
+    setFixHistory((prev) => [item, ...prev].slice(0, 3));
+  }, []);
 
   // Detect errors when terminal output changes
   const detectedErrors = React.useMemo(() => {
@@ -215,20 +227,34 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
         const outputDelta = outputAfterRun.startsWith(outputBeforeRun)
           ? outputAfterRun.slice(outputBeforeRun.length)
           : outputAfterRun.split('\n').slice(-80).join('\n');
-        setRunResult(analyzeRunOutput(command, outputDelta));
+        const analysis = analyzeRunOutput(command, outputDelta);
+        setRunResult(analysis);
+        appendFixHistory({
+          command,
+          status: analysis.status,
+          summary: analysis.summary,
+          timestamp: Date.now(),
+        });
       }
     } catch {
       onSendToChat(`@terminal I want to run this fix command but execution failed:\n\n\`${command}\``);
-      setRunResult({
+      const failedRunResult: RunResultAnalysis = {
         status: 'failure',
         summary: 'Failed to send fix command to terminal.',
         action: 'Check terminal session status and try running the command manually.',
+      };
+      setRunResult(failedRunResult);
+      appendFixHistory({
+        command,
+        status: failedRunResult.status,
+        summary: failedRunResult.summary,
+        timestamp: Date.now(),
       });
     } finally {
       setIsRunningFix(false);
       setIsAnalyzingRun(false);
     }
-  }, [onSendToChat]);
+  }, [appendFixHistory, onSendToChat]);
 
   if (detectedErrors.length === 0 && !explanation) return null;
 
@@ -359,6 +385,29 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
           <Send size={9} /> Send to Chat
         </button>
       </div>
+
+      {fixHistory.length > 0 && (
+        <div className="px-3 py-2 border-t border-[#21262d]">
+          <div className="text-[10px] text-[#8b949e] mb-1">Recent Fix Attempts</div>
+          <div className="space-y-1">
+            {fixHistory.map((item) => (
+              <div key={`${item.timestamp}-${item.command}`} className="text-[10px] rounded bg-[#0d1117] px-2 py-1">
+                <div className="flex items-center justify-between gap-2">
+                  <code className="text-[#c9d1d9] truncate">{item.command}</code>
+                  <span className={`${
+                    item.status === 'success'
+                      ? 'text-[#3fb950]'
+                      : item.status === 'failure'
+                        ? 'text-[#f85149]'
+                        : 'text-[#8b949e]'
+                  }`}>{item.status.toUpperCase()}</span>
+                </div>
+                <div className="text-[#8b949e] truncate">{item.summary}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
