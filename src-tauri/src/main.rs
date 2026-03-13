@@ -514,6 +514,11 @@ fn main() {
             commands::remote::list_remote_connections,
             commands::remote::remote_get_capabilities,
             commands::remote::remote_execute_command,
+            commands::remote::remote_list_profiles,
+            commands::remote::remote_save_profile,
+            commands::remote::remote_remove_profile,
+            commands::remote::remote_list_files,
+            commands::remote::remote_read_file,
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,

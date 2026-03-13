@@ -33,6 +33,13 @@ interface RemoteExecResult {
   durationMs: number;
 }
 
+interface RemoteFileEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  size?: number;
+}
+
 interface BackendRemoteConnection {
   connectionId: string;
   connectionType: ConnectionType;
@@ -62,6 +69,12 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [remoteCommand, setRemoteCommand] = useState('pwd');
   const [execOutput, setExecOutput] = useState<RemoteExecResult | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [remotePath, setRemotePath] = useState('.');
+  const [remoteFiles, setRemoteFiles] = useState<RemoteFileEntry[]>([]);
+  const [isListingFiles, setIsListingFiles] = useState(false);
+  const [selectedRemoteFilePath, setSelectedRemoteFilePath] = useState<string | null>(null);
+  const [remoteFilePreview, setRemoteFilePreview] = useState<string>('');
+  const [isReadingFile, setIsReadingFile] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
@@ -103,6 +116,37 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       .catch(() => {
         // Keep local state fallback
       });
+
+    tauri.core.invoke<Array<{
+      id: string;
+      name: string;
+      connectionType: ConnectionType;
+      host: string;
+      config: Record<string, string>;
+      lastConnected?: number;
+    }>>('remote_list_profiles')
+      .then((profiles) => {
+        setConnections((existing) => {
+          const existingById = new Map(existing.map(c => [c.id, c]));
+          const fromProfiles: RemoteConnection[] = profiles.map((profile) => {
+            const connected = existingById.get(profile.id);
+            if (connected) return connected;
+            return {
+              id: profile.id,
+              name: profile.name,
+              type: profile.connectionType,
+              host: profile.host,
+              status: 'disconnected',
+              lastConnected: profile.lastConnected,
+              config: profile.config || {},
+            };
+          });
+          return fromProfiles.length > 0 ? fromProfiles : existing;
+        });
+      })
+      .catch(() => {
+        // non-fatal
+      });
   }, [isDesktop]);
 
   const handleConnect = useCallback(async (id: string) => {
@@ -125,6 +169,7 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       const conn = connections.find(c => c.id === id);
       if (conn) {
         const remote = await tauri.core.invoke<{ connectionId: string }>('remote_connect', {
+          connectionId: conn.id,
           connectionType: conn.type,
           host: conn.host,
           config: conn.config,
@@ -135,6 +180,15 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
             ? { ...c, id: remote.connectionId, status: 'connected' as const, lastConnected: Date.now() }
             : c)
         );
+
+        await tauri.core.invoke('remote_save_profile', {
+          id: remote.connectionId,
+          name: conn.name,
+          connectionType: conn.type,
+          host: conn.host,
+          config: conn.config,
+          lastConnected: Date.now(),
+        });
       }
       setError(null);
     } catch (e) {
@@ -171,7 +225,16 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
 
   const handleRemove = useCallback((id: string) => {
     setConnections(prev => prev.filter(c => c.id !== id));
-  }, []);
+    if (isDesktop && window.__TAURI__) {
+      window.__TAURI__.core.invoke('remote_remove_profile', { id }).catch(() => {
+        // best effort
+      });
+    }
+    if (selectedRemoteFilePath && selectedRemoteFilePath.startsWith(id)) {
+      setSelectedRemoteFilePath(null);
+      setRemoteFilePreview('');
+    }
+  }, [isDesktop, selectedRemoteFilePath]);
 
   const handleAdd = useCallback(() => {
     if (!newConn.name.trim() || !newConn.host.trim()) return;
@@ -184,9 +247,21 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       config: {},
     };
     setConnections(prev => [...prev, conn]);
+    if (isDesktop && window.__TAURI__) {
+      window.__TAURI__.core.invoke('remote_save_profile', {
+        id: conn.id,
+        name: conn.name,
+        connectionType: conn.type,
+        host: conn.host,
+        config: conn.config,
+        lastConnected: conn.lastConnected ?? null,
+      }).catch(() => {
+        // best effort
+      });
+    }
     setNewConn({ name: '', type: 'ssh', host: '' });
     setShowAddForm(false);
-  }, [newConn]);
+  }, [newConn, isDesktop]);
 
   const handleCreateDevcontainer = useCallback(async () => {
     if (!isDesktop) {
@@ -244,6 +319,58 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       setIsExecuting(false);
     }
   }, [isDesktop, projectPath, remoteCommand, selectedConnectionId]);
+
+  const handleListRemoteFiles = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Remote file listing requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    setIsListingFiles(true);
+    setError(null);
+    try {
+      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
+        connectionId: selectedConnectionId,
+        path: remotePath,
+      });
+      setRemoteFiles(files);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsListingFiles(false);
+    }
+  }, [isDesktop, selectedConnectionId, remotePath]);
+
+  const handleOpenRemoteFile = useCallback(async (path: string) => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Remote file preview requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    setIsReadingFile(true);
+    setSelectedRemoteFilePath(path);
+    setError(null);
+    try {
+      const content = await window.__TAURI__.core.invoke<string>('remote_read_file', {
+        connectionId: selectedConnectionId,
+        path,
+      });
+      setRemoteFilePreview(content);
+    } catch (e) {
+      setError(String(e));
+      setRemoteFilePreview('');
+    } finally {
+      setIsReadingFile(false);
+    }
+  }, [isDesktop, selectedConnectionId]);
 
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
@@ -393,6 +520,55 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
                 <div className="text-[#8b949e] mb-1">Exit {execOutput.exitCode} • {execOutput.durationMs} ms</div>
                 {execOutput.stdout && <pre className="whitespace-pre-wrap mb-1">{execOutput.stdout}</pre>}
                 {execOutput.stderr && <pre className="whitespace-pre-wrap text-[#f85149]">{execOutput.stderr}</pre>}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2 p-2 bg-[#161b22] rounded border border-[#30363d]">
+            <div className="text-[10px] uppercase tracking-wide text-[#8b949e] mb-1">Remote Files</div>
+            <div className="flex gap-1 mb-1.5">
+              <input
+                value={remotePath}
+                onChange={e => setRemotePath(e.target.value)}
+                placeholder="Path (e.g. . or /workspace)"
+                className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs focus:outline-none focus:border-[#58a6ff]"
+              />
+              <button
+                onClick={handleListRemoteFiles}
+                disabled={isListingFiles || !selectedConnectionId}
+                className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] disabled:bg-[#21262d]/50 text-[#c9d1d9] rounded"
+              >
+                {isListingFiles ? 'Listing...' : 'List'}
+              </button>
+            </div>
+
+            {remoteFiles.length > 0 && (
+              <div className="max-h-36 overflow-y-auto rounded border border-[#30363d] bg-[#0d1117] p-1">
+                {remoteFiles.map((entry) => (
+                  <button
+                    key={entry.path}
+                    onClick={() => {
+                      if (!entry.isDirectory) {
+                        handleOpenRemoteFile(entry.path);
+                      }
+                    }}
+                    className={`w-full text-left px-2 py-1 rounded text-xs ${entry.isDirectory ? 'text-[#58a6ff]' : 'text-[#c9d1d9] hover:bg-[#161b22]'}`}
+                  >
+                    {entry.isDirectory ? '📁' : '📄'} {entry.name}
+                    {!entry.isDirectory && typeof entry.size === 'number' ? ` (${entry.size}B)` : ''}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedRemoteFilePath && (
+              <div className="mt-2 rounded border border-[#30363d] bg-[#0d1117] p-2 text-[11px]">
+                <div className="text-[#8b949e] mb-1 truncate">{selectedRemoteFilePath}</div>
+                {isReadingFile ? (
+                  <div className="text-[#8b949e]">Loading...</div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-[#c9d1d9] max-h-40 overflow-y-auto">{remoteFilePreview}</pre>
+                )}
               </div>
             )}
           </div>
