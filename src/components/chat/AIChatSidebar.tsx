@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { useKyroStore, ChatMessage, RagSource } from '@/store/kyroStore';
+import { useKyroStore, ChatMessage, FileNode, RagSource } from '@/store/kyroStore';
 import { MentionAutocomplete, MentionItem } from './MentionAutocomplete';
 import { buildMentionContext, parseMentions } from './mentionContext';
 import { 
@@ -26,6 +26,39 @@ interface AgentResult {
   files_changed: string[];
   requires_approval: boolean;
   approval_id?: string;
+}
+
+interface MentionPreviewItem {
+  id: string;
+  label: string;
+  detail: string;
+  resolved: boolean;
+}
+
+function treeContainsPrefix(root: FileNode | null, prefix: string): boolean {
+  if (!root || !prefix) {
+    return false;
+  }
+
+  const stack: FileNode[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
+    }
+
+    if (node.path === prefix || node.path.startsWith(`${prefix}/`) || node.path.startsWith(`${prefix}\\`)) {
+      return true;
+    }
+
+    if (node.children) {
+      for (const child of node.children) {
+        stack.push(child);
+      }
+    }
+  }
+
+  return false;
 }
 
 // Streaming Message Component
@@ -173,6 +206,87 @@ export function AIChatSidebar() {
   } = useKyroStore();
   
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+  const mentionPreviewItems = useMemo<MentionPreviewItem[]>(() => {
+    const parsed = parseMentions(input).mentions;
+
+    return parsed.map((mention, index) => {
+      const id = `${mention.type}-${mention.value}-${index}`;
+
+      if (mention.type === 'file') {
+        if (!mention.value) {
+          return {
+            id,
+            label: '@file',
+            detail: currentFile ? currentFile.path : 'No active file',
+            resolved: Boolean(currentFile),
+          };
+        }
+
+        const existsInOpenFiles = openFiles.some((file) => file.path === mention.value);
+        return {
+          id,
+          label: '@file',
+          detail: mention.value,
+          resolved: existsInOpenFiles,
+        };
+      }
+
+      if (mention.type === 'folder') {
+        const folderPath = mention.value || 'root';
+        const resolved = mention.value ? treeContainsPrefix(fileTree, mention.value) : Boolean(fileTree);
+        return {
+          id,
+          label: '@folder',
+          detail: folderPath,
+          resolved,
+        };
+      }
+
+      if (mention.type === 'terminal') {
+        const hasOutput = terminalOutput.trim().length > 0;
+        return {
+          id,
+          label: '@terminal',
+          detail: hasOutput ? 'Terminal output available' : 'Terminal output empty',
+          resolved: hasOutput,
+        };
+      }
+
+      if (mention.type === 'git') {
+        return {
+          id,
+          label: '@git',
+          detail: gitStatus ? gitStatus.branch : 'Git status unavailable',
+          resolved: Boolean(gitStatus),
+        };
+      }
+
+      if (mention.type === 'previous') {
+        return {
+          id,
+          label: '@previous',
+          detail: chatMessages.length > 0 ? `${chatMessages.length} message(s)` : 'No previous messages',
+          resolved: chatMessages.length > 0,
+        };
+      }
+
+      if (mention.type === 'codebase') {
+        return {
+          id,
+          label: '@codebase',
+          detail: fileTree ? projectPath || 'Project loaded' : 'Project tree unavailable',
+          resolved: Boolean(fileTree),
+        };
+      }
+
+      return {
+        id,
+        label: '@web',
+        detail: 'Not available in local mode',
+        resolved: false,
+      };
+    });
+  }, [chatMessages.length, currentFile, fileTree, gitStatus, input, openFiles, projectPath, terminalOutput]);
 
   // Initialize session
   useEffect(() => {
@@ -532,6 +646,25 @@ export function AIChatSidebar() {
             <Send size={16} />
           </button>
         </div>
+
+        {mentionPreviewItems.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {mentionPreviewItems.map((item) => (
+              <div
+                key={item.id}
+                className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] ${
+                  item.resolved
+                    ? 'border-[#2ea043] bg-[#1a2a1a] text-[#8ddb8c]'
+                    : 'border-[#f0883e] bg-[#2a1f14] text-[#f2b37b]'
+                }`}
+                title={item.detail}
+              >
+                <span className="font-medium">{item.label}</span>
+                <span className="opacity-85">{item.detail}</span>
+              </div>
+            ))}
+          </div>
+        )}
         
         {/* Context indicator */}
         {currentFile && (
