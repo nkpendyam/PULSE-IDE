@@ -76,6 +76,8 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [remoteFilePreview, setRemoteFilePreview] = useState<string>('');
   const [isReadingFile, setIsReadingFile] = useState(false);
   const [isWritingFile, setIsWritingFile] = useState(false);
+  const [localExportDir, setLocalExportDir] = useState(`${projectPath || '.'}/download`);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
@@ -346,6 +348,37 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
     }
   }, [isDesktop, selectedConnectionId, remotePath]);
 
+  const handleNavigateRemoteDir = useCallback(async (path: string) => {
+    setRemotePath(path);
+    if (!isDesktop || !window.__TAURI__ || !selectedConnectionId) return;
+
+    setIsListingFiles(true);
+    setError(null);
+    try {
+      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
+        connectionId: selectedConnectionId,
+        path,
+      });
+      setRemoteFiles(files);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsListingFiles(false);
+    }
+  }, [isDesktop, selectedConnectionId]);
+
+  const handleNavigateUp = useCallback(() => {
+    const trimmed = remotePath.replace(/\/+$/, '');
+    if (trimmed === '.' || trimmed === '' || trimmed === '/') {
+      void handleNavigateRemoteDir('.');
+      return;
+    }
+
+    const idx = trimmed.lastIndexOf('/');
+    const parent = idx <= 0 ? '.' : trimmed.slice(0, idx);
+    void handleNavigateRemoteDir(parent);
+  }, [handleNavigateRemoteDir, remotePath]);
+
   const handleOpenRemoteFile = useCallback(async (path: string) => {
     if (!isDesktop || !window.__TAURI__) {
       setError('Remote file preview requires desktop runtime.');
@@ -414,6 +447,38 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       },
     }));
   }, [remoteFilePreview, selectedConnectionId, selectedRemoteFilePath]);
+
+  const handleExportRemoteFile = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Export requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId || !selectedRemoteFilePath) {
+      setError('Select a remote file first.');
+      return;
+    }
+    if (!localExportDir.trim()) {
+      setError('Set a local export directory.');
+      return;
+    }
+
+    const filename = selectedRemoteFilePath.split('/').pop() || 'remote-file.txt';
+    const localPath = `${localExportDir.replace(/\\/g, '/')}/${filename}`;
+
+    setIsExporting(true);
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_export_file_to_local', {
+        connectionId: selectedConnectionId,
+        remotePath: selectedRemoteFilePath,
+        localPath,
+      });
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isDesktop, localExportDir, selectedConnectionId, selectedRemoteFilePath]);
 
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
@@ -570,6 +635,17 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
           <div className="mt-2 p-2 bg-[#161b22] rounded border border-[#30363d]">
             <div className="text-[10px] uppercase tracking-wide text-[#8b949e] mb-1">Remote Files</div>
             <div className="flex gap-1 mb-1.5">
+              <button
+                onClick={handleNavigateUp}
+                className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded"
+              >
+                Up
+              </button>
+              <div className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs text-[#8b949e] truncate">
+                {remotePath}
+              </div>
+            </div>
+            <div className="flex gap-1 mb-1.5">
               <input
                 value={remotePath}
                 onChange={e => setRemotePath(e.target.value)}
@@ -591,7 +667,9 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
                   <button
                     key={entry.path}
                     onClick={() => {
-                      if (!entry.isDirectory) {
+                      if (entry.isDirectory) {
+                        void handleNavigateRemoteDir(entry.path);
+                      } else {
                         handleOpenRemoteFile(entry.path);
                       }
                     }}
@@ -629,6 +707,22 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
                         className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded"
                       >
                         Open in Editor
+                      </button>
+                    </div>
+
+                    <div className="mt-2 flex gap-1 items-center">
+                      <input
+                        value={localExportDir}
+                        onChange={(e) => setLocalExportDir(e.target.value)}
+                        className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs text-[#c9d1d9]"
+                        placeholder="Local export directory"
+                      />
+                      <button
+                        onClick={handleExportRemoteFile}
+                        disabled={isExporting}
+                        className="px-2 py-1 text-xs bg-[#1f6feb] hover:bg-[#388bfd] disabled:bg-[#30363d] text-white rounded"
+                      >
+                        {isExporting ? 'Exporting...' : 'Export Local'}
                       </button>
                     </div>
                   </>

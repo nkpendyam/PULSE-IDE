@@ -468,3 +468,23 @@ pub async fn remote_write_file(
 
     Ok(true)
 }
+
+#[command]
+pub async fn remote_export_file_to_local(
+    connection_id: String,
+    remote_path: String,
+    local_path: String,
+) -> Result<bool, String> {
+    let content = remote_read_file(connection_id, remote_path).await?;
+
+    let target_path = PathBuf::from(local_path);
+    if let Some(parent) = target_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create local export directory: {}", e))?;
+    }
+
+    std::fs::write(&target_path, content)
+        .map_err(|e| format!("Failed to write exported file: {}", e))?;
+
+    Ok(true)
+}

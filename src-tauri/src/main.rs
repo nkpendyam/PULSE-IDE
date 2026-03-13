@@ -520,6 +520,7 @@ fn main() {
             commands::remote::remote_list_files,
             commands::remote::remote_read_file,
             commands::remote::remote_write_file,
+            commands::remote::remote_export_file_to_local,
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,
