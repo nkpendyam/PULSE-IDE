@@ -115,6 +115,7 @@ const fallbackFileTree: FileNode = {
 
 // Main IDE Page
 export default function Home() {
+  const isDesktopRuntime = typeof window !== 'undefined' && !!window.__TAURI__;
   const [viewMode, setViewMode] = useState<'editor' | 'mission'>('editor');
   const [activePanel, setActivePanel] = useState<SidebarPanel>('explorer');
   const [showChat, setShowChat] = useState(true);
@@ -546,6 +547,12 @@ export default function Home() {
         </div>
       </div>
 
+      {!isDesktopRuntime && (
+        <div className="px-3 py-1.5 text-xs border-b border-[#d29922]/40 bg-[#d29922]/10 text-[#d29922]">
+          Browser mode: terminal/remote/system-level workspace features require the desktop Tauri app.
+        </div>
+      )}
+
       {/* Main Content */}
       {viewMode === 'mission' ? (
         <div className="flex-1 overflow-hidden">
@@ -566,14 +573,14 @@ export default function Home() {
               { id: 'rag' as SidebarPanel, icon: Database, label: 'RAG Search' },
               { id: 'lsp' as SidebarPanel, icon: FileCode, label: 'Language Server' },
               { id: 'llm' as SidebarPanel, icon: Cpu, label: 'LLM / Hardware' },
-              { id: 'update' as SidebarPanel, icon: Download, label: 'Updates' },
+              { id: 'update' as SidebarPanel, icon: Download, label: 'Updates', desktopOnly: true },
               { id: 'symbols' as SidebarPanel, icon: Code2, label: 'Symbol Outline' },
               { id: 'agent-stream' as SidebarPanel, icon: Zap, label: 'Agent Stream' },
               { id: 'testing' as SidebarPanel, icon: PlayCircle, label: 'Test Runner' },
               { id: 'browser' as SidebarPanel, icon: Globe, label: 'Browser Preview' },
               { id: 'rules' as SidebarPanel, icon: BookOpen, label: 'Project Rules' },
               { id: 'autopilot' as SidebarPanel, icon: Shield, label: 'Agent Autopilot' },
-              { id: 'remote' as SidebarPanel, icon: Monitor, label: 'Remote / Containers' },
+              { id: 'remote' as SidebarPanel, icon: Monitor, label: 'Remote / Containers', desktopOnly: true },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -581,15 +588,19 @@ export default function Home() {
               return (
                 <button
                   key={item.id}
+                  disabled={Boolean((item as { desktopOnly?: boolean }).desktopOnly) && !isDesktopRuntime}
                   onClick={() => {
+                    if ((item as { desktopOnly?: boolean }).desktopOnly && !isDesktopRuntime) {
+                      return;
+                    }
                     if (item.id === 'mission') {
                       setViewMode('mission');
                     } else {
                       setActivePanel(item.id);
                     }
                   }}
-                  className={`w-10 h-10 flex items-center justify-center rounded mb-1 transition-colors relative ${isActive ? 'text-[#c9d1d9] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-0.5 after:h-6 after:bg-[#58a6ff] after:rounded-l' : 'text-[#8b949e] hover:text-[#c9d1d9]'}`}
-                  title={item.label}
+                  className={`w-10 h-10 flex items-center justify-center rounded mb-1 transition-colors relative ${isActive ? 'text-[#c9d1d9] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-0.5 after:h-6 after:bg-[#58a6ff] after:rounded-l' : 'text-[#8b949e] hover:text-[#c9d1d9]'} ${((item as { desktopOnly?: boolean }).desktopOnly && !isDesktopRuntime) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  title={((item as { desktopOnly?: boolean }).desktopOnly && !isDesktopRuntime) ? `${item.label} (Desktop only)` : item.label}
                 >
                   <Icon size={20} />
                 </button>
