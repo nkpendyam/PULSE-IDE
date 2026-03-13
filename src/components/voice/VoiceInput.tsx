@@ -168,7 +168,7 @@ export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) 
             {interimTranscript ? (
               <span className="text-[#c9d1d9] italic">&ldquo;{interimTranscript}&rdquo;</span>
             ) : (
-              'Listening\u2026'
+              'Listening…'
             )}
           </span>
         </div>
