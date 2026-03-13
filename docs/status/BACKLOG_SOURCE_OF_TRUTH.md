@@ -104,7 +104,7 @@ Derived from `IDE_GAP_ANALYSIS_2026.md` and capability audit.
 ## 7) This Week Execution Slice
 
 - [ ] Run bundle verification workflow and publish artifact matrix in docs/status.
-- [ ] Open 10 issue-ready parity tasks from Phase C with acceptance criteria.
+- [x] Open 10 issue-ready parity tasks from Phase C with acceptance criteria.
 - [ ] Land first parity implementation (mentions resolver or checkpointing).
 - [ ] Start `fixme_tests` burn-down by enabling first module group.
 
@@ -118,3 +118,99 @@ Only claim readiness when all are true:
 - [ ] `fixme_tests` reduced to near-zero for core workflows.
 - [ ] Security exception register has no overdue items.
 - [ ] User-journey acceptance tests pass for edit/build/debug/extension/remote/collab.
+
+---
+
+## 9) Issue-Ready Top 10 (Phase C Seed)
+
+Each task includes owner, ETA target, acceptance criteria, and evidence expectation.
+
+### C-01 Autopilot Approval Levels
+- **Owner:** AI Platform
+- **ETA:** 2026-03-27
+- **Acceptance Criteria:**
+  - Implement `ask`, `safe-auto`, `full-auto` policy levels.
+  - Gate file edits, terminal commands, and installs per selected policy.
+  - Persist policy in settings and surface in UI.
+- **Evidence:** merged code + policy tests + UI screenshot.
+
+### C-02 Checkpoint Revert UX Completion
+- **Owner:** Editor UX
+- **ETA:** 2026-03-24
+- **Acceptance Criteria:**
+  - Restore checkpoint applies file snapshots deterministically.
+  - Failed restore reports actionable error and partial-apply summary.
+  - Add unit tests for checkpoint restore edge cases.
+- **Evidence:** tests + demo recording + changelog note.
+
+### C-03 Conversation Forking UX
+- **Owner:** Chat UX
+- **ETA:** 2026-04-03
+- **Acceptance Criteria:**
+  - Fork from any historical message.
+  - Fork maintains independent message timeline and checkpoint lineage.
+  - Fork switch UI supports clear current-branch indicator.
+- **Evidence:** state tests + UI screenshots.
+
+### C-04 Inline Diff Panel Parity (`Ctrl+K`)
+- **Owner:** AI Editing
+- **ETA:** 2026-04-10
+- **Acceptance Criteria:**
+  - Show inline proposed edits as diff blocks.
+  - Accept/reject at hunk and full-change granularity.
+  - Apply operations preserve cursor and undo stack behavior.
+- **Evidence:** integration tests + before/after clip.
+
+### C-05 Edit Prediction Provider Hardening
+- **Owner:** Editor Intelligence
+- **ETA:** 2026-04-10
+- **Acceptance Criteria:**
+  - Support pluggable prediction provider interface.
+  - Fallback heuristic remains available offline.
+  - Add confidence calibration metrics and telemetry hooks.
+- **Evidence:** provider tests + metrics sample output.
+
+### C-06 Terminal AI Explain/Fix Parity Finalization
+- **Owner:** Terminal UX
+- **ETA:** 2026-03-21
+- **Acceptance Criteria:**
+  - Terminal AI detects errors from live output.
+  - `Run Fix` uses risk guardrails and post-run analysis.
+  - History row supports retry + copy summary.
+- **Evidence:** feature demo + type/lint checks + docs update.
+
+### C-07 Terminal Fix Guardrail Expansion
+- **Owner:** Security + Terminal UX
+- **ETA:** 2026-03-28
+- **Acceptance Criteria:**
+  - Add configurable denylist/allowlist policy for terminal fix commands.
+  - High-risk execution requires explicit double confirmation.
+  - Audit log entry recorded for executed fix commands.
+- **Evidence:** policy tests + sample audit log.
+
+### C-08 VS Code API Fallback Coverage (Tier 1)
+- **Owner:** Extension Runtime
+- **ETA:** 2026-04-17
+- **Acceptance Criteria:**
+  - Document unsupported API surface and fallback behavior.
+  - Add compatibility stubs for top failing extension APIs.
+  - Marketplace UI surfaces compatibility warnings before install.
+- **Evidence:** compatibility matrix + extension smoke tests.
+
+### C-09 Mention Resolver `@web` Real Backend
+- **Owner:** Chat Context
+- **ETA:** 2026-04-03
+- **Acceptance Criteria:**
+  - Replace local-mode fallback with optional web context retrieval path.
+  - Add feature flag and offline fallback to existing behavior.
+  - Add tests for resolved vs fallback flows.
+- **Evidence:** tests + runtime config docs.
+
+### C-10 Phase C E2E Journey Test Pack
+- **Owner:** QA Automation
+- **ETA:** 2026-04-24
+- **Acceptance Criteria:**
+  - Add journey tests for mentions, terminal explain/fix, and inline diff approval.
+  - Run in CI on PR with artifact outputs.
+  - Failures include reproducible diagnostics.
+- **Evidence:** CI workflow links + test artifacts.
