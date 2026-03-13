@@ -32,11 +32,13 @@ interface MentionPreviewItem {
   id: string;
   label: string;
   detail: string;
+  tooltip: string;
   resolved: boolean;
   rawToken: string;
   type: string;
   value: string;
   count: number;
+  firstIndex: number;
 }
 
 function treeContainsPrefix(root: FileNode | null, prefix: string): boolean {
@@ -225,11 +227,15 @@ export function AIChatSidebar() {
             id,
             label: '@file',
             detail: currentFile ? currentFile.path : 'No active file',
+            tooltip: currentFile
+              ? `@file resolved to active file: ${currentFile.path}`
+              : '@file unresolved: no active file available',
             resolved: Boolean(currentFile),
             rawToken: mention.raw,
             type: mention.type,
             value: mention.value,
             count: 1,
+            firstIndex: index,
           };
         } else {
           const existsInOpenFiles = openFiles.some((file) => file.path === mention.value);
@@ -237,11 +243,15 @@ export function AIChatSidebar() {
             id,
             label: '@file',
             detail: mention.value,
+            tooltip: existsInOpenFiles
+              ? `@file resolved from open files: ${mention.value}`
+              : `@file unresolved (open file not found): ${mention.value}`,
             resolved: existsInOpenFiles,
             rawToken: mention.raw,
             type: mention.type,
             value: mention.value,
             count: 1,
+            firstIndex: index,
           };
         }
 
@@ -257,11 +267,15 @@ export function AIChatSidebar() {
           id,
           label: '@folder',
           detail: folderPath,
+          tooltip: resolved
+            ? `@folder resolved in tree: ${folderPath}`
+            : `@folder unresolved in tree: ${folderPath}`,
           resolved,
           rawToken: mention.raw,
           type: mention.type,
           value: mention.value,
           count: 1,
+          firstIndex: index,
         };
         const existing = deduped.get(identityKey);
         deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
@@ -274,11 +288,15 @@ export function AIChatSidebar() {
           id,
           label: '@terminal',
           detail: hasOutput ? 'Terminal output available' : 'Terminal output empty',
+          tooltip: hasOutput
+            ? `@terminal resolved with ${terminalOutput.trim().length} characters of output`
+            : '@terminal unresolved: terminal output is empty',
           resolved: hasOutput,
           rawToken: mention.raw,
           type: mention.type,
           value: mention.value,
           count: 1,
+          firstIndex: index,
         };
         const existing = deduped.get(identityKey);
         deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
@@ -290,11 +308,15 @@ export function AIChatSidebar() {
           id,
           label: '@git',
           detail: gitStatus ? gitStatus.branch : 'Git status unavailable',
+          tooltip: gitStatus
+            ? `@git resolved on branch ${gitStatus.branch} (ahead ${gitStatus.ahead}, behind ${gitStatus.behind})`
+            : '@git unresolved: git status unavailable',
           resolved: Boolean(gitStatus),
           rawToken: mention.raw,
           type: mention.type,
           value: mention.value,
           count: 1,
+          firstIndex: index,
         };
         const existing = deduped.get(identityKey);
         deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
@@ -306,11 +328,15 @@ export function AIChatSidebar() {
           id,
           label: '@previous',
           detail: chatMessages.length > 0 ? `${chatMessages.length} message(s)` : 'No previous messages',
+          tooltip: chatMessages.length > 0
+            ? `@previous resolved with ${chatMessages.length} message(s)`
+            : '@previous unresolved: no previous messages',
           resolved: chatMessages.length > 0,
           rawToken: mention.raw,
           type: mention.type,
           value: mention.value,
           count: 1,
+          firstIndex: index,
         };
         const existing = deduped.get(identityKey);
         deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
@@ -322,11 +348,15 @@ export function AIChatSidebar() {
           id,
           label: '@codebase',
           detail: fileTree ? projectPath || 'Project loaded' : 'Project tree unavailable',
+          tooltip: fileTree
+            ? `@codebase resolved for project ${projectPath || 'current workspace'}`
+            : '@codebase unresolved: project file tree unavailable',
           resolved: Boolean(fileTree),
           rawToken: mention.raw,
           type: mention.type,
           value: mention.value,
           count: 1,
+          firstIndex: index,
         };
         const existing = deduped.get(identityKey);
         deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
@@ -337,17 +367,19 @@ export function AIChatSidebar() {
         id,
         label: '@web',
         detail: 'Not available in local mode',
+        tooltip: '@web is currently unavailable in local RAG mode',
         resolved: false,
         rawToken: mention.raw,
         type: mention.type,
         value: mention.value,
         count: 1,
+        firstIndex: index,
       };
       const existing = deduped.get(identityKey);
       deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
     });
 
-    return Array.from(deduped.values());
+    return Array.from(deduped.values()).sort((left, right) => left.firstIndex - right.firstIndex);
   }, [chatMessages.length, currentFile, fileTree, gitStatus, input, openFiles, projectPath, terminalOutput]);
 
   const removeMentionTokenFromInput = (source: string, rawToken: string, mode: 'first' | 'last'): string => {
@@ -785,7 +817,7 @@ export function AIChatSidebar() {
                     ? 'border-[#2ea043] bg-[#1a2a1a] text-[#8ddb8c]'
                     : 'border-[#f0883e] bg-[#2a1f14] text-[#f2b37b]'
                 }`}
-                title={item.detail}
+                title={`${item.tooltip}${item.count > 1 ? ` | repeated ${item.count}x` : ''}`}
               >
                 <span className="font-medium">{item.label}</span>
                 <span className="opacity-85">{item.detail}</span>
