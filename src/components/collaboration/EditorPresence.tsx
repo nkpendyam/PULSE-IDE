@@ -22,7 +22,7 @@ export interface RemoteCursor {
 // Props for cursor overlay
 interface EditorPresenceProps {
   // Editor container ref for positioning
-  editorContainerRef: React.RefObject<HTMLDivElement>;
+  editorContainerRef: React.RefObject<HTMLDivElement | null>;
   // Monaco editor instance
   editor?: unknown;
   // Current room ID

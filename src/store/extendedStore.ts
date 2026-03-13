@@ -19,17 +19,6 @@ export interface User {
   created_at: string;
 }
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-}
-
 // Collaboration Types
 export interface Room {
   id: string;

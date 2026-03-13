@@ -150,34 +150,34 @@ cd ..
 ### 4. Run Development Server
 ```bash
 # Start Next.js dev server and Tauri
-npm run tauri dev
+bun run tauri:dev
 
-# Or with bun
-bun run tauri dev
+# Or direct Tauri CLI (after bun install)
+bunx tauri dev
 ```
 
 ## Build for Production
 
 ### Development Build
 ```bash
-npm run tauri build
+bun run tauri:build
 ```
 
 ### Platform-Specific Builds
 
 #### Windows
 ```bash
-npm run tauri build -- --target x86_64-pc-windows-msvc
+bunx tauri build --target x86_64-pc-windows-msvc
 ```
 
 #### macOS (Universal Binary)
 ```bash
-npm run tauri build -- --target universal-apple-darwin
+bunx tauri build --target universal-apple-darwin
 ```
 
 #### Linux
 ```bash
-npm run tauri build -- --target x86_64-unknown-linux-gnu
+bunx tauri build --target x86_64-unknown-linux-gnu
 ```
 
 ## Configuration Files
@@ -187,10 +187,10 @@ npm run tauri build -- --target x86_64-unknown-linux-gnu
 - **Identifier**: dev.kyro.ide
 - **Bundle Targets**: all (Windows, macOS, Linux)
 - **Dev Server**: http://localhost:3000
-- **Frontend Dist**: ../.next
+- **Frontend Dist**: ../out
 
 ### Next.js Configuration (`next.config.ts`)
-- **Output**: standalone (for Tauri integration)
+- **Output**: export (static build for Tauri packaging)
 - **React Strict Mode**: disabled (for Monaco compatibility)
 - **Turbopack**: enabled for faster builds
 

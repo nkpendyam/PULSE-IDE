@@ -13,12 +13,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ensure frontendDist for Tauri
-        run: |
-          mkdir -p out
-          if [ ! -f out/index.html ]; then
-            echo '<!doctype html><html><body>Kyro IDE CI placeholder</body></html>' > out/index.html
-          fi
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Frontend Dependencies
+        run: bun install
+
+      - name: Build Frontend (real out/ export)
+        run: bun run build
 
       - name: Install System Dependencies
         run: |

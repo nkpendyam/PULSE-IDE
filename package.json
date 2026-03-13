@@ -3,12 +3,14 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "dev:turbo": "next dev --turbo -p 3000",
-    "build": "next build --webpack",
+    "dev": "node scripts/dev.mjs",
+    "dev:next": "cross-env NODE_ENV=development next dev -p 3000",
+    "dev:turbo": "cross-env NODE_ENV=development next dev --turbo -p 3000",
+    "build": "cross-env NODE_ENV=production next build --webpack",
     "build:standalone": "next build --webpack && node -e \"const fs=require('fs');fs.cpSync('.next/static','.next/standalone/.next/static',{recursive:true});fs.cpSync('public','.next/standalone/public',{recursive:true})\"",
-    "build:analyze": "ANALYZE=true next build",
-    "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
+    "build:analyze": "node scripts/build-analyze.mjs",
+    "start": "cross-env NODE_ENV=production node scripts/start-standalone.mjs",
+    "build:frontend": "bun run build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
@@ -19,9 +21,12 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:build:debug": "tauri build --debug"
+    "tauri:dev": "bunx tauri dev",
+    "pretauri:dev": "bun install",
+    "tauri:build": "bunx tauri build",
+    "pretauri:build": "bun install && bun run build",
+    "tauri:build:debug": "bunx tauri build --debug",
+    "pretauri:build:debug": "bun install && bun run build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -100,6 +105,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@tailwindcss/postcss": "^4",
     "@tauri-apps/cli": "^2.1.0",
     "@testing-library/jest-dom": "^6.9.1",

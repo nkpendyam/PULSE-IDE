@@ -14,6 +14,14 @@
 - **Extensions:** [Open VSX](https://open-vsx.org); VS Code–compatible discovery and install.
 - **Collaboration:** Real-time CRDT (Yjs/yrs), E2EE option, 50+ members.
 
+## Editor Architecture
+
+- **Single editor abstraction:** `CodeEditor` is the canonical editor surface (Monaco, LSP bridge, ghost text, inline chat widget, minimap controls).
+- **Single theme system:** `ThemeProvider` + `lib/themeSystem` own app theme and Monaco theme registration/application.
+- **Single file operations layer:** UI components route file read/write/tree/create/rename/delete via `lib/fileOperations`.
+- **Single extensions UI:** Sidebar extensions view is powered by `UnifiedMarketplace`.
+- **Accessibility baseline:** Global `AccessibilityProvider` + skip link are mounted in `layout.tsx`.
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -29,17 +37,29 @@
 
 ## Quick Start
 
-```bash
-# Frontend
-bun install
-bun run dev
+```powershell
+# Windows 10/11 (PowerShell)
+./scripts/setup.ps1
+./scripts/check-all.ps1
+bun run tauri:dev
+```
 
-# Backend (from repo root, with Rust toolchain)
-cd src-tauri
-cargo build
+```bash
+# macOS / Linux
+bun install
+bun run build
+bun run tauri:dev
+```
+
+Production build:
+
+```powershell
+bun run tauri:build
 ```
 
 See [docs/status/ROADMAP.md](docs/status/ROADMAP.md) for version goals and [docs/KYRO_IDE_2026_ENGINEERING_PLAN.md](docs/KYRO_IDE_2026_ENGINEERING_PLAN.md) for the full 2026 engineering plan (VS Code/Antigravity comparison, stages, and open-source stack).
+
+For production-ready local setup and platform dependencies, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
 ## Repository
 

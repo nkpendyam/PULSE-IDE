@@ -56,8 +56,8 @@ interface StreamTokenEvent {
 }
 
 export function useGhostTextProvider(
-  editor: monaco.editor.IStandaloneCodeEditor | null,
-  monaco: typeof import('monaco-editor') | null,
+  editorRef: React.RefObject<monaco.editor.IStandaloneCodeEditor | null>,
+  monacoRef: React.RefObject<typeof import('monaco-editor') | null>,
   language: string,
   config: Partial<GhostTextConfig> = {}
 ) {
@@ -206,6 +206,8 @@ export function useGhostTextProvider(
 
   // Register inline completions provider
   useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
     if (!editor || !monaco) return;
 
     const model = editor.getModel();
@@ -287,10 +289,12 @@ export function useGhostTextProvider(
       disposable.dispose();
       clearTimeout(debounceRef.current);
     };
-  }, [editor, monaco, cfg]);
+  }, [editorRef, monacoRef, cfg]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
     if (!editor || !monaco) return;
 
     // Tab to accept ghost text (Monaco handles this by default with inlineSuggest)
@@ -331,7 +335,7 @@ export function useGhostTextProvider(
       }
     });
 
-  }, [editor, monaco, currentCompletion, cancelCompletion]);
+  }, [editorRef, monacoRef, currentCompletion, cancelCompletion]);
 
   return {
     currentCompletion,

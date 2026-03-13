@@ -7,8 +7,9 @@ set -e
 echo "🏗️  Building Kyro IDE for production..."
 
 # Check environment
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed."
+if ! command -v bun &> /dev/null; then
+    echo "❌ Bun is not installed."
+    echo "Install from: https://bun.sh"
     exit 1
 fi
 
@@ -17,25 +18,19 @@ if ! command -v cargo &> /dev/null; then
     exit 1
 fi
 
-# Determine package manager
-if command -v bun &> /dev/null; then
-    PKG_MANAGER="bun"
-else
-    PKG_MANAGER="npm"
-fi
-
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
 rm -rf .next
+rm -rf out
 rm -rf src-tauri/target/release
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-$PKG_MANAGER install --frozen-lockfile 2>/dev/null || $PKG_MANAGER install
+bun install --frozen-lockfile 2>/dev/null || bun install
 
 # Build frontend
 echo "⚛️  Building Next.js frontend..."
-$PKG_MANAGER run build
+bun run build
 
 # Build Rust backend (release mode)
 echo "🦀 Building Rust backend (release mode)..."
@@ -45,11 +40,11 @@ cd ..
 
 # Build Tauri app
 echo "📦 Building Tauri application..."
-$PKG_MANAGER run tauri:build
+bun run tauri:build
 
 echo "✅ Production build complete!"
 echo ""
 echo "Build artifacts:"
-echo "  - Frontend: .next/standalone/"
+echo "  - Frontend: out/"
 echo "  - Backend: src-tauri/target/release/"
 echo "  - Tauri app: src-tauri/target/release/bundle/"

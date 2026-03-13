@@ -16,7 +16,16 @@ import {
   ClipboardPaste
 } from 'lucide-react';
 import { useKyroStore, FileNode } from '@/store/kyroStore';
-import { invoke } from '@tauri-apps/api/core';
+import {
+  createFile,
+  createDirectory,
+  renameFile,
+  deleteFile,
+  deleteDirectory,
+  getDirName,
+  joinPath,
+  getFileIcon,
+} from '@/lib/fileOperations';
 
 interface FileTreeProps { 
   node: FileNode; 
@@ -60,9 +69,9 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
   const handleCreateFile = async () => {
     if (!newName.trim()) return;
     try {
-      const basePath = node.is_directory ? node.path : node.path.substring(0, node.path.lastIndexOf('/'));
-      const newPath = `${basePath}/${newName}`;
-      await invoke('create_file', { path: newPath });
+      const basePath = node.is_directory ? node.path : getDirName(node.path);
+      const newPath = joinPath(basePath, newName);
+      await createFile(newPath);
       onRefresh?.();
       onClose();
     } catch (error) {
@@ -74,9 +83,9 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
   const handleCreateFolder = async () => {
     if (!newName.trim()) return;
     try {
-      const basePath = node.is_directory ? node.path : node.path.substring(0, node.path.lastIndexOf('/'));
-      const newPath = `${basePath}/${newName}`;
-      await invoke('create_directory', { path: newPath });
+      const basePath = node.is_directory ? node.path : getDirName(node.path);
+      const newPath = joinPath(basePath, newName);
+      await createDirectory(newPath);
       onRefresh?.();
       onClose();
     } catch (error) {
@@ -88,9 +97,9 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
   const handleRename = async () => {
     if (!newName.trim()) return;
     try {
-      const basePath = node.path.substring(0, node.path.lastIndexOf('/'));
-      const newPath = `${basePath}/${newName}`;
-      await invoke('rename_file', { oldPath: node.path, newPath });
+      const basePath = getDirName(node.path);
+      const newPath = joinPath(basePath, newName);
+      await renameFile(node.path, newPath);
       onRefresh?.();
       onClose();
     } catch (error) {
@@ -108,9 +117,9 @@ function ContextMenu({ x, y, node, onClose, onRefresh }: ContextMenuProps) {
 
     try {
       if (node.is_directory) {
-        await invoke('delete_directory', { path: node.path });
+        await deleteDirectory(node.path);
       } else {
-        await invoke('delete_file', { path: node.path });
+        await deleteFile(node.path);
       }
       onRefresh?.();
       onClose();
@@ -234,26 +243,10 @@ export function FileTree({ node, onFileClick, level, onRefresh }: FileTreeProps)
   const { openFiles } = useKyroStore();
   const isOpen = openFiles.some(f => f.path === node.path);
   
-  const getFileIcon = (name: string, isDir: boolean) => {
-    if (isDir) return null;
-    const ext = name.split('.').pop()?.toLowerCase();
-    const iconMap: Record<string, string> = { 
-      'rs': '🦀', 'py': '🐍', 'js': '📜', 'ts': '📘', 'tsx': '📘', 'jsx': '📜',
-      'go': '🔵', 'java': '☕', 'html': '🌐', 'css': '🎨', 'scss': '🎨',
-      'json': '📋', 'md': '📝', 'yaml': '📋', 'yml': '📋', 'toml': '📋',
-      'xml': '📄', 'svg': '🎨', 'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️',
-      'gif': '🖼️', 'ico': '🖼️', 'sh': '🔧', 'bash': '🔧', 'zsh': '🔧',
-      'c': '©️', 'cpp': '©️', 'h': '©️', 'hpp': '©️', 'cs': '©️',
-      'rb': '💎', 'php': '🐘', 'swift': '🦅', 'kt': '🅺', 'vue': '💚',
-      'svelte': '🧡', 'sql': '🗄️', 'db': '🗄️', 'lock': '🔒'
-    };
-    return iconMap[ext || ''] || null;
-  };
-  
   // Hide hidden files (starting with .)
   if (node.name.startsWith('.')) return null;
   
-  const icon = getFileIcon(node.name, node.is_directory);
+  const icon = node.is_directory ? null : getFileIcon(node.name);
   const paddingLeft = level * 12 + 8;
 
   const handleContextMenu = (e: React.MouseEvent) => {

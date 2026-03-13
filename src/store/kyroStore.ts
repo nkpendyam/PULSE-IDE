@@ -60,15 +60,6 @@ export interface LocalModelInfo {
   min_memory_tier: string;
 }
 
-export interface CompletionOptions {
-  max_tokens?: number;
-  temperature?: number;
-  top_p?: number;
-  top_k?: number;
-  stop_sequences?: string[];
-  stream?: boolean;
-}
-
 // Ghost text state
 export interface GhostTextCompletion {
   id: string;
@@ -97,17 +88,6 @@ export interface GhostTextConfig {
   showAcceptHint: boolean;
   cacheEnabled: boolean;
   cacheMaxSize: number;
-}
-
-export interface InferenceResponse {
-  text: string;
-  tokens_generated: number;
-  time_to_first_token_ms: number;
-  total_time_ms: number;
-  tokens_per_second: number;
-  model: string;
-  from_cache: boolean;
-  memory_used: number;
 }
 
 export interface GitStatus { branch: string; ahead: number; behind: number; staged: Array<{ path: string; status: string }>; unstaged: Array<{ path: string; status: string }>; untracked: string[]; }

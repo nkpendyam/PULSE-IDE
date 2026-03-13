@@ -25,13 +25,23 @@ export interface FileNode {
   size?: number;
 }
 
+export function normalizePath(path: string): string {
+  if (!path) return '';
+  return path.replace(/\\/g, '/').replace(/\/+/g, '/');
+}
+
 /**
  * Read a file from the file system
  */
 export async function readFile(path: string): Promise<FileContent> {
   try {
-    const result = await invoke<FileContent>('read_file', { path });
-    return result;
+    const normalizedPath = normalizePath(path);
+    const result = await invoke<FileContent>('read_file', { path: normalizedPath });
+    return {
+      ...result,
+      path: normalizePath(result.path),
+      language: result.language || detectLanguage(result.path),
+    };
   } catch (error) {
     console.error('Failed to read file:', error);
     throw new Error(`Failed to read file: ${error}`);
@@ -43,7 +53,7 @@ export async function readFile(path: string): Promise<FileContent> {
  */
 export async function writeFile(path: string, content: string): Promise<void> {
   try {
-    await invoke('write_file', { path, content });
+    await invoke('write_file', { path: normalizePath(path), content });
   } catch (error) {
     console.error('Failed to write file:', error);
     throw new Error(`Failed to write file: ${error}`);
@@ -55,7 +65,7 @@ export async function writeFile(path: string, content: string): Promise<void> {
  */
 export async function createFile(path: string): Promise<void> {
   try {
-    await invoke('create_file', { path });
+    await invoke('create_file', { path: normalizePath(path) });
   } catch (error) {
     console.error('Failed to create file:', error);
     throw new Error(`Failed to create file: ${error}`);
@@ -67,7 +77,7 @@ export async function createFile(path: string): Promise<void> {
  */
 export async function deleteFile(path: string): Promise<void> {
   try {
-    await invoke('delete_file', { path });
+    await invoke('delete_file', { path: normalizePath(path) });
   } catch (error) {
     console.error('Failed to delete file:', error);
     throw new Error(`Failed to delete file: ${error}`);
@@ -79,7 +89,10 @@ export async function deleteFile(path: string): Promise<void> {
  */
 export async function renameFile(oldPath: string, newPath: string): Promise<void> {
   try {
-    await invoke('rename_file', { oldPath, newPath });
+    await invoke('rename_file', {
+      oldPath: normalizePath(oldPath),
+      newPath: normalizePath(newPath),
+    });
   } catch (error) {
     console.error('Failed to rename file:', error);
     throw new Error(`Failed to rename file: ${error}`);
@@ -92,10 +105,10 @@ export async function renameFile(oldPath: string, newPath: string): Promise<void
 export async function getFileTree(path: string, maxDepth?: number): Promise<FileNode> {
   try {
     const result = await invoke<FileNode>('get_file_tree', { 
-      path, 
+      path: normalizePath(path), 
       maxDepth: maxDepth || 10 
     });
-    return result;
+    return normalizeTreePaths(result);
   } catch (error) {
     console.error('Failed to get file tree:', error);
     throw new Error(`Failed to get file tree: ${error}`);
@@ -107,8 +120,8 @@ export async function getFileTree(path: string, maxDepth?: number): Promise<File
  */
 export async function listDirectory(path: string): Promise<FileNode[]> {
   try {
-    const result = await invoke<FileNode[]>('list_directory', { path });
-    return result;
+    const result = await invoke<FileNode[]>('list_directory', { path: normalizePath(path) });
+    return result.map(node => normalizeTreePaths(node));
   } catch (error) {
     console.error('Failed to list directory:', error);
     throw new Error(`Failed to list directory: ${error}`);
@@ -120,11 +133,29 @@ export async function listDirectory(path: string): Promise<FileNode[]> {
  */
 export async function pathExists(path: string): Promise<boolean> {
   try {
-    const result = await invoke<boolean>('path_exists', { path });
+    const result = await invoke<boolean>('path_exists', { path: normalizePath(path) });
     return result;
   } catch (error) {
     console.error('Failed to check path existence:', error);
     return false;
+  }
+}
+
+export async function createDirectory(path: string): Promise<void> {
+  try {
+    await invoke('create_directory', { path: normalizePath(path) });
+  } catch (error) {
+    console.error('Failed to create directory:', error);
+    throw new Error(`Failed to create directory: ${error}`);
+  }
+}
+
+export async function deleteDirectory(path: string): Promise<void> {
+  try {
+    await invoke('delete_directory', { path: normalizePath(path) });
+  } catch (error) {
+    console.error('Failed to delete directory:', error);
+    throw new Error(`Failed to delete directory: ${error}`);
   }
 }
 
@@ -313,24 +344,27 @@ export function isBinaryFile(filename: string): boolean {
  * Get relative path from base path
  */
 export function getRelativePath(basePath: string, fullPath: string): string {
-  if (fullPath.startsWith(basePath)) {
-    return fullPath.slice(basePath.length).replace(/^[\/\\]/, '');
+  const normalizedBase = normalizePath(basePath);
+  const normalizedFull = normalizePath(fullPath);
+  if (normalizedFull.startsWith(normalizedBase)) {
+    return normalizedFull.slice(normalizedBase.length).replace(/^[\/\\]/, '');
   }
-  return fullPath;
+  return normalizedFull;
 }
 
 /**
  * Get file name from path
  */
 export function getFileName(path: string): string {
-  return path.split(/[\/\\]/).pop() || path;
+  const normalizedPath = normalizePath(path);
+  return normalizedPath.split('/').pop() || normalizedPath;
 }
 
 /**
  * Get directory name from path
  */
 export function getDirName(path: string): string {
-  const parts = path.split(/[\/\\]/);
+  const parts = normalizePath(path).split('/');
   parts.pop();
   return parts.join('/');
 }
@@ -339,8 +373,16 @@ export function getDirName(path: string): string {
  * Join path segments
  */
 export function joinPath(...segments: string[]): string {
-  return segments
+  return normalizePath(
+    segments
     .join('/')
-    .replace(/\/+/g, '/')
-    .replace(/\\/g, '/');
+  );
+}
+
+function normalizeTreePaths(node: FileNode): FileNode {
+  return {
+    ...node,
+    path: normalizePath(node.path),
+    children: node.children?.map(child => normalizeTreePaths(child)),
+  };
 }

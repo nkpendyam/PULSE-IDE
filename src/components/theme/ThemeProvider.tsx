@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { resolveTheme, themeManager, type KyroThemeMode } from '@/lib/themeSystem';
 
-type Theme = 'dark' | 'light' | 'system';
+type Theme = KyroThemeMode;
 
 interface ThemeColors {
   bg: string;
@@ -86,27 +87,21 @@ function getInitialTheme(): Theme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
-  // Apply theme function - defined before use
-  const applyTheme = (t: 'dark' | 'light') => {
-    const root = document.documentElement;
-    const colors = themes[t];
-    Object.entries(colors).forEach(([key, value]) => {
-      root.style.setProperty(`--color-${key}`, value);
-    });
-  };
-
   useEffect(() => {
     localStorage.setItem('kro-theme', theme);
-    
-    if (theme === 'system') {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      applyTheme(isDark ? 'dark' : 'light');
-    } else {
-      applyTheme(theme);
-    }
+
+    const resolved = resolveTheme(theme);
+    themeManager.applyTheme(resolved);
+
+    const mode = resolved.type === 'light' ? 'light' : 'dark';
+    const root = document.documentElement;
+    root.dataset.theme = mode;
+    Object.entries(themes[mode]).forEach(([key, value]) => {
+      root.style.setProperty(`--color-${key}`, value);
+    });
   }, [theme]);
 
-  const colors = themes[theme === 'system' ? 'dark' : theme];
+  const colors = themes[resolveTheme(theme).type === 'light' ? 'light' : 'dark'];
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, colors }}>

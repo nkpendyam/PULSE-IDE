@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import Editor from '@monaco-editor/react';
 import { useKyroStore, FileNode, OpenFile } from '@/store/kyroStore';
+import { useExtendedKyroStore } from '@/store/extendedStore';
 import { AgentManagerPanel } from '@/components/agent-manager/AgentManagerPanel';
 import { FileTree } from '@/components/sidebar/FileTree';
 import { TabBar } from '@/components/tabs/TabBar';
@@ -30,16 +30,17 @@ import { TestRunnerPanel } from '@/components/testing/TestRunnerPanel';
 import { BrowserPreview } from '@/components/browser/BrowserPreview';
 import { SymbolSearch } from '@/components/search/SymbolSearch';
 import { DiffViewer } from '@/components/git/DiffViewer';
-import { InlineChat } from '@/components/chat/InlineChat';
 import { ModelSelector } from '@/components/chat/ModelSelector';
 import { TerminalAI } from '@/components/terminal/TerminalAI';
 import { ProjectRules } from '@/components/settings/ProjectRules';
-import { useEditPrediction } from '@/components/editor/EditPredictionProvider';
+import { CodeEditor } from '@/components/editor/CodeEditor';
+import { AccessiblePanel, AccessibleButton } from '@/components/accessibility/AccessibilityProvider';
 import { AgentAutopilotPanel } from '@/components/agents/AgentAutopilotPanel';
 import { ConversationCheckpoints, Checkpoint } from '@/components/chat/ConversationCheckpoints';
 import { RemoteDevContainers } from '@/components/remote/RemoteDevContainers';
 import { KeybindingManager } from '@/lib/keybindings';
-import { registerLspProviders, setupFileWatcher } from '@/lib/lspBridge';
+import { setupFileWatcher } from '@/lib/lspBridge';
+import { getFileTree, readFile, writeFile, detectLanguage } from '@/lib/fileOperations';
 import {
   Files,
   Search,
@@ -67,30 +68,6 @@ import {
   Shield,
   Monitor,
 } from 'lucide-react';
-
-// Tauri invoke for AI commands
-declare global {
-  interface Window {
-    __TAURI__?: {
-      core: {
-        invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
-      };
-    };
-  }
-}
-
-// Helper to invoke Tauri commands with fallback
-async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
-  if (typeof window !== 'undefined' && window.__TAURI__) {
-    try {
-      return await window.__TAURI__.core.invoke<T>(cmd, args);
-    } catch (error) {
-      console.error(`Tauri command ${cmd} failed:`, error);
-      return null;
-    }
-  }
-  return null;
-}
 
 // Types for AI responses
 type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote';
@@ -123,12 +100,10 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showFirstRun, setShowFirstRun] = useState(false);
   const [showSymbolSearch, setShowSymbolSearch] = useState(false);
-  const [showInlineChat, setShowInlineChat] = useState(false);
   const [showDiffViewer, setShowDiffViewer] = useState(false);
   const [diffFile, setDiffFile] = useState<string>('');
-  const editorRef = useRef<unknown>(null);
-  const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const { currentRoom, user } = useExtendedKyroStore();
 
   const {
     projectPath,
@@ -139,9 +114,7 @@ export default function Home() {
     setFileTree,
     openFile,
     setEditorContent,
-    setCursorPosition,
     setGitStatus,
-    updateFileContent,
     autopilotMode,
     setAutopilotMode,
     isAgentRunning,
@@ -154,15 +127,13 @@ export default function Home() {
   React.useEffect(() => {
     async function loadInitialTree() {
       setProjectPath('.');
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        try {
-          const tree = await window.__TAURI__.core.invoke<FileNode>('get_file_tree', { path: '.', maxDepth: 5 });
-          setFileTree(tree);
-          setProjectPath(tree.path || '.');
-          return;
-        } catch {
-          // Tauri not available, use mock
-        }
+      try {
+        const tree = await getFileTree('.', 5);
+        setFileTree(tree);
+        setProjectPath(tree.path || '.');
+        return;
+      } catch {
+        // Tauri not available, use mock
       }
       setFileTree(fallbackFileTree);
     }
@@ -201,12 +172,7 @@ export default function Home() {
     if (!currentFile) return;
 
     try {
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        await window.__TAURI__.core.invoke('write_file', {
-          path: currentFile.path,
-          content: currentFile.content
-        });
-      }
+      await writeFile(currentFile.path, currentFile.content);
       // Mark file as clean after successful save
       const { openFiles: files } = useKyroStore.getState();
       const newFiles = files.map(f => f.path === currentFile.path ? { ...f, isDirty: false } : f);
@@ -223,8 +189,8 @@ export default function Home() {
     const timer = setTimeout(() => {
       const state = useKyroStore.getState();
       const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
-      if (file?.isDirty && typeof window !== 'undefined' && window.__TAURI__) {
-        window.__TAURI__.core.invoke('write_file', { path: file.path, content: file.content })
+      if (file?.isDirty) {
+        writeFile(file.path, file.content)
           .then(() => {
             const { openFiles: files } = useKyroStore.getState();
             const newFiles = files.map(f => f.path === file.path ? { ...f, isDirty: false } : f);
@@ -246,7 +212,6 @@ export default function Home() {
       'workbench.action.showCommands': () => setShowCommandPalette(prev => !prev),
       'workbench.action.toggleSidebarVisibility': () => setShowChat(prev => !prev),
       'workbench.action.showAllSymbols': () => setShowSymbolSearch(prev => !prev),
-      'editor.action.inlineChat': () => setShowInlineChat(prev => !prev),
       'workbench.view.explorer': () => setActivePanel('explorer'),
       'workbench.view.scm': () => setActivePanel('git'),
       'workbench.view.debug': () => setActivePanel('debug'),
@@ -279,170 +244,38 @@ export default function Home() {
 
   const refreshFileTree = useCallback(async () => {
     setFileTreeKey(prev => prev + 1);
-    if (typeof window !== 'undefined' && window.__TAURI__) {
-      try {
-        const tree = await window.__TAURI__.core.invoke<FileNode>('get_file_tree', { path: '.', maxDepth: 5 });
-        setFileTree(tree);
-      } catch {
-        // Tauri unavailable, keep existing tree
-      }
+    try {
+      const tree = await getFileTree('.', 5);
+      setFileTree(tree);
+    } catch {
+      // Tauri unavailable, keep existing tree
     }
   }, [setFileTree]);
 
   const handleFileClick = useCallback(async (path: string) => {
     try {
-      // Try to load file from Tauri
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        const fileContent = await window.__TAURI__.core.invoke<{ path: string; content: string; language: string }>('read_file', { path });
-        
-        const file: OpenFile = {
-          path: fileContent.path,
-          content: fileContent.content,
-          language: fileContent.language,
-          isDirty: false
-        };
-        
-        openFile(file);
-      } else {
-        // Fallback when Tauri is not available
-        const content = '// Open this project in Kyro IDE desktop for full file access';
-        const ext = path.split('.').pop()?.toLowerCase() || 'txt';
-        const languageMap: Record<string, string> = {
-          'ts': 'typescript',
-          'tsx': 'typescript',
-          'js': 'javascript',
-          'json': 'json',
-          'md': 'markdown',
-        };
-
-        const file: OpenFile = {
-          path,
-          content,
-          language: languageMap[ext] || 'plaintext',
-          isDirty: false
-        };
-
-        openFile(file);
-      }
+      const fileContent = await readFile(path);
+      const file: OpenFile = {
+        path: fileContent.path,
+        content: fileContent.content,
+        language: fileContent.language || detectLanguage(fileContent.path),
+        isDirty: false,
+      };
+      openFile(file);
     } catch (error) {
       console.error('Failed to load file:', error);
       const content = '// Failed to load file — check console for details';
-      const ext = path.split('.').pop()?.toLowerCase() || 'txt';
-      const languageMap: Record<string, string> = {
-        'ts': 'typescript',
-        'tsx': 'typescript',
-        'js': 'javascript',
-        'json': 'json',
-        'md': 'markdown',
-      };
 
       const file: OpenFile = {
         path,
         content,
-        language: languageMap[ext] || 'plaintext',
+        language: detectLanguage(path),
         isDirty: false
       };
 
       openFile(file);
     }
   }, [openFile]);
-
-  const handleEditorChange = useCallback((value: string | undefined) => {
-    if (value !== undefined && currentFile) {
-      updateFileContent(currentFile.path, value);
-    }
-  }, [currentFile, updateFileContent]);
-
-  const lspCleanupRef = useRef<(() => void) | null>(null);
-
-  const handleEditorMount = useCallback((editor: unknown, monaco: unknown) => {
-    editorRef.current = editor;
-    const monacoModule = monaco as typeof import('monaco-editor');
-    monacoRef.current = monacoModule;
-    const monacoEditor = editor as import('monaco-editor').editor.IStandaloneCodeEditor;
-
-    // Track cursor position
-    monacoEditor.onDidChangeCursorPosition((e) => {
-      setCursorPosition(e.position.lineNumber, e.position.column);
-    });
-
-    // Define and apply Kyro theme
-    monacoModule.editor.defineTheme('kyro-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '569CD6', fontStyle: 'bold' },
-        { token: 'keyword.control', foreground: 'C586C0' },
-        { token: 'string', foreground: 'CE9178' },
-        { token: 'number', foreground: 'B5CEA8' },
-        { token: 'type', foreground: '4EC9B0' },
-        { token: 'function', foreground: 'DCDCAA' },
-        { token: 'variable', foreground: '9CDCFE' },
-        { token: 'constant', foreground: '4FC1FF' },
-        { token: 'tag', foreground: '569CD6' },
-        { token: 'attribute.name', foreground: '9CDCFE' },
-        { token: 'attribute.value', foreground: 'CE9178' },
-      ],
-      colors: {
-        'editor.background': '#0D1117',
-        'editor.foreground': '#C9D1D9',
-        'editor.lineHighlightBackground': '#161B22',
-        'editor.selectionBackground': '#264F78',
-        'editorCursor.foreground': '#58A6FF',
-        'editorLineNumber.foreground': '#484F58',
-        'editorLineNumber.activeForeground': '#C9D1D9',
-        'editorIndentGuide.background': '#21262D',
-        'editorIndentGuide.activeBackground': '#30363D',
-      }
-    });
-    monacoModule.editor.setTheme('kyro-dark');
-
-    // Save keybinding
-    monacoEditor.addCommand(monacoModule.KeyMod.CtrlCmd | monacoModule.KeyCode.KeyS, () => {
-      handleSaveFile();
-      // Also update symbol table for AI completions
-      const model = monacoEditor.getModel();
-      if (model && typeof window !== 'undefined' && window.__TAURI__) {
-        const state = useKyroStore.getState();
-        const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
-        if (file) {
-          window.__TAURI__.core.invoke('update_file_symbols', {
-            file_path: file.path,
-            code: model.getValue(),
-            language: file.language,
-          }).catch(() => {});
-        }
-      }
-    });
-
-    // Register LSP providers (completions, diagnostics, goto-definition, format)
-    if (lspCleanupRef.current) lspCleanupRef.current();
-    lspCleanupRef.current = registerLspProviders(
-      monacoModule,
-      monacoEditor,
-      () => {
-        const state = useKyroStore.getState();
-        const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
-        return file?.path || '';
-      },
-      () => {
-        const state = useKyroStore.getState();
-        const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
-        return file?.language || 'plaintext';
-      }
-    );
-
-    monacoEditor.focus();
-  }, [setCursorPosition, handleSaveFile]);
-
-  // Edit Prediction hook — predicts next edit location and provides Tab-to-accept
-  const { acceptPrediction } = useEditPrediction(
-    editorRef.current as import('monaco-editor').editor.IStandaloneCodeEditor | null,
-    monacoRef.current,
-    currentFile?.path || '',
-    true
-  );
 
   // Checkpoint management
   const handleCreateCheckpoint = useCallback((label?: string) => {
@@ -497,6 +330,7 @@ export default function Home() {
   }, [handleFileClick]);
 
   return (
+    <AccessiblePanel id="main-content" title="Kyro IDE Main Workspace">
     <div className="h-screen flex flex-col bg-[#0d1117] text-[#c9d1d9] overflow-hidden"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -529,20 +363,22 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowAuthModal(true)}
+          <AccessibleButton
+            id="account-button"
+            label="Open account menu"
+            onPress={() => setShowAuthModal(true)}
             className="p-1.5 rounded transition-colors text-[#8b949e] hover:text-[#c9d1d9]"
-            title="Account"
           >
             <User size={16} />
-          </button>
-          <button
-            onClick={() => setShowChat(!showChat)}
+          </AccessibleButton>
+          <AccessibleButton
+            id="toggle-chat-button"
+            label="Toggle AI Chat"
+            onPress={() => setShowChat(!showChat)}
             className={`p-1.5 rounded transition-colors ${showChat ? 'bg-[#21262d] text-[#c9d1d9]' : 'text-[#8b949e] hover:text-[#c9d1d9]'}`}
-            title="Toggle AI Chat"
           >
             <Bot size={16} />
-          </button>
+          </AccessibleButton>
         </div>
       </div>
 
@@ -717,65 +553,10 @@ export default function Home() {
             {currentFile && <Breadcrumbs />}
             <div className="flex-1 flex overflow-hidden">
               <div className="flex-1 relative">
-                {currentFile ? (
-                  <Editor
-                    height="100%"
-                    language={currentFile.language}
-                    value={currentFile.content}
-                    theme="kyro-dark"
-                    onChange={handleEditorChange}
-                    onMount={(editor, monaco) => {
-                      handleEditorMount(editor, monaco);
-                    }}
-                    options={{
-                      fontSize: 14,
-                      fontFamily: 'JetBrains Mono, Fira Code, Consolas, monospace',
-                      minimap: { enabled: true, showSlider: 'mouseover' },
-                      scrollBeyondLastLine: false,
-                      wordWrap: 'on',
-                      automaticLayout: true,
-                      tabSize: 2,
-                      insertSpaces: true,
-                      lineNumbers: 'on',
-                      renderWhitespace: 'selection',
-                      bracketPairColorization: { enabled: true },
-                      guides: { bracketPairs: true, indentation: true },
-                      stickyScroll: { enabled: true },
-                      inlineSuggest: { enabled: true },
-                      quickSuggestions: { other: true, comments: false, strings: true },
-                      suggestOnTriggerCharacters: true,
-                      parameterHints: { enabled: true },
-                      formatOnPaste: true,
-                      folding: true,
-                      matchBrackets: 'always',
-                      renderLineHighlight: 'all',
-                      cursorBlinking: 'smooth',
-                      cursorSmoothCaretAnimation: 'on',
-                      smoothScrolling: true,
-                      mouseWheelZoom: true,
-                      links: true,
-                      colorDecorators: true,
-                      padding: { top: 16, bottom: 16 },
-                    }}
-                  />
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-[#8b949e]">
-                    <Layout size={48} className="mb-4 opacity-50" />
-                    <p className="text-lg mb-2">No file open</p>
-                    <p className="text-xs">Select a file from the explorer or press Ctrl+P</p>
-                  </div>
-                )}
-                {/* Inline Chat Overlay */}
-                <InlineChat
-                  isOpen={showInlineChat}
-                  onClose={() => setShowInlineChat(false)}
-                  position={null}
-                  selection={null}
-                  onAccept={(newText) => {
-                    if (currentFile) setEditorContent(newText);
-                    setShowInlineChat(false);
-                  }}
-                  onReject={() => setShowInlineChat(false)}
+                <CodeEditor
+                  onSave={handleSaveFile}
+                  roomId={currentRoom?.id}
+                  currentUserId={user?.id}
                 />
               </div>
 
@@ -839,5 +620,6 @@ export default function Home() {
         <DiffViewer filePath={diffFile} mode="inline" />
       )}
     </div>
+    </AccessiblePanel>
   );
 }

@@ -476,3 +476,40 @@ export class ThemeManager {
 }
 
 export const themeManager = new ThemeManager();
+
+export type KyroThemeMode = 'dark' | 'light' | 'system';
+
+export function resolveTheme(mode: KyroThemeMode, highContrast = false): Theme {
+  if (highContrast) {
+    return kroHighContrastTheme;
+  }
+
+  if (mode === 'light') {
+    return kroLightTheme;
+  }
+
+  if (mode === 'system' && typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? kroDarkTheme
+      : kroLightTheme;
+  }
+
+  return kroDarkTheme;
+}
+
+export function registerMonacoThemes(monacoInstance: typeof monaco) {
+  for (const theme of availableThemes) {
+    monacoInstance.editor.defineTheme(theme.id, toMonacoTheme(theme));
+  }
+}
+
+export function applyMonacoTheme(
+  monacoInstance: typeof monaco,
+  mode: KyroThemeMode,
+  highContrast = false
+): string {
+  registerMonacoThemes(monacoInstance);
+  const theme = resolveTheme(mode, highContrast);
+  monacoInstance.editor.setTheme(theme.id);
+  return theme.id;
+}

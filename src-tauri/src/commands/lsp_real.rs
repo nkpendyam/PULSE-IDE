@@ -1141,3 +1141,65 @@ pub async fn lsp_signature_help(
 
     Ok(None)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn detect_extension_handles_common_inputs() {
+        assert_eq!(detect_extension("file:///tmp/main.ts"), "ts");
+        assert_eq!(detect_extension("C:/repo/src/lib.rs"), "rs");
+        assert_eq!(detect_extension("no_extension"), "no_extension");
+    }
+
+    #[test]
+    fn ext_to_language_maps_expected_groups() {
+        assert_eq!(ext_to_language("ts"), "typescript");
+        assert_eq!(ext_to_language("tsx"), "typescript");
+        assert_eq!(ext_to_language("js"), "typescript");
+        assert_eq!(ext_to_language("py"), "python");
+        assert_eq!(ext_to_language("rs"), "rust");
+        assert_eq!(ext_to_language("java"), "java");
+    }
+
+    #[test]
+    fn completion_kind_to_str_maps_known_and_default() {
+        assert_eq!(completion_kind_to_str(3), "function");
+        assert_eq!(completion_kind_to_str(6), "variable");
+        assert_eq!(completion_kind_to_str(14), "keyword");
+        assert_eq!(completion_kind_to_str(999), "text");
+    }
+
+    #[test]
+    fn parse_lsp_range_parses_values_and_defaults() {
+        let parsed = parse_lsp_range(&json!({
+            "start": { "line": 2, "character": 4 },
+            "end": { "line": 3, "character": 9 }
+        }));
+        assert_eq!(parsed.start.line, 2);
+        assert_eq!(parsed.start.character, 4);
+        assert_eq!(parsed.end.line, 3);
+        assert_eq!(parsed.end.character, 9);
+
+        let defaulted = parse_lsp_range(&json!({}));
+        assert_eq!(defaulted.start.line, 0);
+        assert_eq!(defaulted.start.character, 0);
+        assert_eq!(defaulted.end.line, 0);
+        assert_eq!(defaulted.end.character, 0);
+    }
+
+    #[test]
+    fn keyword_completions_return_language_specific_results() {
+        let rust_keywords = get_keyword_completions("rs");
+        assert!(rust_keywords.iter().any(|item| item.label == "fn"));
+        assert!(rust_keywords.iter().all(|item| item.kind == "keyword"));
+
+        let ts_keywords = get_keyword_completions("ts");
+        assert!(ts_keywords.iter().any(|item| item.label == "function"));
+
+        let unknown_keywords = get_keyword_completions("unknown");
+        assert!(unknown_keywords.is_empty());
+    }
+}

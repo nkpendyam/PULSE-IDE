@@ -19,13 +19,14 @@ interface LspCompletionItem {
 }
 
 interface LspDiagnostic {
+  range: {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  };
   message: string;
-  severity: string; // "Error" | "Warning" | "Information" | "Hint"
-  start_line: number;
-  start_col: number;
-  end_line: number;
-  end_col: number;
+  severity: string; // "error" | "warning" | "information" | "hint"
   code: string | null;
+  source: string | null;
 }
 
 interface LspLocation {
@@ -61,6 +62,11 @@ interface EnhancedCompletionsResponse {
   performance_warning: string | null;
 }
 
+interface LspServerStatus {
+  language: string;
+  running: boolean;
+}
+
 // ── Helpers ──
 
 async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
@@ -76,6 +82,18 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 const completionKindMap: Record<string, number> = {
+  function: 1,
+  method: 0,
+  class: 5,
+  struct: 22,
+  interface: 7,
+  enum: 15,
+  constant: 14,
+  variable: 4,
+  field: 3,
+  keyword: 13,
+  snippet: 27,
+  text: 18,
   Function: 1,
   Method: 0,
   Class: 5,
@@ -99,18 +117,73 @@ function toMonacoSeverity(
   monacoModule: typeof monaco
 ): monaco.MarkerSeverity {
   switch (severity) {
+    case 'error':
     case 'Error':
       return monacoModule.MarkerSeverity.Error;
+    case 'warning':
     case 'Warning':
       return monacoModule.MarkerSeverity.Warning;
+    case 'information':
     case 'Information':
       return monacoModule.MarkerSeverity.Info;
+    case 'hint':
     case 'Hint':
       return monacoModule.MarkerSeverity.Hint;
     default:
       return monacoModule.MarkerSeverity.Info;
   }
 }
+
+const startedServers = new Set<string>();
+
+function mapLanguageForLspServer(language: string): string {
+  const normalized = language.toLowerCase();
+  if (['ts', 'tsx', 'js', 'jsx', 'javascript', 'typescript'].includes(normalized)) return 'typescript';
+  if (normalized === 'rs' || normalized === 'rust') return 'rust';
+  if (normalized === 'py' || normalized === 'python') return 'python';
+  if (normalized === 'go') return 'go';
+  if (['c', 'h'].includes(normalized)) return 'c';
+  if (['cpp', 'cxx', 'cc', 'hpp', 'hxx'].includes(normalized)) return 'cpp';
+  return normalized;
+}
+
+function toFileUri(monacoModule: typeof monaco, filePath: string): string {
+  if (!filePath) return '';
+  if (filePath.startsWith('file://')) return filePath;
+  return monacoModule.Uri.file(filePath).toString();
+}
+
+function getRootUri(monacoModule: typeof monaco, filePath: string): string {
+  if (!filePath) return '';
+  const normalized = filePath.replace(/\\/g, '/');
+  const lastSlash = normalized.lastIndexOf('/');
+  const rootPath = lastSlash > 0 ? normalized.slice(0, lastSlash) : normalized;
+  return toFileUri(monacoModule, rootPath);
+}
+
+async function ensureServerStarted(monacoModule: typeof monaco, language: string, filePath: string): Promise<void> {
+  const mappedLanguage = mapLanguageForLspServer(language);
+  if (!mappedLanguage || startedServers.has(mappedLanguage)) return;
+
+  const rootUri = getRootUri(monacoModule, filePath);
+  if (!rootUri) return;
+
+  const status = await invokeTauri<LspServerStatus>('lsp_start_server', {
+    language: mappedLanguage,
+    rootUri,
+  });
+
+  if (status?.running) {
+    startedServers.add(mappedLanguage);
+  }
+}
+
+export const __testing = {
+  mapLanguageForLspServer,
+  toFileUri,
+  getRootUri,
+  toMonacoSeverity,
+};
 
 // ── Registration Functions ──
 
@@ -136,7 +209,10 @@ export function registerLspProviders(
         const code = model.getValue();
         const language = getLanguage();
         const filePath = getFilePath();
+        const uri = toFileUri(monacoModule, filePath);
         const word = model.getWordUntilPosition(position);
+
+        await ensureServerStarted(monacoModule, language, filePath);
 
         // Try AI-enhanced completions first
         const enhanced = await invokeTauri<EnhancedCompletionsResponse>(
@@ -174,22 +250,21 @@ export function registerLspProviders(
         }
 
         // Fallback to basic Tree-sitter completions
-        const result = await invokeTauri<{ completions: LspCompletionItem[] }>(
-          'get_completions',
+        const result = await invokeTauri<LspCompletionItem[]>(
+          'lsp_get_completions',
           {
-            language,
-            code,
+            uri,
             line: position.lineNumber - 1,
-            col: position.column - 1,
+            character: position.column - 1,
           }
         );
 
-        if (!result || result.completions.length === 0) {
+        if (!result || result.length === 0) {
           return { suggestions: [] };
         }
 
         return {
-          suggestions: result.completions.map((item, i) => ({
+          suggestions: result.map((item, i) => ({
             label: item.label,
             kind: toMonacoCompletionKind(item.kind) as monaco.languages.CompletionItemKind,
             detail: item.detail || undefined,
@@ -214,7 +289,12 @@ export function registerLspProviders(
     { pattern: '**' },
     {
       provideDefinition: async (model, position) => {
-        const uri = getFilePath();
+        const filePath = getFilePath();
+        const language = getLanguage();
+        const uri = toFileUri(monacoModule, filePath);
+
+        await ensureServerStarted(monacoModule, language, filePath);
+
         const result = await invokeTauri<LspLocation | null>(
           'lsp_goto_definition',
           {
@@ -240,30 +320,63 @@ export function registerLspProviders(
   );
   disposables.push(definitionDisposable);
 
-  // 3. Diagnostics — poll on content change with debounce
+  // 3. Hover provider
+  const hoverDisposable = monacoModule.languages.registerHoverProvider(
+    { pattern: '**' },
+    {
+      provideHover: async (model, position) => {
+        const filePath = getFilePath();
+        const language = getLanguage();
+        const uri = toFileUri(monacoModule, filePath);
+
+        await ensureServerStarted(monacoModule, language, filePath);
+
+        const result = await invokeTauri<{ contents: string; range?: LspLocation['range'] } | null>(
+          'lsp_hover',
+          {
+            uri,
+            line: position.lineNumber - 1,
+            character: position.column - 1,
+          }
+        );
+
+        if (!result?.contents) return null;
+
+        return {
+          contents: [{ value: result.contents }],
+        };
+      },
+    }
+  );
+  disposables.push(hoverDisposable);
+
+  // 4. Diagnostics — poll on content change with debounce
   const runDiagnostics = async () => {
     const model = editor.getModel();
     if (!model) return;
 
-    const code = model.getValue();
+    const filePath = getFilePath();
+    const uri = toFileUri(monacoModule, filePath);
     const language = getLanguage();
 
-    const result = await invokeTauri<{ diagnostics: LspDiagnostic[] }>(
-      'get_diagnostics',
-      { language, code }
+    await ensureServerStarted(monacoModule, language, filePath);
+
+    const result = await invokeTauri<LspDiagnostic[]>(
+      'lsp_get_diagnostics',
+      { uri }
     );
 
     if (!result) return;
 
-    const markers: monaco.editor.IMarkerData[] = result.diagnostics.map((d) => ({
+    const markers: monaco.editor.IMarkerData[] = result.map((d) => ({
       severity: toMonacoSeverity(d.severity, monacoModule),
       message: d.message,
-      startLineNumber: d.start_line + 1,
-      startColumn: d.start_col + 1,
-      endLineNumber: d.end_line + 1,
-      endColumn: d.end_col + 1,
+      startLineNumber: d.range.start.line + 1,
+      startColumn: d.range.start.character + 1,
+      endLineNumber: d.range.end.line + 1,
+      endColumn: d.range.end.character + 1,
       code: d.code || undefined,
-      source: 'kyro-lsp',
+      source: d.source || 'kyro-lsp',
     }));
 
     monacoModule.editor.setModelMarkers(model, 'kyro-lsp', markers);
@@ -283,7 +396,7 @@ export function registerLspProviders(
   // Run diagnostics on initial mount
   runDiagnostics();
 
-  // 4. Format-on-save action
+  // 5. Format-on-save action
   const formatAction = editor.addAction({
     id: 'kyro.formatDocument',
     label: 'Format Document (Kyro LSP)',
@@ -318,7 +431,7 @@ export function registerLspProviders(
   });
   disposables.push(formatAction);
 
-  // 5. Update symbol table on save (for better completions over time)
+  // 6. Update symbol table on save (for better completions over time)
   const saveDisposable = editor.addCommand(
     monacoModule.KeyMod.CtrlCmd | monacoModule.KeyCode.KeyS,
     async () => {

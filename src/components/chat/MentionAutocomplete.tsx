@@ -74,7 +74,11 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
   ).slice(0, 15);
 
   useEffect(() => {
-    setSelectedIndex(0);
+    const timeoutId = setTimeout(() => {
+      setSelectedIndex(0);
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [atQuery]);
 
   const items = showFilePicker ? filteredFiles : filteredMentions;
@@ -85,20 +89,20 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(i => (i + 1) % items.length);
+        setSelectedIndex((i) => (i + 1) % items.length);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(i => (i - 1 + items.length) % items.length);
+        setSelectedIndex((i) => (i - 1 + items.length) % items.length);
       } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         if (showFilePicker) {
-          const selectedFile = filteredFiles[selectedIndex];
+          const selectedFile = filteredFiles[effectiveSelectedIndex];
           if (selectedFile) {
             onSelect(MENTION_TYPES[0], selectedFile);
             setShowFilePicker(false);
           }
         } else {
-          const selected = filteredMentions[selectedIndex];
+          const selected = filteredMentions[effectiveSelectedIndex];
           if (selected) {
             if (selected.type === '@file') {
               setShowFilePicker(true);
@@ -117,7 +121,7 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [visible, items, selectedIndex, filteredMentions, filteredFiles, showFilePicker, onSelect, onDismiss]);
+  }, [visible, items, effectiveSelectedIndex, filteredMentions, filteredFiles, showFilePicker, onSelect, onDismiss]);
 
   if (!visible || (filteredMentions.length === 0 && !showFilePicker)) return null;
 
@@ -146,7 +150,7 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
                   key={filePath}
                   onClick={() => { onSelect(MENTION_TYPES[0], filePath); setShowFilePicker(false); }}
                   className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left transition-colors ${
-                    index === selectedIndex ? 'bg-[#388bfd26] text-[#c9d1d9]' : 'text-[#8b949e] hover:bg-[#21262d]'
+                    index === effectiveSelectedIndex ? 'bg-[#388bfd26] text-[#c9d1d9]' : 'text-[#8b949e] hover:bg-[#21262d]'
                   }`}
                 >
                   <File size={12} className="shrink-0" />
@@ -173,7 +177,7 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
                 onSelect(mention);
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-left transition-colors ${
-                index === selectedIndex ? 'bg-[#388bfd26] text-[#c9d1d9]' : 'text-[#8b949e] hover:bg-[#21262d]'
+                index === effectiveSelectedIndex ? 'bg-[#388bfd26] text-[#c9d1d9]' : 'text-[#8b949e] hover:bg-[#21262d]'
               }`}
             >
               <span className="shrink-0 text-[#58a6ff]">{mention.icon}</span>
