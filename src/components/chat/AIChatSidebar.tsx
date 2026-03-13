@@ -33,6 +33,7 @@ interface MentionPreviewItem {
   label: string;
   detail: string;
   resolved: boolean;
+  rawToken: string;
 }
 
 function treeContainsPrefix(root: FileNode | null, prefix: string): boolean {
@@ -219,6 +220,7 @@ export function AIChatSidebar() {
             label: '@file',
             detail: currentFile ? currentFile.path : 'No active file',
             resolved: Boolean(currentFile),
+            rawToken: mention.raw,
           };
         }
 
@@ -228,6 +230,7 @@ export function AIChatSidebar() {
           label: '@file',
           detail: mention.value,
           resolved: existsInOpenFiles,
+          rawToken: mention.raw,
         };
       }
 
@@ -239,6 +242,7 @@ export function AIChatSidebar() {
           label: '@folder',
           detail: folderPath,
           resolved,
+          rawToken: mention.raw,
         };
       }
 
@@ -249,6 +253,7 @@ export function AIChatSidebar() {
           label: '@terminal',
           detail: hasOutput ? 'Terminal output available' : 'Terminal output empty',
           resolved: hasOutput,
+          rawToken: mention.raw,
         };
       }
 
@@ -258,6 +263,7 @@ export function AIChatSidebar() {
           label: '@git',
           detail: gitStatus ? gitStatus.branch : 'Git status unavailable',
           resolved: Boolean(gitStatus),
+          rawToken: mention.raw,
         };
       }
 
@@ -267,6 +273,7 @@ export function AIChatSidebar() {
           label: '@previous',
           detail: chatMessages.length > 0 ? `${chatMessages.length} message(s)` : 'No previous messages',
           resolved: chatMessages.length > 0,
+          rawToken: mention.raw,
         };
       }
 
@@ -276,6 +283,7 @@ export function AIChatSidebar() {
           label: '@codebase',
           detail: fileTree ? projectPath || 'Project loaded' : 'Project tree unavailable',
           resolved: Boolean(fileTree),
+          rawToken: mention.raw,
         };
       }
 
@@ -284,9 +292,22 @@ export function AIChatSidebar() {
         label: '@web',
         detail: 'Not available in local mode',
         resolved: false,
+        rawToken: mention.raw,
       };
     });
   }, [chatMessages.length, currentFile, fileTree, gitStatus, input, openFiles, projectPath, terminalOutput]);
+
+  const handleRemoveMentionChip = (item: MentionPreviewItem) => {
+    const escaped = item.rawToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const tokenPattern = new RegExp(`(^|\\s)${escaped}(?=\\s|$)`);
+
+    setInput((prev) => {
+      const next = prev.replace(tokenPattern, (full, prefix) => prefix || ' ');
+      return next.replace(/\s{2,}/g, ' ').trim();
+    });
+    setShowMentions(false);
+    inputRef.current?.focus();
+  };
 
   // Initialize session
   useEffect(() => {
@@ -661,6 +682,15 @@ export function AIChatSidebar() {
               >
                 <span className="font-medium">{item.label}</span>
                 <span className="opacity-85">{item.detail}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveMentionChip(item)}
+                  className="ml-0.5 rounded p-0.5 hover:bg-[#30363d]"
+                  aria-label={`Remove ${item.label} mention`}
+                  title="Remove mention"
+                >
+                  <X size={10} />
+                </button>
               </div>
             ))}
           </div>
