@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useExtendedKyroStore } from '@/store/extendedStore';
 import { useKyroStore } from '@/store/kyroStore';
 import { invoke } from '@tauri-apps/api/core';
+import { useToast } from '@/hooks/use-toast';
 import { Settings, Sun, Moon, Monitor, Save, RotateCcw, Sparkles, Search, X } from 'lucide-react';
 
 // Reusable toggle switch component
@@ -41,6 +42,7 @@ export function SettingsPanel() {
   const setAiMaxTokens = useKyroStore(s => s.setAiMaxTokens);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const { toast } = useToast();
 
   const handleSave = async () => {
     setSaving(true);
@@ -55,6 +57,13 @@ export function SettingsPanel() {
     if (failed.length > 0) {
       // Backend unavailable or partial failure – persist everything to localStorage as fallback
       localStorage.setItem('kro-settings', JSON.stringify(settings));
+      toast({
+        title: 'Settings saved locally',
+        description: `${failed.length} setting(s) could not be saved to the backend (${failed.join(', ')}). Persisted to localStorage.`,
+        variant: 'destructive',
+      });
+    } else {
+      toast({ title: 'Settings saved', description: 'All settings persisted successfully.' });
     }
     setSaving(false);
   };

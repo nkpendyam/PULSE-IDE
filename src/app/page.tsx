@@ -43,6 +43,8 @@ import { DeployPanel } from '@/components/deploy/DeployPanel';
 import { ArenaMode } from '@/components/llm/ArenaMode';
 import { NotebookPanel } from '@/components/editor/NotebookPanel';
 import { ThemeBuilder } from '@/components/theme/ThemeBuilder';
+import { ProblemsPanel } from '@/components/debug/ProblemsPanel';
+import { MergeConflictEditor } from '@/components/git/MergeConflictEditor';
 import { KeybindingManager } from '@/lib/keybindings';
 import { registerLspProviders, setupFileWatcher } from '@/lib/lspBridge';
 import {
@@ -75,6 +77,8 @@ import {
   Swords,
   BookMarked,
   Palette,
+  AlertCircle,
+  GitMerge,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -102,7 +106,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote' | 'deploy' | 'arena' | 'notebook' | 'theme-builder';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote' | 'deploy' | 'arena' | 'notebook' | 'theme-builder' | 'problems' | 'merge-conflicts';
 
 // Fallback file tree (used when Tauri is not available)
 const fallbackFileTree: FileNode = {
@@ -587,6 +591,8 @@ export default function Home() {
               { id: 'arena' as SidebarPanel, icon: Swords, label: 'Arena Mode (Model Comparison)' },
               { id: 'notebook' as SidebarPanel, icon: BookMarked, label: 'Notebook / REPL' },
               { id: 'theme-builder' as SidebarPanel, icon: Palette, label: 'Theme Builder' },
+              { id: 'problems' as SidebarPanel, icon: AlertCircle, label: 'Problems' },
+              { id: 'merge-conflicts' as SidebarPanel, icon: GitMerge, label: 'Merge Conflicts' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -645,6 +651,8 @@ export default function Home() {
                 {activePanel === 'arena' && 'Arena Mode'}
                 {activePanel === 'notebook' && 'Notebook / REPL'}
                 {activePanel === 'theme-builder' && 'Theme Builder'}
+                {activePanel === 'problems' && 'Problems'}
+                {activePanel === 'merge-conflicts' && 'Merge Conflicts'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -736,6 +744,12 @@ export default function Home() {
               )}
               {activePanel === 'theme-builder' && (
                 <ThemeBuilder />
+              )}
+              {activePanel === 'problems' && (
+                <ProblemsPanel />
+              )}
+              {activePanel === 'merge-conflicts' && (
+                <MergeConflictEditor onClose={() => setActivePanel('git')} />
               )}
             </div>
           </div>

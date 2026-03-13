@@ -190,6 +190,7 @@ export function DeployPanel() {
     buildCommand: 'npm run build',
     outputDir: 'out',
   });
+  const [gitUsername, setGitUsername] = useState<string>('username');
   const [configOpen, setConfigOpen] = useState(false);
 
   const [platformStates, setPlatformStates] = useState<Record<PlatformId, PlatformState>>(() =>
@@ -203,6 +204,19 @@ export function DeployPanel() {
 
   useEffect(() => {
     setRecentDeployments(loadRecentDeployments());
+    // Try to detect GitHub username from git remote URL
+    try {
+      if (typeof window !== 'undefined' && (window as Window & { __TAURI__?: unknown }).__TAURI__) {
+        import('@tauri-apps/api/core').then(({ invoke }) => {
+          invoke<{ output: string }>('run_terminal_command', { command: 'git remote get-url origin' })
+            .then(({ output }) => {
+              const match = output.match(/github\.com[:/]([^/]+)\//);
+              if (match?.[1]) setGitUsername(match[1].trim());
+            })
+            .catch(() => {/* ignore */});
+        });
+      }
+    } catch {/* ignore */}
   }, []);
 
   // Auto-scroll logs
@@ -257,7 +271,7 @@ export function DeployPanel() {
         }
       }
 
-      const deployedUrl = deriveUrl(id, config.projectName);
+      const deployedUrl = deriveUrl(id, config.projectName, id === 'ghpages' ? gitUsername : undefined);
 
       setPlatformStates((prev) => ({
         ...prev,
@@ -576,13 +590,12 @@ function ConfigField({ label, placeholder, value, onChange }: ConfigFieldProps) 
 // and should be updated once the CLI output confirms the real address.
 // ---------------------------------------------------------------------------
 
-function deriveUrl(platform: PlatformId, projectName: string): string {
+function deriveUrl(platform: PlatformId, projectName: string, githubUsername?: string): string {
   const slug = (projectName || 'my-app').toLowerCase().replace(/[^a-z0-9-]/g, '-');
   switch (platform) {
     case 'vercel':  return `https://${slug}.vercel.app`;
     case 'netlify': return `https://${slug}.netlify.app`;
     case 'docker':  return `http://localhost:3000`;
-    // Replace 'username' with your actual GitHub account name.
-    case 'ghpages': return `https://username.github.io/${slug}`;
+    case 'ghpages': return `https://${githubUsername ?? 'username'}.github.io/${slug}`;
   }
 }

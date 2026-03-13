@@ -14,6 +14,7 @@ import {
   ArrowDown,
   Terminal,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 let tauriInvoke: ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>) | null = null;
@@ -457,6 +458,12 @@ export function NotebookPanel() {
             Run All
           </button>
         </div>
+      </div>
+
+      {/* Security notice */}
+      <div className="px-4 py-1.5 bg-[#2d1b00] border-b border-[#f0883e33] flex items-center gap-2 shrink-0">
+        <AlertTriangle size={12} className="text-[#f0883e] shrink-0" />
+        <span className="text-xs text-[#f0883e]">JS/TS cells execute in this browser context. Only run code you trust.</span>
       </div>
 
       {/* Cells */}
