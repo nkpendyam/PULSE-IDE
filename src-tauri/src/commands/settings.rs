@@ -4,7 +4,46 @@
 //! Settings are read on startup and written on every change.
 
 use std::path::PathBuf;
+use std::process::Stdio;
 use tauri::command;
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeCapabilityMatrix {
+    pub supports_ssh: bool,
+    pub supports_wsl: bool,
+    pub supports_docker: bool,
+    pub supports_debugpy: bool,
+    pub supports_lldb_vscode: bool,
+    pub supports_delve: bool,
+    pub supports_ollama: bool,
+    pub notes: Vec<String>,
+}
+
+fn binary_available(binary: &str) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("where")
+            .arg(binary)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::process::Command::new("sh")
+            .arg("-lc")
+            .arg(format!("command -v {}", binary))
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+}
 
 /// Get the settings file path: ~/.kyro/settings.json
 fn settings_path() -> PathBuf {
@@ -136,4 +175,50 @@ pub fn is_first_run() -> Result<bool, String> {
         .get("firstRunComplete")
         .and_then(|v| v.as_bool())
         .unwrap_or(false))
+}
+
+#[command]
+pub fn get_runtime_capability_matrix() -> Result<RuntimeCapabilityMatrix, String> {
+    let supports_ssh = binary_available("ssh");
+    let supports_docker = binary_available("docker");
+    let supports_debugpy = binary_available("debugpy") || binary_available("python");
+    let supports_lldb_vscode = binary_available("lldb-vscode");
+    let supports_delve = binary_available("dlv");
+    let supports_ollama = binary_available("ollama");
+
+    let supports_wsl = {
+        #[cfg(target_os = "windows")]
+        {
+            binary_available("wsl")
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            false
+        }
+    };
+
+    let mut notes = Vec::new();
+    if !supports_ssh {
+        notes.push("SSH client is not available on PATH.".to_string());
+    }
+    if !supports_docker {
+        notes.push("Docker CLI is unavailable; devcontainer workflows are limited.".to_string());
+    }
+    if !supports_lldb_vscode && !supports_debugpy && !supports_delve {
+        notes.push("No debug adapters detected (lldb-vscode/debugpy/dlv).".to_string());
+    }
+    if !supports_ollama {
+        notes.push("Ollama not detected; local AI fallback requires embedded model/runtime only.".to_string());
+    }
+
+    Ok(RuntimeCapabilityMatrix {
+        supports_ssh,
+        supports_wsl,
+        supports_docker,
+        supports_debugpy,
+        supports_lldb_vscode,
+        supports_delve,
+        supports_ollama,
+        notes,
+    })
 }

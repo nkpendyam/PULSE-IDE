@@ -735,6 +735,7 @@ fn main() {
             commands::settings::export_settings,
             commands::settings::import_settings,
             commands::settings::is_first_run,
+            commands::settings::get_runtime_capability_matrix,
             // ============ Project Config ============
             commands::project_config::init_project_config,
             commands::project_config::get_project_config,
