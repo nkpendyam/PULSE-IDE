@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useKyroStore } from '@/store/kyroStore';
-import { Terminal, AlertTriangle, Copy, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Copy, Send, Sparkles, X } from 'lucide-react';
 
 interface TerminalAIProps {
   terminalOutput: string;
@@ -15,6 +15,8 @@ interface ErrorExplanation {
   suggestion: string;
   command?: string;
 }
+
+type CommandRiskLevel = 'low' | 'medium' | 'high';
 
 // Common error patterns for quick local detection
 const ERROR_PATTERNS: Array<{ pattern: RegExp; type: string }> = [
@@ -48,6 +50,26 @@ function detectErrors(output: string): string[] {
   }
   
   return errors.slice(-10); // Keep last 10 errors
+}
+
+function classifyCommandRisk(command: string): {
+  level: CommandRiskLevel;
+  reason: string;
+} {
+  const trimmed = command.trim();
+  if (!trimmed) {
+    return { level: 'low', reason: 'No command provided' };
+  }
+
+  if (/\b(rm\s+-rf|del\s+\/s|format\s+|mkfs\b|dd\s+if=|chmod\s+777|sudo\s+rm)\b/i.test(trimmed)) {
+    return { level: 'high', reason: 'Potentially destructive command detected' };
+  }
+
+  if (/\b(sudo\b|npm\s+install\b|pnpm\s+add\b|yarn\s+add\b|pip\s+install\b|cargo\s+add\b|git\s+reset\s+--hard\b)\b/i.test(trimmed)) {
+    return { level: 'medium', reason: 'System/package or git state changing command detected' };
+  }
+
+  return { level: 'low', reason: 'Command appears non-destructive' };
 }
 
 export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
@@ -120,6 +142,17 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
       return;
     }
 
+    const risk = classifyCommandRisk(command);
+    const needsConfirmation = risk.level !== 'low';
+    if (needsConfirmation && typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `This fix command is classified as ${risk.level.toUpperCase()} risk.\n${risk.reason}\n\nRun anyway?\n\n${command}`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setIsRunningFix(true);
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
@@ -136,6 +169,8 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
   }, [onSendToChat]);
 
   if (detectedErrors.length === 0 && !explanation) return null;
+
+  const commandRisk = explanation?.command ? classifyCommandRisk(explanation.command) : null;
 
   return (
     <div className="border-t border-[#30363d] bg-[#161b22]">
@@ -196,7 +231,19 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
             </div>
           )}
           {explanation.command && (
-            <div className="flex items-center gap-2">
+            <div className="space-y-1">
+              {commandRisk && (
+                <div className={`text-[10px] ${
+                  commandRisk.level === 'high'
+                    ? 'text-[#f85149]'
+                    : commandRisk.level === 'medium'
+                      ? 'text-[#d29922]'
+                      : 'text-[#8b949e]'
+                }`}>
+                  Risk: {commandRisk.level.toUpperCase()} — {commandRisk.reason}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
               <code className="text-[11px] bg-[#0d1117] text-[#c9d1d9] px-2 py-1 rounded font-mono flex-1">
                 {explanation.command}
               </code>
@@ -214,6 +261,7 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
               >
                 <Copy size={12} />
               </button>
+            </div>
             </div>
           )}
         </div>
