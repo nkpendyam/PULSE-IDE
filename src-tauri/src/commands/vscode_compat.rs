@@ -52,6 +52,137 @@ pub struct SearchResult {
     pub page_size: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionCompatibility {
+    pub extension_id: String,
+    pub installable: bool,
+    pub level: String,
+    pub reasons: Vec<String>,
+    pub warnings: Vec<String>,
+}
+
+fn parse_major_vscode_version(value: &str) -> Option<u32> {
+    let cleaned = value
+        .trim()
+        .trim_start_matches('^')
+        .trim_start_matches('~')
+        .trim_start_matches('>')
+        .trim_start_matches('<')
+        .trim_start_matches('=');
+
+    cleaned.split('.').next()?.parse::<u32>().ok()
+}
+
+async fn fetch_extension_metadata(extension_id: &str) -> Result<serde_json::Value, String> {
+    let parts: Vec<&str> = extension_id.split('.').collect();
+    if parts.len() != 2 {
+        return Err("Invalid extension ID (expected publisher.name)".to_string());
+    }
+
+    let url = format!(
+        "https://open-vsx.org/api/{}/{}",
+        urlencoding::encode(parts[0]),
+        urlencoding::encode(parts[1])
+    );
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch extension metadata: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "Failed to fetch extension metadata: HTTP {}",
+            response.status()
+        ));
+    }
+
+    response
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| format!("Failed to parse extension metadata: {}", e))
+}
+
+fn evaluate_extension_compatibility(
+    extension_id: &str,
+    metadata: &serde_json::Value,
+) -> ExtensionCompatibility {
+    let mut reasons = Vec::new();
+    let mut warnings = Vec::new();
+
+    if let Some(vscode_engine) = metadata["engines"]["vscode"].as_str() {
+        if let Some(major) = parse_major_vscode_version(vscode_engine) {
+            if major >= 2 {
+                warnings.push(format!(
+                    "Requires VS Code engine '{}'; compatibility may be partial in Kyro.",
+                    vscode_engine
+                ));
+            }
+        }
+    }
+
+    if metadata["main"].is_string() {
+        warnings.push(
+            "Declares Node/Electron entrypoint ('main'); this often depends on VS Code host internals."
+                .to_string(),
+        );
+    }
+
+    if metadata["browser"].is_string() {
+        warnings.push(
+            "Declares browser entrypoint; behavior can differ from desktop host integration."
+                .to_string(),
+        );
+    }
+
+    if let Some(kinds) = metadata["extensionKind"].as_array() {
+        let has_workspace = kinds.iter().any(|k| k.as_str() == Some("workspace"));
+        if has_workspace {
+            warnings.push(
+                "Workspace extension kind detected; may require APIs not fully implemented yet."
+                    .to_string(),
+            );
+        }
+    }
+
+    if metadata["contributes"]["debuggers"].is_array() {
+        warnings.push(
+            "Contributes debugger adapters; some DAP workflows may require manual adapter configuration."
+                .to_string(),
+        );
+    }
+
+    let id_lower = extension_id.to_lowercase();
+    let blocked_patterns = ["remote-ssh", "remote-containers", "wsl", "docker"];
+    if blocked_patterns.iter().any(|pattern| id_lower.contains(pattern)) {
+        reasons.push(
+            "This extension targets deep remote/container host integrations that are not fully supported yet."
+                .to_string(),
+        );
+    }
+
+    let installable = reasons.is_empty();
+    let level = if !installable {
+        "incompatible"
+    } else if warnings.is_empty() {
+        "full"
+    } else {
+        "partial"
+    }
+    .to_string();
+
+    ExtensionCompatibility {
+        extension_id: extension_id.to_string(),
+        installable,
+        level,
+        reasons,
+        warnings,
+    }
+}
+
 #[command]
 pub async fn search_extensions(query: String, page: Option<usize>) -> Result<SearchResult, String> {
     // Search Open VSX in a real implementation
@@ -319,7 +450,23 @@ pub async fn search_extensions_unified(
 
 #[command]
 pub async fn install_extension_unified(extension_id: String) -> Result<ExtensionInfo, String> {
+    let compatibility = get_extension_compatibility(extension_id.clone()).await?;
+    if !compatibility.installable {
+        return Err(format!(
+            "Extension is incompatible with current Kyro capabilities: {}",
+            compatibility.reasons.join("; ")
+        ));
+    }
+
     install_extension(extension_id).await
+}
+
+#[command]
+pub async fn get_extension_compatibility(
+    extension_id: String,
+) -> Result<ExtensionCompatibility, String> {
+    let metadata = fetch_extension_metadata(&extension_id).await?;
+    Ok(evaluate_extension_compatibility(&extension_id, &metadata))
 }
 
 #[command]

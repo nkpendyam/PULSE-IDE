@@ -1,5 +1,10 @@
 # Kyro IDE – Audit Status
 
+> ⚠️ **Superseded status note:** This document is a prior audit snapshot.
+> Current authoritative references:
+> - `docs/status/PROJECT_AUDIT_2026-03-13.md`
+> - `docs/status/BACKLOG_SOURCE_OF_TRUTH.md`
+
 **Last updated:** 2025-03
 
 ## Summary

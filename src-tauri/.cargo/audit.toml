@@ -1,0 +1,25 @@
+[advisories]
+ignore = [
+  "RUSTSEC-2017-0008", # serial: unmaintained, transitive via portable-pty
+  "RUSTSEC-2023-0089", # atomic-polyfill: unmaintained, transitive
+  "RUSTSEC-2024-0370", # proc-macro-error: unmaintained, transitive
+  "RUSTSEC-2024-0411", # gdkwayland-sys: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0412", # gdk: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0413", # atk: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0414", # gdkx11-sys: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0415", # gtk: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0416", # atk-sys: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0417", # gdkx11: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0418", # gdk-sys: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0419", # gtk3-macros: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0420", # gtk-sys: gtk3 unmaintained, transitive via tauri/wry
+  "RUSTSEC-2024-0429", # glib unsound advisory affecting gtk3 chain; fixed in gtk-rs-core 0.20+ only
+  "RUSTSEC-2024-0436", # paste: unmaintained, transitive
+  "RUSTSEC-2025-0057", # fxhash: unmaintained, transitive
+  "RUSTSEC-2025-0075", # unic-char-range: unmaintained, transitive via tauri-utils/urlpattern
+  "RUSTSEC-2025-0080", # unic-common: unmaintained, transitive via tauri-utils/urlpattern
+  "RUSTSEC-2025-0081", # unic-char-property: unmaintained, transitive via tauri-utils/urlpattern
+  "RUSTSEC-2025-0098", # unic-ucd-version: unmaintained, transitive via tauri-utils/urlpattern
+  "RUSTSEC-2025-0100", # unic-ucd-ident: unmaintained, transitive via tauri-utils/urlpattern
+  "RUSTSEC-2025-0119", # number_prefix: unmaintained, transitive
+]

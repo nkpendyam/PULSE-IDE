@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useExtendedKyroStore } from '@/store/extendedStore';
 import { useKyroStore } from '@/store/kyroStore';
 import { invoke } from '@tauri-apps/api/core';
@@ -26,6 +26,37 @@ export function SettingsPanel() {
   const ghostTextConfig = useKyroStore(s => s.ghostTextConfig);
   const setGhostTextConfig = useKyroStore(s => s.setGhostTextConfig);
   const [saving, setSaving] = useState(false);
+  const [capabilityMatrix, setCapabilityMatrix] = useState<Record<string, boolean> | null>(null);
+  const [capabilityNotes, setCapabilityNotes] = useState<string[]>([]);
+
+  useEffect(() => {
+    invoke<{
+      supportsSsh: boolean;
+      supportsWsl: boolean;
+      supportsDocker: boolean;
+      supportsDebugpy: boolean;
+      supportsLldbVscode: boolean;
+      supportsDelve: boolean;
+      supportsOllama: boolean;
+      notes: string[];
+    }>('get_runtime_capability_matrix')
+      .then((matrix) => {
+        setCapabilityMatrix({
+          SSH: matrix.supportsSsh,
+          WSL: matrix.supportsWsl,
+          Docker: matrix.supportsDocker,
+          debugpy: matrix.supportsDebugpy,
+          'lldb-vscode': matrix.supportsLldbVscode,
+          dlv: matrix.supportsDelve,
+          Ollama: matrix.supportsOllama,
+        });
+        setCapabilityNotes(matrix.notes || []);
+      })
+      .catch(() => {
+        // Browser mode / non-tauri runtime
+        setCapabilityMatrix(null);
+      });
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -62,6 +93,35 @@ export function SettingsPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Runtime Capabilities */}
+        <section>
+          <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Runtime Capabilities</h4>
+          {capabilityMatrix ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {Object.entries(capabilityMatrix).map(([name, enabled]) => (
+                  <div
+                    key={name}
+                    className={`rounded border px-2 py-1 ${enabled ? 'border-[#238636]/60 bg-[#238636]/10 text-[#3fb950]' : 'border-[#f85149]/60 bg-[#f85149]/10 text-[#f85149]'}`}
+                  >
+                    {name}: {enabled ? 'available' : 'missing'}
+                  </div>
+                ))}
+              </div>
+
+              {capabilityNotes.length > 0 && (
+                <ul className="rounded border border-[#30363d] bg-[#161b22] px-3 py-2 text-xs text-[#8b949e] list-disc pl-5 space-y-1">
+                  {capabilityNotes.map((note, idx) => <li key={idx}>{note}</li>)}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-[#8b949e] rounded border border-[#30363d] bg-[#161b22] px-3 py-2">
+              Capability matrix is available in desktop runtime.
+            </div>
+          )}
+        </section>
+
         {/* Appearance */}
         <section>
           <h4 className="text-sm text-[#c9d1d9] font-medium mb-3">Appearance</h4>

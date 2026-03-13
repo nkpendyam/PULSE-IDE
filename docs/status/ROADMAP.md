@@ -1,5 +1,8 @@
 # Kyro IDE Development Roadmap
 
+> ⚠️ **Historical roadmap notice:** This roadmap is a planning artifact and may not reflect current implementation truth.
+> Use `docs/status/BACKLOG_SOURCE_OF_TRUTH.md` for active execution tracking and `docs/status/PROJECT_AUDIT_2026-03-13.md` for audited baseline.
+
 This document provides realistic timelines and goals for Kyro IDE development.
 
 ## Version History

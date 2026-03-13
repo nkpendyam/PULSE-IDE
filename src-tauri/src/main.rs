@@ -161,6 +161,8 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let window = app
                 .get_webview_window("main")
@@ -429,6 +431,7 @@ fn main() {
             commands::terminal::create_terminal,
             commands::terminal::write_to_terminal,
             commands::terminal::resize_terminal,
+            commands::terminal::poll_terminal_output,
             commands::terminal::kill_terminal,
             // ============ AI Operations ============
             commands::ai::chat_completion,
@@ -506,6 +509,32 @@ fn main() {
             commands::collaboration::get_current_room,
             commands::collaboration::list_rooms,
             commands::collaboration::broadcast_cursor,
+            // ============ Remote Workspace Operations ============
+            commands::remote::remote_connect,
+            commands::remote::remote_disconnect,
+            commands::remote::list_remote_connections,
+            commands::remote::remote_get_capabilities,
+            commands::remote::remote_execute_command,
+            commands::remote::remote_list_profiles,
+            commands::remote::remote_save_profile,
+            commands::remote::remote_remove_profile,
+            commands::remote::remote_list_files,
+            commands::remote::remote_read_file,
+            commands::remote::remote_write_file,
+            commands::remote::remote_export_file_to_local,
+            commands::remote::remote_delete_path,
+            commands::remote::remote_rename_path,
+            commands::remote::remote_copy_path,
+            commands::remote::remote_move_path,
+            commands::remote::remote_create_directory,
+            commands::remote::remote_create_file,
+            commands::remote::remote_upload_local_file,
+            commands::remote::remote_read_file_chunk_base64,
+            commands::remote::remote_write_file_chunk_base64,
+            commands::remote::remote_start_download_to_local,
+            commands::remote::remote_start_upload_from_local,
+            commands::remote::remote_get_transfer_status,
+            commands::remote::remote_cancel_transfer,
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,
@@ -534,6 +563,7 @@ fn main() {
             commands::vscode_compat::install_extension_unified,
             commands::vscode_compat::get_openvsx_popular,
             commands::vscode_compat::get_extension_readme,
+            commands::vscode_compat::get_extension_compatibility,
             // ============ MCP/Agent Operations ============
             commands::mcp::list_agents,
             commands::mcp::create_agent,
@@ -726,6 +756,7 @@ fn main() {
             commands::settings::export_settings,
             commands::settings::import_settings,
             commands::settings::is_first_run,
+            commands::settings::get_runtime_capability_matrix,
             // ============ Project Config ============
             commands::project_config::init_project_config,
             commands::project_config::get_project_config,

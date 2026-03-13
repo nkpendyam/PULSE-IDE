@@ -214,9 +214,13 @@ export function AgentManagerPanel() {
   }, []);
 
   useEffect(() => {
-    loadMissions();
-    loadAgents();
-    loadKnowledge();
+    const timer = window.setTimeout(() => {
+      void loadMissions();
+      void loadAgents();
+      void loadKnowledge();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [loadMissions, loadAgents, loadKnowledge]);
 
   const handleStartMission = async () => {

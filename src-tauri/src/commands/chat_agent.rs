@@ -29,6 +29,7 @@ pub async fn chat_agent_detect_backends() -> Result<Vec<crate::commands::ai::Bac
     crate::commands::ai::detect_ai_backends().await
 }
 
+
 #[command]
 pub async fn chat_agent_smart_completion(
     prompt: String,

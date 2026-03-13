@@ -92,6 +92,17 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
   return null;
 }
 
+function parseRemoteUri(uri: string): { connectionId: string; remotePath: string } | null {
+  if (!uri.startsWith('remote://')) return null;
+  const withoutScheme = uri.slice('remote://'.length);
+  const firstSlash = withoutScheme.indexOf('/');
+  if (firstSlash <= 0) return null;
+  return {
+    connectionId: withoutScheme.slice(0, firstSlash),
+    remotePath: withoutScheme.slice(firstSlash + 1),
+  };
+}
+
 // Types for AI responses
 type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote';
 
@@ -115,6 +126,7 @@ const fallbackFileTree: FileNode = {
 
 // Main IDE Page
 export default function Home() {
+  const isDesktopRuntime = typeof window !== 'undefined' && !!window.__TAURI__;
   const [viewMode, setViewMode] = useState<'editor' | 'mission'>('editor');
   const [activePanel, setActivePanel] = useState<SidebarPanel>('explorer');
   const [showChat, setShowChat] = useState(true);
@@ -128,6 +140,8 @@ export default function Home() {
   const [diffFile, setDiffFile] = useState<string>('');
   const editorRef = useRef<unknown>(null);
   const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
+  const [predictionEditor, setPredictionEditor] = useState<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
+  const [predictionMonaco, setPredictionMonaco] = useState<typeof import('monaco-editor') | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
 
   const {
@@ -147,6 +161,8 @@ export default function Home() {
     isAgentRunning,
     setAgentRunning,
     chatMessages,
+    terminalOutput,
+    addChatMessage,
     settings,
   } = useKyroStore();
 
@@ -202,10 +218,19 @@ export default function Home() {
 
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        await window.__TAURI__.core.invoke('write_file', {
-          path: currentFile.path,
-          content: currentFile.content
-        });
+        const remoteMeta = parseRemoteUri(currentFile.path);
+        if (remoteMeta) {
+          await window.__TAURI__.core.invoke('remote_write_file', {
+            connectionId: remoteMeta.connectionId,
+            path: remoteMeta.remotePath,
+            content: currentFile.content,
+          });
+        } else {
+          await window.__TAURI__.core.invoke('write_file', {
+            path: currentFile.path,
+            content: currentFile.content
+          });
+        }
       }
       // Mark file as clean after successful save
       const { openFiles: files } = useKyroStore.getState();
@@ -224,7 +249,16 @@ export default function Home() {
       const state = useKyroStore.getState();
       const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
       if (file?.isDirty && typeof window !== 'undefined' && window.__TAURI__) {
-        window.__TAURI__.core.invoke('write_file', { path: file.path, content: file.content })
+        const remoteMeta = parseRemoteUri(file.path);
+        const savePromise = remoteMeta
+          ? window.__TAURI__.core.invoke('remote_write_file', {
+              connectionId: remoteMeta.connectionId,
+              path: remoteMeta.remotePath,
+              content: file.content,
+            })
+          : window.__TAURI__.core.invoke('write_file', { path: file.path, content: file.content });
+
+        savePromise
           .then(() => {
             const { openFiles: files } = useKyroStore.getState();
             const newFiles = files.map(f => f.path === file.path ? { ...f, isDirty: false } : f);
@@ -276,6 +310,45 @@ export default function Home() {
     window.addEventListener('kyro:navigate', handleNavigate);
     return () => window.removeEventListener('kyro:navigate', handleNavigate);
   }, []);
+
+  React.useEffect(() => {
+    const languageFromPath = (path: string) => {
+      const ext = path.split('.').pop()?.toLowerCase() || 'txt';
+      const languageMap: Record<string, string> = {
+        ts: 'typescript',
+        tsx: 'typescript',
+        js: 'javascript',
+        jsx: 'javascript',
+        json: 'json',
+        md: 'markdown',
+        rs: 'rust',
+        py: 'python',
+        yml: 'yaml',
+        yaml: 'yaml',
+        toml: 'toml',
+      };
+      return languageMap[ext] || 'plaintext';
+    };
+
+    const handleOpenRemoteFile = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        path?: string;
+        content?: string;
+      };
+      if (!detail?.path) return;
+
+      const file: OpenFile = {
+        path: detail.path,
+        content: detail.content || '',
+        language: languageFromPath(detail.path),
+        isDirty: false,
+      };
+      openFile(file);
+    };
+
+    window.addEventListener('kyro:openRemoteFile', handleOpenRemoteFile);
+    return () => window.removeEventListener('kyro:openRemoteFile', handleOpenRemoteFile);
+  }, [openFile]);
 
   const refreshFileTree = useCallback(async () => {
     setFileTreeKey(prev => prev + 1);
@@ -360,6 +433,8 @@ export default function Home() {
     const monacoModule = monaco as typeof import('monaco-editor');
     monacoRef.current = monacoModule;
     const monacoEditor = editor as import('monaco-editor').editor.IStandaloneCodeEditor;
+    setPredictionEditor(monacoEditor);
+    setPredictionMonaco(monacoModule);
 
     // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {
@@ -438,8 +513,8 @@ export default function Home() {
 
   // Edit Prediction hook — predicts next edit location and provides Tab-to-accept
   const { acceptPrediction } = useEditPrediction(
-    editorRef.current as import('monaco-editor').editor.IStandaloneCodeEditor | null,
-    monacoRef.current,
+    predictionEditor,
+    predictionMonaco,
     currentFile?.path || '',
     true
   );
@@ -546,6 +621,12 @@ export default function Home() {
         </div>
       </div>
 
+      {!isDesktopRuntime && (
+        <div className="px-3 py-1.5 text-xs border-b border-[#d29922]/40 bg-[#d29922]/10 text-[#d29922]">
+          Browser mode: terminal/remote/system-level workspace features require the desktop Tauri app.
+        </div>
+      )}
+
       {/* Main Content */}
       {viewMode === 'mission' ? (
         <div className="flex-1 overflow-hidden">
@@ -566,14 +647,14 @@ export default function Home() {
               { id: 'rag' as SidebarPanel, icon: Database, label: 'RAG Search' },
               { id: 'lsp' as SidebarPanel, icon: FileCode, label: 'Language Server' },
               { id: 'llm' as SidebarPanel, icon: Cpu, label: 'LLM / Hardware' },
-              { id: 'update' as SidebarPanel, icon: Download, label: 'Updates' },
+              { id: 'update' as SidebarPanel, icon: Download, label: 'Updates', desktopOnly: true },
               { id: 'symbols' as SidebarPanel, icon: Code2, label: 'Symbol Outline' },
               { id: 'agent-stream' as SidebarPanel, icon: Zap, label: 'Agent Stream' },
               { id: 'testing' as SidebarPanel, icon: PlayCircle, label: 'Test Runner' },
               { id: 'browser' as SidebarPanel, icon: Globe, label: 'Browser Preview' },
               { id: 'rules' as SidebarPanel, icon: BookOpen, label: 'Project Rules' },
               { id: 'autopilot' as SidebarPanel, icon: Shield, label: 'Agent Autopilot' },
-              { id: 'remote' as SidebarPanel, icon: Monitor, label: 'Remote / Containers' },
+              { id: 'remote' as SidebarPanel, icon: Monitor, label: 'Remote / Containers', desktopOnly: true },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -581,15 +662,19 @@ export default function Home() {
               return (
                 <button
                   key={item.id}
+                  disabled={Boolean((item as { desktopOnly?: boolean }).desktopOnly) && !isDesktopRuntime}
                   onClick={() => {
+                    if ((item as { desktopOnly?: boolean }).desktopOnly && !isDesktopRuntime) {
+                      return;
+                    }
                     if (item.id === 'mission') {
                       setViewMode('mission');
                     } else {
                       setActivePanel(item.id);
                     }
                   }}
-                  className={`w-10 h-10 flex items-center justify-center rounded mb-1 transition-colors relative ${isActive ? 'text-[#c9d1d9] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-0.5 after:h-6 after:bg-[#58a6ff] after:rounded-l' : 'text-[#8b949e] hover:text-[#c9d1d9]'}`}
-                  title={item.label}
+                  className={`w-10 h-10 flex items-center justify-center rounded mb-1 transition-colors relative ${isActive ? 'text-[#c9d1d9] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:w-0.5 after:h-6 after:bg-[#58a6ff] after:rounded-l' : 'text-[#8b949e] hover:text-[#c9d1d9]'} ${((item as { desktopOnly?: boolean }).desktopOnly && !isDesktopRuntime) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  title={((item as { desktopOnly?: boolean }).desktopOnly && !isDesktopRuntime) ? `${item.label} (Desktop only)` : item.label}
                 >
                   <Icon size={20} />
                 </button>
@@ -801,9 +886,9 @@ export default function Home() {
             {/* Terminal Panel */}
             <div className="h-40 border-t border-[#30363d]">
               <TerminalAI
-                terminalOutput={useKyroStore.getState().terminalOutput}
+                terminalOutput={terminalOutput}
                 onSendToChat={(msg) => {
-                  useKyroStore.getState().addChatMessage({
+                  addChatMessage({
                     id: `msg-${Date.now()}`,
                     role: 'user',
                     content: msg,

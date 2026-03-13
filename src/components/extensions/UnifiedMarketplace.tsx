@@ -48,6 +48,32 @@ interface FilterState {
   installed: boolean;
 }
 
+interface BackendExtension {
+  id: string;
+  name: string;
+  display_name: string;
+  version: string;
+  description?: string;
+  publisher: string;
+  enabled: boolean;
+  installed: boolean;
+  icon_url?: string;
+  download_count?: number;
+  rating?: number;
+}
+
+interface BackendSearchResult {
+  extensions: BackendExtension[];
+}
+
+interface ExtensionCompatibility {
+  extensionId: string;
+  installable: boolean;
+  level: 'full' | 'partial' | 'incompatible';
+  reasons: string[];
+  warnings: string[];
+}
+
 const CATEGORIES = [
   'All',
   'Programming Languages',
@@ -71,7 +97,28 @@ function formatDownloads(count: number) {
   return count.toString();
 }
 
+function normalizeExtension(ext: BackendExtension, source: 'vscode' | 'openvsx' = 'openvsx'): Extension {
+  return {
+    id: ext.id,
+    name: ext.name,
+    displayName: ext.display_name || ext.name,
+    publisher: ext.publisher,
+    description: ext.description || '',
+    version: ext.version,
+    iconUrl: ext.icon_url,
+    downloadCount: ext.download_count || 0,
+    averageRating: ext.rating,
+    ratingCount: 0,
+    categories: [],
+    tags: [],
+    installed: ext.installed,
+    enabled: ext.enabled,
+    source,
+  };
+}
+
 export function ExtensionMarketplace() {
+  const isDesktop = typeof window !== 'undefined' && !!window.__TAURI__;
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [installedExtensions, setInstalledExtensions] = useState<Extension[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,6 +133,19 @@ export function ExtensionMarketplace() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedExtension, setSelectedExtension] = useState<Extension | null>(null);
   const [installProgress, setInstallProgress] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [compatibilityById, setCompatibilityById] = useState<Record<string, ExtensionCompatibility>>({});
+
+  const getCompatibility = useCallback(async (extensionId: string) => {
+    const cached = compatibilityById[extensionId];
+    if (cached) return cached;
+
+    const compatibility = await invoke<ExtensionCompatibility>('get_extension_compatibility', {
+      extensionId,
+    });
+    setCompatibilityById(prev => ({ ...prev, [extensionId]: compatibility }));
+    return compatibility;
+  }, [compatibilityById]);
 
   // Load installed extensions
   useEffect(() => {
@@ -94,9 +154,16 @@ export function ExtensionMarketplace() {
 
   // Load installed extensions
   const loadInstalledExtensions = async () => {
+    if (!isDesktop) {
+      setNotice('Extension install/enable/disable requires the desktop Tauri runtime. Browsing metadata still works.');
+      setInstalledExtensions([]);
+      return;
+    }
+
     try {
-      const installed = await invoke<Extension[]>('list_installed_extensions');
-      setInstalledExtensions(installed);
+      const installed = await invoke<BackendExtension[]>('list_installed_extensions');
+      const mapped = installed.map(ext => normalizeExtension(ext));
+      setInstalledExtensions(mapped);
     } catch (error) {
       console.error('Failed to load installed extensions:', error);
     }
@@ -112,20 +179,33 @@ export function ExtensionMarketplace() {
 
     setIsLoading(true);
     try {
-      const results = await invoke<Extension[]>('search_extensions_unified', {
+      const results = await invoke<BackendSearchResult>('search_extensions_unified', {
         query: searchQuery,
-        category: filters.category === 'All' ? null : filters.category,
-        source: filters.source,
-        sortBy: filters.sortBy,
-        limit: 50,
+        page: 0,
+      });
+
+      const normalized = results.extensions.map(ext => normalizeExtension(ext));
+      const filtered = normalized.filter(ext => {
+        const sourceMatch = filters.source === 'all' || ext.source === filters.source;
+        const categoryMatch =
+          filters.category === 'All' ||
+          ext.categories.includes(filters.category) ||
+          ext.tags.includes(filters.category);
+        return sourceMatch && categoryMatch;
+      });
+
+      const sorted = [...filtered].sort((a, b) => {
+        if (filters.sortBy === 'name') return a.displayName.localeCompare(b.displayName);
+        if (filters.sortBy === 'rating') return (b.averageRating || 0) - (a.averageRating || 0);
+        return b.downloadCount - a.downloadCount;
       });
 
       // Mark installed
       const installedIds = new Set(installedExtensions.map(e => e.id));
-      const withInstallStatus = results.map(ext => ({
+      const withInstallStatus = sorted.map(ext => ({
         ...ext,
         installed: installedIds.has(ext.id),
-        enabled: true,
+        enabled: ext.enabled,
       }));
 
       setExtensions(withInstallStatus);
@@ -141,13 +221,13 @@ export function ExtensionMarketplace() {
     setIsLoading(true);
     try {
       const [vscodeResults, openvsxResults] = await Promise.all([
-        invoke<Extension[]>('get_popular_extensions', { count: 25 }),
-        invoke<Extension[]>('get_openvsx_popular', { count: 25 }),
+        invoke<BackendExtension[]>('get_popular_extensions'),
+        invoke<BackendExtension[]>('get_openvsx_popular'),
       ]);
 
       const allExtensions = [
-        ...vscodeResults.map(e => ({ ...e, source: 'vscode' as const })),
-        ...openvsxResults.map(e => ({ ...e, source: 'openvsx' as const })),
+        ...vscodeResults.map(e => normalizeExtension(e, 'vscode')),
+        ...openvsxResults.map(e => normalizeExtension(e, 'openvsx')),
       ];
 
       // Sort by downloads
@@ -158,7 +238,7 @@ export function ExtensionMarketplace() {
       const withInstallStatus = allExtensions.map(ext => ({
         ...ext,
         installed: installedIds.has(ext.id),
-        enabled: true,
+        enabled: ext.enabled,
       }));
 
       setExtensions(withInstallStatus.slice(0, 50));
@@ -171,13 +251,25 @@ export function ExtensionMarketplace() {
 
   // Install extension
   const installExtension = async (extension: Extension) => {
+    if (!isDesktop) {
+      setNotice('Installing extensions requires the desktop app runtime.');
+      return;
+    }
+
     setInstallProgress(extension.id);
     try {
+      const compatibility = await getCompatibility(extension.id);
+      if (!compatibility.installable) {
+        setNotice(`Install blocked: ${compatibility.reasons.join(' ')}`);
+        return;
+      }
+
+      if (compatibility.level === 'partial' && compatibility.warnings.length > 0) {
+        setNotice(`Partial compatibility: ${compatibility.warnings.join(' ')}`);
+      }
+
       await invoke('install_extension_unified', {
-        publisher: extension.publisher,
-        name: extension.name,
-        version: extension.version,
-        source: extension.source,
+        extensionId: extension.id,
       });
 
       // Update state
@@ -186,6 +278,7 @@ export function ExtensionMarketplace() {
       ));
       setInstalledExtensions(prev => [...prev, { ...extension, installed: true }]);
     } catch (error) {
+      setNotice(String(error));
       console.error('Install failed:', error);
     } finally {
       setInstallProgress(null);
@@ -194,6 +287,11 @@ export function ExtensionMarketplace() {
 
   // Uninstall extension
   const uninstallExtension = async (extension: Extension) => {
+    if (!isDesktop) {
+      setNotice('Uninstalling extensions requires the desktop app runtime.');
+      return;
+    }
+
     try {
       await invoke('uninstall_extension', {
         extensionId: extension.id,
@@ -210,6 +308,11 @@ export function ExtensionMarketplace() {
 
   // Enable/disable extension
   const toggleExtension = async (extension: Extension) => {
+    if (!isDesktop) {
+      setNotice('Enabling/disabling extensions requires the desktop app runtime.');
+      return;
+    }
+
     try {
       if (extension.enabled) {
         await invoke('disable_extension', { extensionId: extension.id });
@@ -262,6 +365,16 @@ export function ExtensionMarketplace() {
           <Puzzle size={18} className="text-[#a371f7]" />
           <h2 className="font-semibold text-[#c9d1d9]">Extensions</h2>
         </div>
+
+        <div className="mt-2 rounded border border-[#d29922]/40 bg-[#d29922]/10 px-2 py-1.5 text-xs text-[#d29922]">
+          Compatibility note: some VS Code extensions/debug adapters depend on Electron/Node APIs or marketplace features not fully mirrored here.
+        </div>
+
+        {notice && (
+          <div className="mt-2 rounded border border-[#58a6ff]/40 bg-[#58a6ff]/10 px-2 py-1.5 text-xs text-[#58a6ff]">
+            {notice}
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative mt-2">
@@ -357,11 +470,15 @@ export function ExtensionMarketplace() {
               <ExtensionCard
                 key={ext.id}
                 extension={ext}
+                compatibility={compatibilityById[ext.id]}
                 onInstall={installExtension}
                 onUninstall={uninstallExtension}
                 onToggle={toggleExtension}
                 isInstalling={installProgress === ext.id}
-                onSelect={() => setSelectedExtension(ext)}
+                onSelect={() => {
+                  void getCompatibility(ext.id);
+                  setSelectedExtension(ext);
+                }}
               />
             ))}
           </div>
@@ -371,11 +488,15 @@ export function ExtensionMarketplace() {
               <ExtensionListItem
                 key={ext.id}
                 extension={ext}
+                compatibility={compatibilityById[ext.id]}
                 onInstall={installExtension}
                 onUninstall={uninstallExtension}
                 onToggle={toggleExtension}
                 isInstalling={installProgress === ext.id}
-                onSelect={() => setSelectedExtension(ext)}
+                onSelect={() => {
+                  void getCompatibility(ext.id);
+                  setSelectedExtension(ext);
+                }}
               />
             ))}
           </div>
@@ -386,6 +507,7 @@ export function ExtensionMarketplace() {
       {selectedExtension && (
         <ExtensionDetailModal
           extension={selectedExtension}
+          compatibility={compatibilityById[selectedExtension.id]}
           onClose={() => setSelectedExtension(null)}
           onInstall={installExtension}
           onUninstall={uninstallExtension}
@@ -397,9 +519,11 @@ export function ExtensionMarketplace() {
   );
 }
 
+
 // Extension Card Component
 function ExtensionCard({
   extension,
+  compatibility,
   onInstall,
   onUninstall,
   onToggle,
@@ -407,6 +531,7 @@ function ExtensionCard({
   onSelect,
 }: {
   extension: Extension;
+  compatibility?: ExtensionCompatibility;
   onInstall: (ext: Extension) => void;
   onUninstall: (ext: Extension) => void;
   onToggle: (ext: Extension) => void;
@@ -434,6 +559,12 @@ function ExtensionCard({
             <h3 className="font-medium text-[#c9d1d9] truncate">{extension.displayName}</h3>
             {extension.source === 'openvsx' && (
               <span className="text-xs px-1 bg-[#238636] text-white rounded">Open VSX</span>
+            )}
+            {compatibility?.level === 'partial' && (
+              <span className="text-xs px-1 bg-[#d29922] text-black rounded">Partial</span>
+            )}
+            {compatibility?.level === 'incompatible' && (
+              <span className="text-xs px-1 bg-[#f85149] text-white rounded">Blocked</span>
             )}
           </div>
           <p className="text-xs text-[#8b949e] truncate">{extension.publisher}</p>
@@ -500,6 +631,7 @@ function ExtensionCard({
 // Extension List Item Component
 function ExtensionListItem({
   extension,
+  compatibility,
   onInstall,
   onUninstall,
   onToggle,
@@ -507,6 +639,7 @@ function ExtensionListItem({
   onSelect,
 }: {
   extension: Extension;
+  compatibility?: ExtensionCompatibility;
   onInstall: (ext: Extension) => void;
   onUninstall: (ext: Extension) => void;
   onToggle: (ext: Extension) => void;
@@ -534,6 +667,12 @@ function ExtensionListItem({
           <span className="text-xs text-[#8b949e]">{extension.version}</span>
           {extension.source === 'openvsx' && (
             <span className="text-xs px-1 bg-[#238636] text-white rounded">Open VSX</span>
+          )}
+          {compatibility?.level === 'partial' && (
+            <span className="text-xs px-1 bg-[#d29922] text-black rounded">Partial</span>
+          )}
+          {compatibility?.level === 'incompatible' && (
+            <span className="text-xs px-1 bg-[#f85149] text-white rounded">Blocked</span>
           )}
         </div>
         <p className="text-xs text-[#8b949e] truncate">{extension.description}</p>
@@ -594,6 +733,7 @@ function ExtensionListItem({
 // Extension Detail Modal
 function ExtensionDetailModal({
   extension,
+  compatibility,
   onClose,
   onInstall,
   onUninstall,
@@ -601,6 +741,7 @@ function ExtensionDetailModal({
   isInstalling,
 }: {
   extension: Extension;
+  compatibility?: ExtensionCompatibility;
   onClose: () => void;
   onInstall: (ext: Extension) => void;
   onUninstall: (ext: Extension) => void;
@@ -615,9 +756,7 @@ function ExtensionDetailModal({
       setIsLoadingReadme(true);
       try {
         const content = await invoke<string>('get_extension_readme', {
-          publisher: extension.publisher,
-          name: extension.name,
-          source: extension.source,
+          extensionId: extension.id,
         });
         setReadme(content || 'No readme available.');
       } catch {
@@ -686,6 +825,18 @@ function ExtensionDetailModal({
 
         {/* Actions */}
         <div className="px-4 py-2 border-b border-[#30363d] flex items-center gap-2">
+          {compatibility && (
+            <div className={`mr-2 rounded px-2 py-1 text-xs ${
+              compatibility.level === 'full'
+                ? 'bg-[#238636] text-white'
+                : compatibility.level === 'partial'
+                  ? 'bg-[#d29922] text-black'
+                  : 'bg-[#f85149] text-white'
+            }`}>
+              Compatibility: {compatibility.level}
+            </div>
+          )}
+
           {extension.installed ? (
             <>
               <button
@@ -742,6 +893,17 @@ function ExtensionDetailModal({
               <span key={tag} className="px-2 py-1 bg-[#21262d] text-[#8b949e] rounded text-xs">
                 #{tag}
               </span>
+            ))}
+          </div>
+        )}
+
+        {compatibility && (compatibility.reasons.length > 0 || compatibility.warnings.length > 0) && (
+          <div className="px-4 py-2 border-b border-[#30363d] text-xs space-y-1">
+            {compatibility.reasons.map((reason, index) => (
+              <div key={`reason-${index}`} className="text-[#f85149]">{reason}</div>
+            ))}
+            {compatibility.warnings.map((warning, index) => (
+              <div key={`warning-${index}`} className="text-[#d29922]">{warning}</div>
             ))}
           </div>
         )}

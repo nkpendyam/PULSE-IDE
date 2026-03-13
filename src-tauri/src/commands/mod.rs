@@ -27,6 +27,9 @@ pub mod auth;
 // ============ Collaboration Operations ============
 pub mod collaboration;
 
+// ============ Remote Workspace Operations ============
+pub mod remote;
+
 // ============ E2E Encryption Operations ============
 pub mod e2ee;
 

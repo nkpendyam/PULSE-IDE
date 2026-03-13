@@ -12,13 +12,17 @@ export function TerminalPanel() {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const { projectPath, toggleTerminal } = useKyroStore();
+  const { projectPath, toggleTerminal, setTerminalOutput } = useKyroStore();
   
   useEffect(() => { setIsClient(true); }, []);
   
   useEffect(() => {
     if (!isClient || !terminalRef.current) return;
+    let disposed = false;
+    const cleanupCallbacks: Array<() => void> = [];
+
     const initTerminal = async () => {
       try {
         const { Terminal } = await import('xterm');
@@ -31,16 +35,63 @@ export function TerminalPanel() {
         fitAddon.fit();
         xtermRef.current = term;
         fitAddonRef.current = fitAddon;
-        invoke('create_terminal', { id: 'main', cwd: projectPath || undefined }).catch(console.error);
+        await invoke('create_terminal', { id: 'main', cwd: projectPath || undefined });
+        setTerminalOutput('');
+
+        pollTimerRef.current = window.setInterval(() => {
+          if (disposed) {
+            return;
+          }
+
+          invoke<string>('poll_terminal_output', { id: 'main' })
+            .then((output) => {
+              if (!output) {
+                return;
+              }
+
+              const terminal = xtermRef.current;
+              if (terminal) {
+                terminal.write(output);
+              }
+
+              const current = useKyroStore.getState().terminalOutput;
+              const merged = `${current}${output}`;
+              useKyroStore.getState().setTerminalOutput(
+                merged.length > 120_000 ? merged.slice(merged.length - 120_000) : merged
+              );
+            })
+            .catch(() => {
+              // terminal can be disposed during shutdown
+            });
+        }, 120);
+
+        cleanupCallbacks.push(() => {
+          if (pollTimerRef.current !== null) {
+            window.clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+          }
+        });
+
         term.onData((data: string) => { invoke('write_to_terminal', { id: 'main', data }).catch(console.error); });
         const handleResize = () => { fitAddon.fit(); invoke('resize_terminal', { id: 'main', cols: term.cols, rows: term.rows }).catch(console.error); };
         window.addEventListener('resize', handleResize);
+        cleanupCallbacks.push(() => window.removeEventListener('resize', handleResize));
         setTimeout(handleResize, 100);
-        return () => { window.removeEventListener('resize', handleResize); term.dispose(); };
+        cleanupCallbacks.push(() => term.dispose());
       } catch (error) { console.error('Failed to initialize terminal:', error); }
     };
     initTerminal();
-  }, [isClient, projectPath]);
+
+    return () => {
+      disposed = true;
+      for (const cleanup of cleanupCallbacks.reverse()) {
+        cleanup();
+      }
+      invoke('kill_terminal', { id: 'main' }).catch(() => {
+        // terminal already stopped
+      });
+    };
+  }, [isClient, projectPath, setTerminalOutput]);
   
   return (
     <div className="flex flex-col h-full">

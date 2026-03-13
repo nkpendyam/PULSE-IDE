@@ -73,10 +73,6 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
     f.toLowerCase().includes(fileFilter.toLowerCase())
   ).slice(0, 15);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [atQuery]);
-
   const items = showFilePicker ? filteredFiles : filteredMentions;
 
   useEffect(() => {
@@ -187,25 +183,4 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
       )}
     </div>
   );
-}
-
-/**
- * Parse @ mentions from a message string and return context-enriched content
- */
-export function parseMentions(text: string): { cleanText: string; mentions: Array<{ type: string; value: string }> } {
-  const mentionRegex = /@(file|folder|codebase|terminal|web|git|previous)(?:\(([^)]+)\))?/g;
-  const mentions: Array<{ type: string; value: string }> = [];
-  let cleanText = text;
-
-  let match;
-  while ((match = mentionRegex.exec(text)) !== null) {
-    mentions.push({ type: match[1], value: match[2] || '' });
-  }
-
-  // Remove mention syntax from display text
-  cleanText = text.replace(mentionRegex, (_, type, value) =>
-    value ? `[${type}: ${value}]` : `[${type}]`
-  );
-
-  return { cleanText, mentions };
 }

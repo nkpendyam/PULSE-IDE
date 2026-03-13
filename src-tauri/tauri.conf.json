@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws://localhost:* wss://* https://huggingface.co https://open-vsx.org; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self'"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws://localhost:* wss://* https://huggingface.co https://open-vsx.org https://github.com; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self'"
     }
   },
   "bundle": {
@@ -56,6 +56,13 @@
   "plugins": {
     "shell": {
       "open": true
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/nkpendyam/Kyro_IDE/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU4Q0RDNDdGQ0VFMkM2NDYKUldSR3h1TE9mOFRONkFyOFF1aStNNUZHRjAwMWpPdTFPZ0ZTcTRSdXFOTmY4VWF1QXdQV3JxUzEK"
     }
   }
 }

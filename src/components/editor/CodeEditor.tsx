@@ -36,6 +36,8 @@ interface GhostTextState {
 export function CodeEditor() {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const [editorInstance, setEditorInstance] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [monacoInstance, setMonacoInstance] = useState<Monaco | null>(null);
   const [ghostText, setGhostText] = useState<GhostTextState>({ text: '', position: { line: 0, column: 0 }, visible: false });
   const [splitEditor, setSplitEditor] = useState<'none' | 'horizontal' | 'vertical'>('none');
   const secondEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -68,8 +70,8 @@ export function CodeEditor() {
 
   // Initialize ghost text provider with streaming
   const { currentCompletion, isProcessing: isGhostTextProcessing } = useGhostTextProvider(
-    editorRef.current,
-    monacoRef.current,
+    editorInstance,
+    monacoInstance,
     currentFile?.language || 'plaintext',
     { enabled: (editorOptions as unknown as EditorOptions).ghostText, debounceMs: 300, maxTokens: 100 }
   );
@@ -384,6 +386,8 @@ export function CodeEditor() {
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    setEditorInstance(editor);
+    setMonacoInstance(monaco);
 
     // Define custom theme
     monaco.editor.defineTheme('kyro-dark', {

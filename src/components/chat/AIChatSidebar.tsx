@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { useKyroStore, ChatMessage, RagSource } from '@/store/kyroStore';
+import { useKyroStore, ChatMessage, FileNode, RagSource } from '@/store/kyroStore';
 import { MentionAutocomplete, MentionItem } from './MentionAutocomplete';
+import { buildMentionContext, parseMentions } from './mentionContext';
 import { 
   Send, Trash2, Sparkles, FileCode, Search, Check, X, 
   ChevronDown, ChevronRight, Clock, AlertTriangle, Loader2,
@@ -25,6 +26,45 @@ interface AgentResult {
   files_changed: string[];
   requires_approval: boolean;
   approval_id?: string;
+}
+
+interface MentionPreviewItem {
+  id: string;
+  label: string;
+  detail: string;
+  tooltip: string;
+  resolved: boolean;
+  rawToken: string;
+  type: string;
+  value: string;
+  count: number;
+  firstIndex: number;
+}
+
+function treeContainsPrefix(root: FileNode | null, prefix: string): boolean {
+  if (!root || !prefix) {
+    return false;
+  }
+
+  const stack: FileNode[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) {
+      continue;
+    }
+
+    if (node.path === prefix || node.path.startsWith(`${prefix}/`) || node.path.startsWith(`${prefix}\\`)) {
+      return true;
+    }
+
+    if (node.children) {
+      for (const child of node.children) {
+        stack.push(child);
+      }
+    }
+  }
+
+  return false;
 }
 
 // Streaming Message Component
@@ -151,8 +191,10 @@ export function AIChatSidebar() {
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const mentionChipButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [showMentions, setShowMentions] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
+  const [focusedChipIndex, setFocusedChipIndex] = useState<number | null>(null);
   
   const { 
     chatMessages, 
@@ -165,10 +207,302 @@ export function AIChatSidebar() {
     setAiLoading,
     openFiles,
     activeFileIndex,
-    projectPath
+    projectPath,
+    fileTree,
+    terminalOutput,
+    gitStatus
   } = useKyroStore();
   
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
+  const mentionPreviewItems = useMemo<MentionPreviewItem[]>(() => {
+    const parsed = parseMentions(input).mentions;
+    const deduped = new Map<string, MentionPreviewItem>();
+
+    parsed.forEach((mention, index) => {
+      const id = `${mention.type}-${mention.value}-${index}`;
+      const identityKey = `${mention.type}:${mention.value}`;
+
+      if (mention.type === 'file') {
+        let nextItem: MentionPreviewItem;
+        if (!mention.value) {
+          nextItem = {
+            id,
+            label: '@file',
+            detail: currentFile ? currentFile.path : 'No active file',
+            tooltip: currentFile
+              ? `@file resolved to active file: ${currentFile.path}`
+              : '@file unresolved: no active file available',
+            resolved: Boolean(currentFile),
+            rawToken: mention.raw,
+            type: mention.type,
+            value: mention.value,
+            count: 1,
+            firstIndex: index,
+          };
+        } else {
+          const existsInOpenFiles = openFiles.some((file) => file.path === mention.value);
+          nextItem = {
+            id,
+            label: '@file',
+            detail: mention.value,
+            tooltip: existsInOpenFiles
+              ? `@file resolved from open files: ${mention.value}`
+              : `@file unresolved (open file not found): ${mention.value}`,
+            resolved: existsInOpenFiles,
+            rawToken: mention.raw,
+            type: mention.type,
+            value: mention.value,
+            count: 1,
+            firstIndex: index,
+          };
+        }
+
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
+      }
+
+      if (mention.type === 'folder') {
+        const folderPath = mention.value || 'root';
+        const resolved = mention.value ? treeContainsPrefix(fileTree, mention.value) : Boolean(fileTree);
+        const nextItem: MentionPreviewItem = {
+          id,
+          label: '@folder',
+          detail: folderPath,
+          tooltip: resolved
+            ? `@folder resolved in tree: ${folderPath}`
+            : `@folder unresolved in tree: ${folderPath}`,
+          resolved,
+          rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
+          firstIndex: index,
+        };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
+      }
+
+      if (mention.type === 'terminal') {
+        const hasOutput = terminalOutput.trim().length > 0;
+        const nextItem: MentionPreviewItem = {
+          id,
+          label: '@terminal',
+          detail: hasOutput ? 'Terminal output available' : 'Terminal output empty',
+          tooltip: hasOutput
+            ? `@terminal resolved with ${terminalOutput.trim().length} characters of output`
+            : '@terminal unresolved: terminal output is empty',
+          resolved: hasOutput,
+          rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
+          firstIndex: index,
+        };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
+      }
+
+      if (mention.type === 'git') {
+        const nextItem: MentionPreviewItem = {
+          id,
+          label: '@git',
+          detail: gitStatus ? gitStatus.branch : 'Git status unavailable',
+          tooltip: gitStatus
+            ? `@git resolved on branch ${gitStatus.branch} (ahead ${gitStatus.ahead}, behind ${gitStatus.behind})`
+            : '@git unresolved: git status unavailable',
+          resolved: Boolean(gitStatus),
+          rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
+          firstIndex: index,
+        };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
+      }
+
+      if (mention.type === 'previous') {
+        const nextItem: MentionPreviewItem = {
+          id,
+          label: '@previous',
+          detail: chatMessages.length > 0 ? `${chatMessages.length} message(s)` : 'No previous messages',
+          tooltip: chatMessages.length > 0
+            ? `@previous resolved with ${chatMessages.length} message(s)`
+            : '@previous unresolved: no previous messages',
+          resolved: chatMessages.length > 0,
+          rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
+          firstIndex: index,
+        };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
+      }
+
+      if (mention.type === 'codebase') {
+        const nextItem: MentionPreviewItem = {
+          id,
+          label: '@codebase',
+          detail: fileTree ? projectPath || 'Project loaded' : 'Project tree unavailable',
+          tooltip: fileTree
+            ? `@codebase resolved for project ${projectPath || 'current workspace'}`
+            : '@codebase unresolved: project file tree unavailable',
+          resolved: Boolean(fileTree),
+          rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
+          firstIndex: index,
+        };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
+      }
+
+      const nextItem: MentionPreviewItem = {
+        id,
+        label: '@web',
+        detail: 'Not available in local mode',
+        tooltip: '@web is currently unavailable in local RAG mode',
+        resolved: false,
+        rawToken: mention.raw,
+        type: mention.type,
+        value: mention.value,
+        count: 1,
+        firstIndex: index,
+      };
+      const existing = deduped.get(identityKey);
+      deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+    });
+
+    return Array.from(deduped.values()).sort((left, right) => left.firstIndex - right.firstIndex);
+  }, [chatMessages.length, currentFile, fileTree, gitStatus, input, openFiles, projectPath, terminalOutput]);
+
+  const removeMentionTokenFromInput = (source: string, rawToken: string, mode: 'first' | 'last'): string => {
+    if (!rawToken || !source) {
+      return source;
+    }
+
+    const findCandidate = (startFromLast: boolean) => {
+      let index = startFromLast ? source.lastIndexOf(rawToken) : source.indexOf(rawToken);
+
+      while (index !== -1) {
+        const leftOk = index === 0 || /\s/.test(source[index - 1]);
+        const rightIndex = index + rawToken.length;
+        const rightOk = rightIndex === source.length || /\s/.test(source[rightIndex]);
+
+        if (leftOk && rightOk) {
+          return index;
+        }
+
+        index = startFromLast
+          ? source.lastIndexOf(rawToken, index - 1)
+          : source.indexOf(rawToken, index + 1);
+      }
+
+      return -1;
+    };
+
+    const tokenIndex = mode === 'last' ? findCandidate(true) : findCandidate(false);
+    if (tokenIndex === -1) {
+      return source;
+    }
+
+    const before = source.slice(0, tokenIndex).trimEnd();
+    const after = source.slice(tokenIndex + rawToken.length).trimStart();
+    return [before, after].filter(Boolean).join(' ');
+  };
+
+  const focusChipButton = (index: number) => {
+    const boundedIndex = Math.max(0, Math.min(index, mentionPreviewItems.length - 1));
+    const button = mentionChipButtonRefs.current[boundedIndex];
+    if (!button) {
+      return;
+    }
+
+    button.focus();
+    setFocusedChipIndex(boundedIndex);
+  };
+
+  const handleRemoveMentionChip = (item: MentionPreviewItem) => {
+    setInput((prev) => {
+      let next = prev;
+      const parsedMentions = parseMentions(prev).mentions;
+      for (const mention of parsedMentions) {
+        if (mention.type === item.type && mention.value === item.value) {
+          next = removeMentionTokenFromInput(next, mention.raw, 'first');
+        }
+      }
+      return next;
+    });
+    setShowMentions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleChipKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+    item: MentionPreviewItem
+  ) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (index > 0) {
+        focusChipButton(index - 1);
+      } else {
+        inputRef.current?.focus();
+        setFocusedChipIndex(null);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (index < mentionPreviewItems.length - 1) {
+        focusChipButton(index + 1);
+      } else {
+        inputRef.current?.focus();
+        setFocusedChipIndex(null);
+      }
+      return;
+    }
+
+    if (e.key === 'Home') {
+      e.preventDefault();
+      focusChipButton(0);
+      return;
+    }
+
+    if (e.key === 'End') {
+      e.preventDefault();
+      focusChipButton(mentionPreviewItems.length - 1);
+      return;
+    }
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      handleRemoveMentionChip(item);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      inputRef.current?.focus();
+      setFocusedChipIndex(null);
+    }
+  };
+
+  useEffect(() => {
+    mentionChipButtonRefs.current = mentionChipButtonRefs.current.slice(0, mentionPreviewItems.length);
+    if (focusedChipIndex !== null && focusedChipIndex >= mentionPreviewItems.length) {
+      setFocusedChipIndex(mentionPreviewItems.length > 0 ? mentionPreviewItems.length - 1 : null);
+    }
+  }, [focusedChipIndex, mentionPreviewItems.length]);
 
   // Initialize session
   useEffect(() => {
@@ -195,6 +529,21 @@ export function AIChatSidebar() {
     if (!input.trim() || isAiLoading || isStreaming) return;
     
     const userMessage = input.trim();
+    const { cleanText, mentions } = parseMentions(userMessage);
+    const mentionContextBlocks = buildMentionContext({
+      mentions,
+      openFiles,
+      currentFile,
+      fileTree,
+      terminalOutput,
+      gitStatus,
+      chatMessages,
+      projectPath,
+    });
+    const enrichedMessage = mentionContextBlocks.length > 0
+      ? `${cleanText}\n\n[MENTION CONTEXT]\n${mentionContextBlocks.join('\n\n')}`
+      : cleanText;
+
     setInput('');
     
     // Add user message
@@ -246,7 +595,7 @@ export function AIChatSidebar() {
         total_time_ms: number;
       }>('rag_chat', {
         sessionId,
-        message: userMessage,
+        message: enrichedMessage,
         context
       });
 
@@ -352,6 +701,34 @@ export function AIChatSidebar() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      const textarea = inputRef.current;
+      const selectionStart = textarea?.selectionStart ?? cursorPos;
+      const selectionEnd = textarea?.selectionEnd ?? cursorPos;
+      if (selectionStart === selectionEnd && selectionStart === input.length && mentionPreviewItems.length > 0) {
+        e.preventDefault();
+        focusChipButton(mentionPreviewItems.length - 1);
+        return;
+      }
+    }
+
+    if (e.key === 'Backspace') {
+      const textarea = inputRef.current;
+      const selectionStart = textarea?.selectionStart ?? cursorPos;
+      const selectionEnd = textarea?.selectionEnd ?? cursorPos;
+
+      if (selectionStart === selectionEnd && selectionStart === input.length && mentionPreviewItems.length > 0) {
+        e.preventDefault();
+        const lastMention = parseMentions(input).mentions.slice(-1)[0];
+        if (lastMention) {
+          setInput((prev) => removeMentionTokenFromInput(prev, lastMention.raw, 'last'));
+        }
+        setShowMentions(false);
+        setFocusedChipIndex(null);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -513,6 +890,50 @@ export function AIChatSidebar() {
             <Send size={16} />
           </button>
         </div>
+
+        {mentionPreviewItems.length > 0 && (
+          <div className="mt-2">
+            <div className="flex flex-wrap gap-1.5">
+              {mentionPreviewItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] ${
+                    item.resolved
+                      ? 'border-[#2ea043] bg-[#1a2a1a] text-[#8ddb8c]'
+                      : 'border-[#f0883e] bg-[#2a1f14] text-[#f2b37b]'
+                  }`}
+                  title={`${item.tooltip}${item.count > 1 ? ` | repeated ${item.count}x` : ''}`}
+                >
+                  <span className="font-medium">{item.label}</span>
+                  <span className="opacity-85">{item.detail}</span>
+                  {item.count > 1 && <span className="opacity-75">×{item.count}</span>}
+                  <button
+                    ref={(element) => {
+                      mentionChipButtonRefs.current[index] = element;
+                    }}
+                    type="button"
+                    onClick={() => handleRemoveMentionChip(item)}
+                    onFocus={() => setFocusedChipIndex(index)}
+                    onBlur={() => setFocusedChipIndex((current) => (current === index ? null : current))}
+                    onKeyDown={(event) => handleChipKeyDown(event, index, item)}
+                    className={`ml-0.5 rounded p-0.5 hover:bg-[#30363d] focus:outline-none focus:ring-1 focus:ring-[#58a6ff] ${
+                      focusedChipIndex === index ? 'bg-[#30363d]' : ''
+                    }`}
+                    aria-label={`Remove ${item.label} mention`}
+                    title="Remove mention"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {focusedChipIndex !== null && (
+              <div className="mt-1 text-[10px] text-[#8b949e]">
+                Chip keyboard: ←/→ move, Home/End jump, Backspace/Delete remove, Esc return to input
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Context indicator */}
         {currentFile && (

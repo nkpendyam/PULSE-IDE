@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { check, type Update } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 import { Download, RefreshCw, Check, X, Clock, ArrowUp, Info } from 'lucide-react';
 
 interface UpdateInfo {
@@ -25,10 +27,13 @@ export function UpdatePanel() {
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   const [checking, setChecking] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [readyToInstall, setReadyToInstall] = useState(false);
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [channel, setChannel] = useState('stable');
   const [autoUpdate, setAutoUpdate] = useState(true);
+  // Holds the live Update handle from tauri-plugin-updater for download/install
+  const pendingUpdate = useRef<Update | null>(null);
 
   useEffect(() => {
     checkForUpdates();
@@ -49,9 +54,25 @@ export function UpdatePanel() {
   const checkForUpdates = async () => {
     setChecking(true);
     setError(null);
+    pendingUpdate.current = null;
     try {
-      const result = await invoke<UpdateInfo | null>('check_for_updates');
-      setUpdate(result);
+      // Use tauri-plugin-updater for signature-verified update check
+      const upd = await check();
+      if (upd) {
+        pendingUpdate.current = upd;
+        setUpdate({
+          version: upd.version,
+          current_version: upd.currentVersion,
+          release_date: upd.date ?? '',
+          release_notes: upd.body ?? '',
+          channel,
+          size_mb: 0,
+          mandatory: (upd.body ?? '').toLowerCase().includes('critical') ||
+                     (upd.body ?? '').toLowerCase().includes('security'),
+        });
+      } else {
+        setUpdate(null);
+      }
     } catch (err) {
       setError(String(err));
     } finally {
@@ -60,34 +81,42 @@ export function UpdatePanel() {
   };
 
   const downloadUpdate = async () => {
+    if (!pendingUpdate.current) return;
     setDownloading(true);
     setError(null);
+    let totalBytes = 0;
+    let downloadedBytes = 0;
+    const startTime = Date.now();
     try {
-      await invoke('download_update');
-      // Poll for progress
-      const pollProgress = async () => {
-        try {
-          const prog = await invoke<UpdateProgress>('get_download_progress');
-          setProgress(prog);
-          if (prog.percentage < 100) {
-            setTimeout(pollProgress, 500);
-          } else {
-            setDownloading(false);
-          }
-        } catch {
-          setDownloading(false);
+      await pendingUpdate.current.download((event) => {
+        if (event.event === 'Started') {
+          totalBytes = event.data.contentLength ?? 0;
+        } else if (event.event === 'Progress') {
+          downloadedBytes += event.data.chunkLength;
+          const elapsedSec = (Date.now() - startTime) / 1000 || 0.001;
+          setProgress({
+            downloaded_mb: downloadedBytes / 1_048_576,
+            total_mb: totalBytes / 1_048_576,
+            percentage: totalBytes > 0 ? (downloadedBytes / totalBytes) * 100 : 0,
+            speed_mbps: (downloadedBytes / 1_048_576) / elapsedSec,
+          });
+        } else if (event.event === 'Finished') {
+          setProgress((p) => p ? { ...p, percentage: 100 } : null);
         }
-      };
-      pollProgress();
+      });
+      setReadyToInstall(true);
     } catch (err) {
       setError(String(err));
+    } finally {
       setDownloading(false);
     }
   };
 
   const installUpdate = async () => {
+    if (!pendingUpdate.current) return;
     try {
-      await invoke('install_update');
+      await pendingUpdate.current.install();
+      await relaunch();
     } catch (err) {
       setError(String(err));
     }
@@ -96,6 +125,7 @@ export function UpdatePanel() {
   const skipUpdate = async () => {
     await invoke('skip_update');
     setUpdate(null);
+    pendingUpdate.current = null;
   };
 
   const handleChannelChange = async (newChannel: string) => {
@@ -172,7 +202,7 @@ export function UpdatePanel() {
 
               {/* Actions */}
               <div className="flex gap-2">
-                {!downloading && progress?.percentage !== 100 ? (
+                {!downloading && !readyToInstall ? (
                   <>
                     <button
                       onClick={downloadUpdate}
@@ -190,7 +220,7 @@ export function UpdatePanel() {
                       </button>
                     )}
                   </>
-                ) : progress?.percentage === 100 ? (
+                ) : readyToInstall ? (
                   <button
                     onClick={installUpdate}
                     className="flex items-center gap-2 px-4 py-2 bg-[#238636] hover:bg-[#2ea043] text-white text-sm rounded"
@@ -200,10 +230,10 @@ export function UpdatePanel() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => invoke('cancel_update')}
-                    className="px-4 py-2 bg-[#f85149] hover:bg-[#da3633] text-white text-sm rounded"
+                    disabled
+                    className="px-4 py-2 bg-[#21262d] text-[#8b949e] text-sm rounded opacity-50 cursor-not-allowed"
                   >
-                    Cancel
+                    Downloading…
                   </button>
                 )}
               </div>

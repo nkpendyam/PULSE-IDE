@@ -165,7 +165,7 @@ export function MonacoEditor({
         editor.getAction('editor.action.removeCommentLine')?.run();
       });
     });
-  }, [handleSave, path]);
+  }, [handleSave, path, value]);
 
   // Handle editor mount
   const handleEditorMount: OnMount = useCallback((editor, monaco) => {
