@@ -1,6 +1,32 @@
 # Kyro IDE Development Worklog
 
 ---
+Task ID: Phase C Stream (2026-03-13)
+Agent: GitHub Copilot (GPT-5.3-Codex)
+Task: Deliver mention context UX and terminal AI explain/fix flow
+
+Work Log:
+- Implemented mention context parsing/enrichment pipeline for `@file`, `@folder`, `@codebase`, `@terminal`, `@git`, `@previous`, `@web`.
+- Added mention preview chips in chat input with dedupe, remove action, keyboard navigation, and focused keyboard hints.
+- Added mention utility tests (`tests/unit/typescript/mention-context.test.ts`) and kept checks green.
+- Wired terminal output capture via backend PTY polling (`poll_terminal_output`) and frontend terminal state updates.
+- Enabled terminal AI explain/fix actions with one-click `Run Fix` execution.
+- Added command risk classification + confirmation guardrails for medium/high-risk fix commands.
+- Added post-run output analysis (`success`/`failure`/`unknown`) with AI follow-up action.
+- Added recent fix history (last 3), per-item re-run, and copy-summary action.
+- Fixed `react-hooks/refs` lint blocker in `src/app/page.tsx` by removing render-time ref access for `useEditPrediction`.
+
+Validation Summary:
+- `cargo check` ✅
+- `npm run type-check` ✅
+- `npm run lint` ✅ (after page lint fix)
+- mention tests ✅
+
+Commits:
+- 5afaf55, dad0ecb, 7406827, 0af2691, 4936353, 49ca171, 6d4f95c, d9f4894
+- 1bc2449, 88481e0, 64beced, 688874e, 606f7cc, 0ae4d01, 7fe0c10
+
+---
 Task ID: 1
 Agent: Super Z (GLM5)
 Task: Create 18-Month Engineering Roadmap and Fix Critical Gaps
