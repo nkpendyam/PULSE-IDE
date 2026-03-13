@@ -18,6 +18,12 @@ interface ErrorExplanation {
 
 type CommandRiskLevel = 'low' | 'medium' | 'high';
 
+interface RunResultAnalysis {
+  status: 'success' | 'failure' | 'unknown';
+  summary: string;
+  action?: string;
+}
+
 // Common error patterns for quick local detection
 const ERROR_PATTERNS: Array<{ pattern: RegExp; type: string }> = [
   { pattern: /error\[E\d+\]:/i, type: 'rust_compiler' },
@@ -72,10 +78,48 @@ function classifyCommandRisk(command: string): {
   return { level: 'low', reason: 'Command appears non-destructive' };
 }
 
+function analyzeRunOutput(command: string, outputDelta: string): RunResultAnalysis {
+  const output = outputDelta.trim();
+  if (!output) {
+    return {
+      status: 'unknown',
+      summary: 'No terminal output detected yet after running the command.',
+      action: 'Wait a moment and re-check terminal output.',
+    };
+  }
+
+  const failurePattern = /(error|failed|exception|cannot|not found|permission denied|enoent|eaddrinuse|panic!|traceback)/i;
+  const successPattern = /(success|succeeded|completed|compiled|finished|listening on|done)/i;
+
+  if (failurePattern.test(output)) {
+    return {
+      status: 'failure',
+      summary: `Fix command appears to have failed: ${command}`,
+      action: 'Review error lines below and ask AI for a refined fix.',
+    };
+  }
+
+  if (successPattern.test(output)) {
+    return {
+      status: 'success',
+      summary: `Fix command appears successful: ${command}`,
+      action: 'Continue workflow or run verification tests.',
+    };
+  }
+
+  return {
+    status: 'unknown',
+    summary: `Command executed but result is unclear: ${command}`,
+    action: 'Inspect output manually or ask AI to interpret the result.',
+  };
+}
+
 export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
   const [explanation, setExplanation] = useState<ErrorExplanation | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
   const [isRunningFix, setIsRunningFix] = useState(false);
+  const [isAnalyzingRun, setIsAnalyzingRun] = useState(false);
+  const [runResult, setRunResult] = useState<RunResultAnalysis | null>(null);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   // Detect errors when terminal output changes
@@ -108,12 +152,14 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
             suggestion: parsed.suggestion || '',
             command: parsed.command,
           });
+          setRunResult(null);
         } catch {
           setExplanation({
             error,
             explanation: response,
             suggestion: '',
           });
+          setRunResult(null);
         }
       }
     } catch {
@@ -154,17 +200,33 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
     }
 
     setIsRunningFix(true);
+    setRunResult(null);
+    const outputBeforeRun = useKyroStore.getState().terminalOutput;
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
         await window.__TAURI__.core.invoke('write_to_terminal', {
           id: 'main',
           data: `${command}\n`,
         });
+
+        setIsAnalyzingRun(true);
+        await new Promise((resolve) => setTimeout(resolve, 1300));
+        const outputAfterRun = useKyroStore.getState().terminalOutput;
+        const outputDelta = outputAfterRun.startsWith(outputBeforeRun)
+          ? outputAfterRun.slice(outputBeforeRun.length)
+          : outputAfterRun.split('\n').slice(-80).join('\n');
+        setRunResult(analyzeRunOutput(command, outputDelta));
       }
     } catch {
       onSendToChat(`@terminal I want to run this fix command but execution failed:\n\n\`${command}\``);
+      setRunResult({
+        status: 'failure',
+        summary: 'Failed to send fix command to terminal.',
+        action: 'Check terminal session status and try running the command manually.',
+      });
     } finally {
       setIsRunningFix(false);
+      setIsAnalyzingRun(false);
     }
   }, [onSendToChat]);
 
@@ -262,6 +324,27 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
                 <Copy size={12} />
               </button>
             </div>
+            {isAnalyzingRun && (
+              <div className="text-[10px] text-[#8b949e]">Analyzing terminal output...</div>
+            )}
+            {runResult && (
+              <div className={`rounded px-2 py-1 text-[10px] ${
+                runResult.status === 'success'
+                  ? 'bg-[#238636]/10 text-[#3fb950]'
+                  : runResult.status === 'failure'
+                    ? 'bg-[#da3633]/10 text-[#f85149]'
+                    : 'bg-[#30363d] text-[#8b949e]'
+              }`}>
+                <div>{runResult.summary}</div>
+                {runResult.action && <div className="opacity-85">{runResult.action}</div>}
+                <button
+                  onClick={() => onSendToChat(`@terminal Analyze this command result: ${runResult.summary}`)}
+                  className="mt-1 underline underline-offset-2 hover:opacity-85"
+                >
+                  Ask AI to review result
+                </button>
+              </div>
+            )}
             </div>
           )}
         </div>
