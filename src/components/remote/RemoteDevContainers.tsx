@@ -480,6 +480,87 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
     }
   }, [isDesktop, localExportDir, selectedConnectionId, selectedRemoteFilePath]);
 
+  const handleDeleteRemotePath = useCallback(async (path: string, isDirectory: boolean) => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Delete requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${isDirectory ? 'directory' : 'file'}: ${path}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_delete_path', {
+        connectionId: selectedConnectionId,
+        path,
+        recursive: true,
+      });
+
+      if (selectedRemoteFilePath === path) {
+        setSelectedRemoteFilePath(null);
+        setRemoteFilePreview('');
+      }
+
+      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
+        connectionId: selectedConnectionId,
+        path: remotePath,
+      });
+      setRemoteFiles(files);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [isDesktop, remotePath, selectedConnectionId, selectedRemoteFilePath]);
+
+  const handleRenameRemotePath = useCallback(async (path: string) => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Rename requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    const currentName = path.split('/').pop() || path;
+    const newName = window.prompt('New name', currentName)?.trim();
+    if (!newName || newName === currentName) {
+      return;
+    }
+
+    const normalized = path.replace(/\/+$/, '');
+    const idx = normalized.lastIndexOf('/');
+    const parent = idx >= 0 ? normalized.slice(0, idx) : '';
+    const newPath = parent ? `${parent}/${newName}` : newName;
+
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_rename_path', {
+        connectionId: selectedConnectionId,
+        oldPath: path,
+        newPath,
+      });
+
+      if (selectedRemoteFilePath === path) {
+        setSelectedRemoteFilePath(newPath);
+      }
+
+      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
+        connectionId: selectedConnectionId,
+        path: remotePath,
+      });
+      setRemoteFiles(files);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [isDesktop, remotePath, selectedConnectionId, selectedRemoteFilePath]);
+
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
       case 'connected': return <Wifi size={12} className="text-[#3fb950]" />;
@@ -664,20 +745,33 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
             {remoteFiles.length > 0 && (
               <div className="max-h-36 overflow-y-auto rounded border border-[#30363d] bg-[#0d1117] p-1">
                 {remoteFiles.map((entry) => (
-                  <button
-                    key={entry.path}
-                    onClick={() => {
-                      if (entry.isDirectory) {
-                        void handleNavigateRemoteDir(entry.path);
-                      } else {
-                        handleOpenRemoteFile(entry.path);
-                      }
-                    }}
-                    className={`w-full text-left px-2 py-1 rounded text-xs ${entry.isDirectory ? 'text-[#58a6ff]' : 'text-[#c9d1d9] hover:bg-[#161b22]'}`}
-                  >
-                    {entry.isDirectory ? '📁' : '📄'} {entry.name}
-                    {!entry.isDirectory && typeof entry.size === 'number' ? ` (${entry.size}B)` : ''}
-                  </button>
+                  <div key={entry.path} className="group flex items-center gap-1 rounded hover:bg-[#161b22]">
+                    <button
+                      onClick={() => {
+                        if (entry.isDirectory) {
+                          void handleNavigateRemoteDir(entry.path);
+                        } else {
+                          handleOpenRemoteFile(entry.path);
+                        }
+                      }}
+                      className={`flex-1 text-left px-2 py-1 rounded text-xs ${entry.isDirectory ? 'text-[#58a6ff]' : 'text-[#c9d1d9]'}`}
+                    >
+                      {entry.isDirectory ? '📁' : '📄'} {entry.name}
+                      {!entry.isDirectory && typeof entry.size === 'number' ? ` (${entry.size}B)` : ''}
+                    </button>
+                    <button
+                      onClick={() => void handleRenameRemotePath(entry.path)}
+                      className="hidden group-hover:block px-1 py-0.5 text-[10px] text-[#58a6ff] hover:bg-[#21262d] rounded"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      onClick={() => void handleDeleteRemotePath(entry.path, entry.isDirectory)}
+                      className="hidden group-hover:block px-1 py-0.5 text-[10px] text-[#f85149] hover:bg-[#21262d] rounded"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

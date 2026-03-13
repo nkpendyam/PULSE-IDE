@@ -488,3 +488,53 @@ pub async fn remote_export_file_to_local(
 
     Ok(true)
 }
+
+#[command]
+pub async fn remote_delete_path(
+    connection_id: String,
+    path: String,
+    recursive: Option<bool>,
+) -> Result<bool, String> {
+    let state = REMOTE_STATE.read().await;
+    let connection = state
+        .get(&connection_id)
+        .cloned()
+        .ok_or_else(|| "Remote connection not found".to_string())?;
+    drop(state);
+
+    let escaped_path = shell_escape(&path);
+    let delete_flag = if recursive.unwrap_or(true) { "-rf" } else { "-f" };
+    let cmd = format!("rm {} \"{}\"", delete_flag, escaped_path);
+    let result = run_remote_shell(&connection, &cmd, None).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!("Failed to delete remote path: {}", result.stderr));
+    }
+
+    Ok(true)
+}
+
+#[command]
+pub async fn remote_rename_path(
+    connection_id: String,
+    old_path: String,
+    new_path: String,
+) -> Result<bool, String> {
+    let state = REMOTE_STATE.read().await;
+    let connection = state
+        .get(&connection_id)
+        .cloned()
+        .ok_or_else(|| "Remote connection not found".to_string())?;
+    drop(state);
+
+    let escaped_old = shell_escape(&old_path);
+    let escaped_new = shell_escape(&new_path);
+    let cmd = format!("mv \"{}\" \"{}\"", escaped_old, escaped_new);
+    let result = run_remote_shell(&connection, &cmd, None).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!("Failed to rename remote path: {}", result.stderr));
+    }
+
+    Ok(true)
+}
