@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore, ChatMessage, RagSource } from '@/store/kyroStore';
 import { MentionAutocomplete, MentionItem } from './MentionAutocomplete';
+import { buildMentionContext, parseMentions } from './mentionContext';
 import { 
   Send, Trash2, Sparkles, FileCode, Search, Check, X, 
   ChevronDown, ChevronRight, Clock, AlertTriangle, Loader2,
@@ -165,7 +166,10 @@ export function AIChatSidebar() {
     setAiLoading,
     openFiles,
     activeFileIndex,
-    projectPath
+    projectPath,
+    fileTree,
+    terminalOutput,
+    gitStatus
   } = useKyroStore();
   
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
@@ -195,6 +199,21 @@ export function AIChatSidebar() {
     if (!input.trim() || isAiLoading || isStreaming) return;
     
     const userMessage = input.trim();
+    const { cleanText, mentions } = parseMentions(userMessage);
+    const mentionContextBlocks = buildMentionContext({
+      mentions,
+      openFiles,
+      currentFile,
+      fileTree,
+      terminalOutput,
+      gitStatus,
+      chatMessages,
+      projectPath,
+    });
+    const enrichedMessage = mentionContextBlocks.length > 0
+      ? `${cleanText}\n\n[MENTION CONTEXT]\n${mentionContextBlocks.join('\n\n')}`
+      : cleanText;
+
     setInput('');
     
     // Add user message
@@ -246,7 +265,7 @@ export function AIChatSidebar() {
         total_time_ms: number;
       }>('rag_chat', {
         sessionId,
-        message: userMessage,
+        message: enrichedMessage,
         context
       });
 
