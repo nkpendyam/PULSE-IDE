@@ -149,7 +149,15 @@ export function ProblemsPanel({ onNavigate }: ProblemsPanelProps) {
     setFixingId(d.id);
 
     const errorContext = `// File: ${d.file}\n// Line ${d.line}:${d.column}\n// Error: ${d.message}`;
-    const fileLanguage = d.file.endsWith('.ts') || d.file.endsWith('.tsx') ? 'typescript' : 'javascript';
+    const ext = d.file.split('.').pop()?.toLowerCase() ?? '';
+    const EXT_TO_LANGUAGE: Record<string, string> = {
+      ts: 'typescript', tsx: 'typescript',
+      js: 'javascript', jsx: 'javascript', mjs: 'javascript', cjs: 'javascript',
+      py: 'python', rs: 'rust', go: 'go', java: 'java',
+      cpp: 'cpp', c: 'c', cs: 'csharp', rb: 'ruby', php: 'php',
+      swift: 'swift', kt: 'kotlin', vue: 'vue', svelte: 'svelte',
+    };
+    const fileLanguage = EXT_TO_LANGUAGE[ext] ?? ext ?? 'plaintext';
 
     try {
       await invoke('fix_code', {
