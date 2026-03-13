@@ -8,12 +8,33 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # Early-stage project: suppress Rust warnings during compilation.
-  # Lint-level warnings are handled by [lints] in Cargo.toml.
-  # This ensures Linux-only code paths don't break CI.
-  RUSTFLAGS: "-A warnings"
 
 jobs:
+  # Frontend Quality Gates
+  frontend:
+    name: Frontend Quality
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Frontend Lint
+        run: npm run lint
+
+      - name: Frontend Type Check
+        run: npm run type-check
+
+      - name: Frontend Unit Tests
+        run: npm test
+
   # Lint and Format Check
   lint:
     name: Lint & Format
@@ -51,8 +72,7 @@ jobs:
       
       - name: Clippy Lint
         working-directory: src-tauri
-        # Show clippy warnings but don't fail the build (early-stage project)
-        run: cargo clippy --workspace 2>&1 || true
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
   # Unit Tests
   test:
@@ -111,7 +131,6 @@ jobs:
       
       - name: Run Security Audit
         working-directory: src-tauri
-        continue-on-error: true
         run: cargo audit
 
   # Build Verification (Reproducible)

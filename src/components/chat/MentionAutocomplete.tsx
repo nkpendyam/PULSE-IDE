@@ -73,10 +73,6 @@ export function MentionAutocomplete({ inputValue, cursorPosition, onSelect, onDi
     f.toLowerCase().includes(fileFilter.toLowerCase())
   ).slice(0, 15);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [atQuery]);
-
   const items = showFilePicker ? filteredFiles : filteredMentions;
 
   useEffect(() => {
