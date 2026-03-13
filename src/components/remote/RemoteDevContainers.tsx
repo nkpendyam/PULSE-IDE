@@ -35,47 +35,76 @@ const DEFAULT_DEVCONTAINER = {
 
 export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [connections, setConnections] = useState<RemoteConnection[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
   const [expandedSection, setExpandedSection] = useState<string | null>('connections');
   const [devcontainerExists, setDevcontainerExists] = useState(false);
+  const isDesktop = typeof window !== 'undefined' && !!window.__TAURI__;
 
   const handleConnect = useCallback(async (id: string) => {
+    if (!isDesktop) {
+      setError('Remote connections require the desktop Tauri runtime and are not available in browser-only mode.');
+      return;
+    }
+
     setConnections(prev =>
       prev.map(c => c.id === id ? { ...c, status: 'connecting' as const } : c)
     );
-    // Simulate connection — in production this invokes Tauri SSH/container backend
+
     try {
-      if (typeof window !== 'undefined' && window.__TAURI__) {
-        const conn = connections.find(c => c.id === id);
-        if (conn) {
-          await window.__TAURI__.core.invoke('remote_connect', {
-            connectionType: conn.type,
-            host: conn.host,
-            config: conn.config,
-          });
-        }
+      const tauri = window.__TAURI__;
+      if (!tauri) {
+        setError('Desktop runtime is unavailable.');
+        return;
       }
-      setConnections(prev =>
-        prev.map(c => c.id === id ? { ...c, status: 'connected' as const, lastConnected: Date.now() } : c)
-      );
-    } catch {
+
+      const conn = connections.find(c => c.id === id);
+      if (conn) {
+        const remote = await tauri.core.invoke<{ connectionId: string }>('remote_connect', {
+          connectionType: conn.type,
+          host: conn.host,
+          config: conn.config,
+        });
+
+        setConnections(prev =>
+          prev.map(c => c.id === id
+            ? { ...c, id: remote.connectionId, status: 'connected' as const, lastConnected: Date.now() }
+            : c)
+        );
+      }
+      setError(null);
+    } catch (e) {
+      setError(String(e));
       setConnections(prev =>
         prev.map(c => c.id === id ? { ...c, status: 'disconnected' as const } : c)
       );
     }
-  }, [connections]);
+  }, [connections, isDesktop]);
 
   const handleDisconnect = useCallback(async (id: string) => {
-    if (typeof window !== 'undefined' && window.__TAURI__) {
-      try {
-        await window.__TAURI__.core.invoke('remote_disconnect', { connectionId: id });
-      } catch { /* fallback */ }
+    if (!isDesktop) {
+      setError('Remote disconnect requires desktop runtime.');
+      return;
     }
+
+    try {
+      const tauri = window.__TAURI__;
+      if (!tauri) {
+        setError('Desktop runtime is unavailable.');
+        return;
+      }
+
+      await tauri.core.invoke('remote_disconnect', { connectionId: id });
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
+
     setConnections(prev =>
       prev.map(c => c.id === id ? { ...c, status: 'disconnected' as const } : c)
     );
-  }, []);
+  }, [isDesktop]);
 
   const handleRemove = useCallback((id: string) => {
     setConnections(prev => prev.filter(c => c.id !== id));
@@ -97,21 +126,28 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   }, [newConn]);
 
   const handleCreateDevcontainer = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.__TAURI__) {
-      try {
-        await window.__TAURI__.core.invoke('write_file', {
-          path: `${projectPath}/.devcontainer/devcontainer.json`,
-          content: JSON.stringify(DEFAULT_DEVCONTAINER, null, 2),
-        });
-        setDevcontainerExists(true);
-      } catch {
-        // Fallback: just mark as created
-        setDevcontainerExists(true);
-      }
-    } else {
-      setDevcontainerExists(true);
+    if (!isDesktop) {
+      setError('Creating devcontainers requires desktop runtime file APIs.');
+      return;
     }
-  }, [projectPath]);
+
+    try {
+      const tauri = window.__TAURI__;
+      if (!tauri) {
+        setError('Desktop runtime is unavailable.');
+        return;
+      }
+
+      await tauri.core.invoke('write_file', {
+        path: `${projectPath}/.devcontainer/devcontainer.json`,
+        content: JSON.stringify(DEFAULT_DEVCONTAINER, null, 2),
+      });
+      setDevcontainerExists(true);
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [projectPath, isDesktop]);
 
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
@@ -131,6 +167,18 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
 
   return (
     <div className="flex flex-col h-full text-sm">
+      {!isDesktop && (
+        <div className="mx-2 mt-2 mb-1 rounded border border-[#d29922]/40 bg-[#d29922]/10 px-2 py-1.5 text-xs text-[#d29922]">
+          Browser mode detected: remote SSH/WSL/devcontainer operations require the desktop app.
+        </div>
+      )}
+
+      {error && (
+        <div className="mx-2 mt-2 mb-1 rounded border border-[#f85149]/40 bg-[#f85149]/10 px-2 py-1.5 text-xs text-[#f85149]">
+          {error}
+        </div>
+      )}
+
       {/* Remote Connections Section */}
       <button
         onClick={() => setExpandedSection(expandedSection === 'connections' ? null : 'connections')}

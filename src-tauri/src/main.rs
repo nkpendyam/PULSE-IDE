@@ -508,6 +508,10 @@ fn main() {
             commands::collaboration::get_current_room,
             commands::collaboration::list_rooms,
             commands::collaboration::broadcast_cursor,
+            // ============ Remote Workspace Operations ============
+            commands::remote::remote_connect,
+            commands::remote::remote_disconnect,
+            commands::remote::list_remote_connections,
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,

@@ -207,6 +207,13 @@ export function HardwareInfoPanel() {
         </div>
       )}
 
+      {hardwareInfo && (hardwareInfo.memory_tier === 'Cpu' || hardwareInfo.memory_tier === 'Low4GB') && (
+        <div className="p-2 bg-yellow-900/25 border border-yellow-700 rounded text-yellow-300 text-sm">
+          Local AI is resource-constrained on this machine. Expect reduced context/model size and slower responses.
+          For larger workloads, use an OpenAI-compatible endpoint (for example, Ollama/remote model server).
+        </div>
+      )}
+
       {/* LLM Status */}
       <div className="border-t border-gray-700 pt-4">
         <div className="flex items-center justify-between mb-3">
