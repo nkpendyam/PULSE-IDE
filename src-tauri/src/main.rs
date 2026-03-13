@@ -430,6 +430,7 @@ fn main() {
             commands::terminal::write_to_terminal,
             commands::terminal::resize_terminal,
             commands::terminal::kill_terminal,
+            commands::terminal::run_terminal_command,
             // ============ AI Operations ============
             commands::ai::chat_completion,
             commands::ai::code_completion,
@@ -696,6 +697,7 @@ fn main() {
             commands::ai::agent_command,
             commands::ai::agent_approve,
             commands::ai::agent_reject,
+            commands::ai::chat_complete,
             commands::chat_agent::chat_agent_detect_backends,
             commands::chat_agent::chat_agent_smart_completion,
             commands::chat_agent::chat_agent_inline_edit,

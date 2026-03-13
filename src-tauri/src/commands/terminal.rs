@@ -55,3 +55,45 @@ pub async fn kill_terminal(
     let mut mgr = manager.lock().await;
     mgr.kill_terminal(&id)
 }
+
+/// Run a one-shot terminal command and capture its output.
+/// Used by DeployPanel, NotebookPanel, and similar features.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CommandOutput {
+    pub output: String,
+    pub exit_code: i32,
+}
+
+#[command]
+pub async fn run_terminal_command(command: String) -> Result<CommandOutput, String> {
+    use std::process::Command;
+
+    let (shell, flag) = if cfg!(windows) {
+        ("cmd", "/C")
+    } else {
+        ("sh", "-c")
+    };
+
+    let result = Command::new(shell)
+        .arg(flag)
+        .arg(&command)
+        .output()
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&result.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&result.stderr).to_string();
+    let combined = if stderr.is_empty() {
+        stdout
+    } else if stdout.is_empty() {
+        stderr
+    } else {
+        format!("{}\n{}", stdout, stderr)
+    };
+
+    let exit_code = result.status.code().unwrap_or(-1);
+
+    Ok(CommandOutput {
+        output: combined,
+        exit_code,
+    })
+}

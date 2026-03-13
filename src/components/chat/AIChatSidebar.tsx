@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useKyroStore, ChatMessage, RagSource } from '@/store/kyroStore';
 import { MentionAutocomplete, MentionItem } from './MentionAutocomplete';
+import { VoiceInput } from '@/components/voice/VoiceInput';
 import { 
   Send, Trash2, Sparkles, FileCode, Search, Check, X, 
   ChevronDown, ChevronRight, Clock, AlertTriangle, Loader2,
@@ -505,13 +506,19 @@ export function AIChatSidebar() {
             className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-[#58a6ff] disabled:opacity-50 disabled:cursor-not-allowed text-[#c9d1d9] placeholder-[#8b949e]"
             rows={3}
           />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isAiLoading || !isOllamaRunning}
-            className="px-3 bg-[#238636] hover:bg-[#2ea043] disabled:bg-[#21262d] disabled:text-[#8b949e] rounded-lg text-white transition-colors"
-          >
-            <Send size={16} />
-          </button>
+          <div className="flex flex-col gap-1">
+            <VoiceInput
+              onTranscript={(text) => setInput(prev => prev + (prev ? ' ' : '') + text)}
+              disabled={!isOllamaRunning || isAiLoading}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isAiLoading || !isOllamaRunning}
+              className="px-3 py-2 bg-[#238636] hover:bg-[#2ea043] disabled:bg-[#21262d] disabled:text-[#8b949e] rounded-lg text-white transition-colors"
+            >
+              <Send size={16} />
+            </button>
+          </div>
         </div>
         
         {/* Context indicator */}
