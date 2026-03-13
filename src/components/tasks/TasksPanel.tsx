@@ -193,12 +193,11 @@ export function TasksPanel() {
       try {
         const pkg = JSON.parse(output);
         const scripts: Record<string, string> = pkg.scripts ?? {};
-        const tasks: Task[] = Object.entries(scripts).map(([name, cmd]) => ({
+        const tasks: Task[] = Object.entries(scripts).map(([name]) => ({
           id: name,
           name,
           command: `npm run ${name}`,
           isCustom: false,
-          _raw: cmd as string,
         }));
         if (tasks.length > 0) setNpmTasks(tasks);
       } catch {
