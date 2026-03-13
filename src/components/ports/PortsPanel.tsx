@@ -189,14 +189,18 @@ export function PortsPanel() {
 
   useEffect(() => {
     const manual = loadManualPorts();
-    // Try to detect system ports
+    // Try to detect system ports using platform-appropriate commands
     (async () => {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        const output = await invoke<string>('run_terminal_command', {
-          command: 'ss -tlnp 2>/dev/null || netstat -tlnp 2>/dev/null || echo "NO_DATA"',
-        });
-        if (output && !output.includes('NO_DATA')) {
+        // Detect platform first
+        const isWindows = typeof navigator !== 'undefined' && /Win/.test(navigator.platform);
+        const command = isWindows
+          ? 'netstat -an'
+          : 'ss -tlnp 2>/dev/null; [ $? -ne 0 ] && netstat -tlnp 2>/dev/null; true';
+        const result = await invoke<{ output: string; exit_code: number }>('run_terminal_command', { command });
+        const output = result?.output ?? '';
+        if (output.trim()) {
           const detected = parsePortsFromOutput(output);
           const detectedPorts: Port[] = detected.map(p => ({
             id: `detected-${p}`,
@@ -208,8 +212,10 @@ export function PortsPanel() {
             active: true,
             isManual: false,
           }));
-          setPorts([...detectedPorts, ...manual]);
-          return;
+          if (detectedPorts.length > 0) {
+            setPorts([...detectedPorts, ...manual]);
+            return;
+          }
         }
       } catch {
         /* Tauri unavailable */

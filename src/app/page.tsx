@@ -45,6 +45,12 @@ import { NotebookPanel } from '@/components/editor/NotebookPanel';
 import { ThemeBuilder } from '@/components/theme/ThemeBuilder';
 import { ProblemsPanel } from '@/components/debug/ProblemsPanel';
 import { MergeConflictEditor } from '@/components/git/MergeConflictEditor';
+import { EditorGroup, SplitPaneControls } from '@/components/editor/EditorGroup';
+import { SnippetsPanel } from '@/components/snippets/SnippetsPanel';
+import { TasksPanel } from '@/components/tasks/TasksPanel';
+import { OutputPanel } from '@/components/output/OutputPanel';
+import { PortsPanel } from '@/components/ports/PortsPanel';
+import { KeybindingsPanel } from '@/components/settings/KeybindingsPanel';
 import { KeybindingManager } from '@/lib/keybindings';
 import { registerLspProviders, setupFileWatcher } from '@/lib/lspBridge';
 import {
@@ -79,6 +85,14 @@ import {
   Palette,
   AlertCircle,
   GitMerge,
+  Scissors,
+  ListTodo,
+  Radio,
+  Network,
+  Keyboard,
+  Maximize2,
+  Minimize2,
+  SplitSquareVertical,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -106,7 +120,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote' | 'deploy' | 'arena' | 'notebook' | 'theme-builder' | 'problems' | 'merge-conflicts';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote' | 'deploy' | 'arena' | 'notebook' | 'theme-builder' | 'problems' | 'merge-conflicts' | 'snippets' | 'tasks' | 'output' | 'ports' | 'keybindings';
 
 // Fallback file tree (used when Tauri is not available)
 const fallbackFileTree: FileNode = {
@@ -142,6 +156,8 @@ export default function Home() {
   const editorRef = useRef<unknown>(null);
   const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [zenMode, setZenMode] = useState(false);
+  const [useSplitEditor, setUseSplitEditor] = useState(false);
 
   const {
     projectPath,
@@ -264,6 +280,8 @@ export default function Home() {
       'workbench.view.scm': () => setActivePanel('git'),
       'workbench.view.debug': () => setActivePanel('debug'),
       'workbench.view.extensions': () => setActivePanel('extensions'),
+      'workbench.action.toggleZenMode': () => setZenMode(prev => !prev),
+      'workbench.action.splitEditor': () => setUseSplitEditor(prev => !prev),
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -277,6 +295,17 @@ export default function Home() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSaveFile]);
+
+  // Escape exits Zen Mode
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && zenMode) {
+        setZenMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [zenMode]);
 
   // Listen for navigation events from CommandPalette
   React.useEffect(() => {
@@ -593,6 +622,11 @@ export default function Home() {
               { id: 'theme-builder' as SidebarPanel, icon: Palette, label: 'Theme Builder' },
               { id: 'problems' as SidebarPanel, icon: AlertCircle, label: 'Problems' },
               { id: 'merge-conflicts' as SidebarPanel, icon: GitMerge, label: 'Merge Conflicts' },
+              { id: 'snippets' as SidebarPanel, icon: Scissors, label: 'Snippets' },
+              { id: 'tasks' as SidebarPanel, icon: ListTodo, label: 'Tasks' },
+              { id: 'output' as SidebarPanel, icon: Radio, label: 'Output' },
+              { id: 'ports' as SidebarPanel, icon: Network, label: 'Ports' },
+              { id: 'keybindings' as SidebarPanel, icon: Keyboard, label: 'Keybindings' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -653,6 +687,11 @@ export default function Home() {
                 {activePanel === 'theme-builder' && 'Theme Builder'}
                 {activePanel === 'problems' && 'Problems'}
                 {activePanel === 'merge-conflicts' && 'Merge Conflicts'}
+                {activePanel === 'snippets' && 'Snippets'}
+                {activePanel === 'tasks' && 'Tasks'}
+                {activePanel === 'output' && 'Output'}
+                {activePanel === 'ports' && 'Ports'}
+                {activePanel === 'keybindings' && 'Keyboard Shortcuts'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -751,16 +790,62 @@ export default function Home() {
               {activePanel === 'merge-conflicts' && (
                 <MergeConflictEditor onClose={() => setActivePanel('git')} />
               )}
+              {activePanel === 'snippets' && (
+                <SnippetsPanel />
+              )}
+              {activePanel === 'tasks' && (
+                <TasksPanel />
+              )}
+              {activePanel === 'output' && (
+                <OutputPanel />
+              )}
+              {activePanel === 'ports' && (
+                <PortsPanel />
+              )}
+              {activePanel === 'keybindings' && (
+                <KeybindingsPanel />
+              )}
             </div>
           </div>
 
           {/* Main Editor Area */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <TabBar />
-            {currentFile && <Breadcrumbs />}
+          <div className={`flex-1 flex flex-col min-w-0 ${zenMode ? 'fixed inset-0 z-50 bg-[#0d1117]' : ''}`}>
+            {/* Editor toolbar: Zen Mode + Split Editor toggles */}
+            {!zenMode && (
+              <div className="flex items-center justify-between px-2 py-0.5 bg-[#161b22] border-b border-[#30363d] shrink-0">
+                <TabBar />
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <SplitPaneControls />
+                  <button
+                    onClick={() => setZenMode(true)}
+                    className="p-1.5 rounded hover:bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9]"
+                    title="Zen Mode (Ctrl+K Z)"
+                  >
+                    <Maximize2 size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {zenMode && (
+              <div className="flex items-center justify-between px-2 py-0.5 bg-[#161b22] border-b border-[#30363d] shrink-0">
+                <TabBar />
+                <button
+                  onClick={() => setZenMode(false)}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9]"
+                  title="Exit Zen Mode (Escape)"
+                >
+                  <Minimize2 size={12} />
+                  Exit Zen
+                </button>
+              </div>
+            )}
+            {currentFile && !zenMode && <Breadcrumbs />}
             <div className="flex-1 flex overflow-hidden">
               <div className="flex-1 relative">
-                {currentFile ? (
+                {/* Split editor (full EditorGroup with tab management) or single editor */}
+                {useSplitEditor ? (
+                  <EditorGroup />
+                ) : currentFile ? (
                   <Editor
                     height="100%"
                     language={currentFile.language}
@@ -806,6 +891,7 @@ export default function Home() {
                     <Layout size={48} className="mb-4 opacity-50" />
                     <p className="text-lg mb-2">No file open</p>
                     <p className="text-xs">Select a file from the explorer or press Ctrl+P</p>
+                    <p className="text-xs mt-1 opacity-60">Ctrl+\ to toggle split editor</p>
                   </div>
                 )}
                 {/* Inline Chat Overlay */}

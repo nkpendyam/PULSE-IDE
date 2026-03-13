@@ -88,16 +88,18 @@ function TaskRow({ task, run, onRun, onStop, onDelete, onClearLog }: TaskRowProp
   const [expanded, setExpanded] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const status: TaskStatus = run?.status ?? 'idle';
+  const runLogs = run?.logs;
+  const runStatus = run?.status;
 
   useEffect(() => {
     if (expanded && logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
-  }, [run?.logs, expanded]);
+  }, [runLogs, expanded]);
 
   useEffect(() => {
-    if (run && run.status === 'running') setExpanded(true);
-  }, [run?.status]);
+    if (runStatus === 'running') setExpanded(true);
+  }, [runStatus]);
 
   return (
     <div className="border-b border-[#21262d] last:border-0">

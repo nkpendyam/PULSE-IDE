@@ -21,9 +21,6 @@ if (typeof window !== 'undefined' && '__TAURI__' in window) {
 
 const FALLBACK_MODELS = ['llama3', 'codellama', 'mistral', 'phi3', 'qwen2.5-coder'];
 
-// Delay before probing Tauri for models — gives the API time to fully initialise
-const TAURI_INIT_DELAY_MS = 300;
-
 const VOTE_STORAGE_KEY = 'kyro-arena-votes';
 
 interface Message {
@@ -224,20 +221,38 @@ export function ArenaMode() {
   useEffect(() => {
     setVotes(loadVotes());
 
-    const tryLoadModels = async () => {
-      if (!tauriInvoke) return;
+    // Probe Tauri for models; retry up to 5 times with 500ms gaps to handle slow init
+    let attempts = 0;
+    const MAX_ATTEMPTS = 5;
+    const RETRY_INTERVAL_MS = 500;
+
+    const tryLoadModels = async (): Promise<void> => {
+      if (!tauriInvoke) {
+        setAvailableModels(FALLBACK_MODELS);
+        setModelA(FALLBACK_MODELS[0]);
+        setModelB(FALLBACK_MODELS[1]);
+        return;
+      }
       try {
         const models = await tauriInvoke('list_local_models') as string[];
         if (Array.isArray(models) && models.length > 0) {
           setAvailableModels(models);
           setModelA(models[0]);
           setModelB(models[models.length > 1 ? 1 : 0]);
+          return;
         }
       } catch {}
+      attempts++;
+      if (attempts < MAX_ATTEMPTS) {
+        timer = setTimeout(tryLoadModels, RETRY_INTERVAL_MS);
+      } else {
+        setAvailableModels(FALLBACK_MODELS);
+        setModelA(FALLBACK_MODELS[0]);
+        setModelB(FALLBACK_MODELS[1]);
+      }
     };
 
-    // Wait briefly for Tauri to initialise then load models
-    const timer = setTimeout(tryLoadModels, TAURI_INIT_DELAY_MS);
+    let timer = setTimeout(tryLoadModels, 0);
     return () => clearTimeout(timer);
   }, []);
 
