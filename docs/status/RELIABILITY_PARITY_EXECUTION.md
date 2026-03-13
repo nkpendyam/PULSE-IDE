@@ -75,6 +75,8 @@ Security policy config:
    - `must-fix` (security/unsound/high)
    - `time-boxed` (unmaintained but low exploitability)
 
+Status: ✅ Completed (see `docs/status/AUDIT_EXCEPTION_REGISTER.md`)
+
 ### Phase B — Containment (next sprint)
 
 1. Introduce `audit.toml` policy:
@@ -83,11 +85,15 @@ Security policy config:
 2. Reduce risky optional surface area:
    - remove or gate unused optional crates/features
 
+Status: ✅ Completed for current cycle (`src-tauri/.cargo/audit.toml` + direct `bincode` removal)
+
 ### Phase C — Reliability Proof
 
 1. Add heavy workflow test matrix (long sessions, collaboration, large repos)
 2. Track weekly trend: pass rate, flaky tests, crash-free sessions
 3. Require a 14-day green stabilization window before parity claim
+
+Status: 🟡 Automation completed (`scripts/stability-proof.sh`, `scripts/stability-proof.ps1`, `.github/workflows/stability-proof.yml`); 14-day elapsed-time window pending execution history.
 
 ## Owner Checklist
 
@@ -96,5 +102,5 @@ Security policy config:
 - [x] Harden CI quality/security gates
 - [x] Upgrade vulnerable Rust dependencies
 - [x] Add `audit.toml` with documented policy exceptions
-- [ ] Run 14-day stabilization period
-- [ ] Publish parity report
+- [ ] Run 14-day stabilization period (time-bound)
+- [x] Publish parity report
