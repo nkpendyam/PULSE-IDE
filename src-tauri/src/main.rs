@@ -431,6 +431,7 @@ fn main() {
             commands::terminal::create_terminal,
             commands::terminal::write_to_terminal,
             commands::terminal::resize_terminal,
+            commands::terminal::poll_terminal_output,
             commands::terminal::kill_terminal,
             // ============ AI Operations ============
             commands::ai::chat_completion,

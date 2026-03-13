@@ -48,6 +48,15 @@ pub async fn resize_terminal(
 }
 
 #[command]
+pub async fn poll_terminal_output(
+    manager: State<'_, Arc<Mutex<TerminalManager>>>,
+    id: String,
+) -> Result<String, String> {
+    let mut mgr = manager.lock().await;
+    mgr.poll_terminal_output(&id)
+}
+
+#[command]
 pub async fn kill_terminal(
     manager: State<'_, Arc<Mutex<TerminalManager>>>,
     id: String,

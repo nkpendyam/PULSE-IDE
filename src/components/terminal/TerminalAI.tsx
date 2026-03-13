@@ -53,6 +53,7 @@ function detectErrors(output: string): string[] {
 export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
   const [explanation, setExplanation] = useState<ErrorExplanation | null>(null);
   const [isExplaining, setIsExplaining] = useState(false);
+  const [isRunningFix, setIsRunningFix] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   // Detect errors when terminal output changes
@@ -113,6 +114,26 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
   const handleCopyError = useCallback((error: string) => {
     navigator.clipboard.writeText(error);
   }, []);
+
+  const handleRunFixCommand = useCallback(async (command: string) => {
+    if (!command.trim()) {
+      return;
+    }
+
+    setIsRunningFix(true);
+    try {
+      if (typeof window !== 'undefined' && window.__TAURI__) {
+        await window.__TAURI__.core.invoke('write_to_terminal', {
+          id: 'main',
+          data: `${command}\n`,
+        });
+      }
+    } catch {
+      onSendToChat(`@terminal I want to run this fix command but execution failed:\n\n\`${command}\``);
+    } finally {
+      setIsRunningFix(false);
+    }
+  }, [onSendToChat]);
 
   if (detectedErrors.length === 0 && !explanation) return null;
 
@@ -179,6 +200,14 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
               <code className="text-[11px] bg-[#0d1117] text-[#c9d1d9] px-2 py-1 rounded font-mono flex-1">
                 {explanation.command}
               </code>
+              <button
+                onClick={() => handleRunFixCommand(explanation.command!)}
+                disabled={isRunningFix}
+                className="px-2 py-1 rounded text-[10px] bg-[#238636] text-white hover:bg-[#2ea043] disabled:opacity-50"
+                title="Run command in terminal"
+              >
+                {isRunningFix ? 'Running...' : 'Run Fix'}
+              </button>
               <button
                 onClick={() => handleCopyError(explanation.command!)}
                 className="p-1 rounded text-[#8b949e] hover:text-[#c9d1d9]"

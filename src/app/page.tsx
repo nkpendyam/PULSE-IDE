@@ -159,6 +159,8 @@ export default function Home() {
     isAgentRunning,
     setAgentRunning,
     chatMessages,
+    terminalOutput,
+    addChatMessage,
     settings,
   } = useKyroStore();
 
@@ -880,9 +882,9 @@ export default function Home() {
             {/* Terminal Panel */}
             <div className="h-40 border-t border-[#30363d]">
               <TerminalAI
-                terminalOutput={useKyroStore.getState().terminalOutput}
+                terminalOutput={terminalOutput}
                 onSendToChat={(msg) => {
-                  useKyroStore.getState().addChatMessage({
+                  addChatMessage({
                     id: `msg-${Date.now()}`,
                     role: 'user',
                     content: msg,
