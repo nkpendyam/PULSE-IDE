@@ -4,13 +4,13 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = localFont({
-  src: "../../public/fonts/geist-latin.woff2",
+  src: "../assets/fonts/geist-latin.woff2",
   variable: "--font-geist-sans",
   display: "swap",
 });
 
 const geistMono = localFont({
-  src: "../../public/fonts/geist-mono-latin.woff2",
+  src: "../assets/fonts/geist-mono-latin.woff2",
   variable: "--font-geist-mono",
   display: "swap",
 });
