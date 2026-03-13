@@ -34,6 +34,9 @@ interface MentionPreviewItem {
   detail: string;
   resolved: boolean;
   rawToken: string;
+  type: string;
+  value: string;
+  count: number;
 }
 
 function treeContainsPrefix(root: FileNode | null, prefix: string): boolean {
@@ -209,92 +212,142 @@ export function AIChatSidebar() {
   const currentFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
   const mentionPreviewItems = useMemo<MentionPreviewItem[]>(() => {
     const parsed = parseMentions(input).mentions;
+    const deduped = new Map<string, MentionPreviewItem>();
 
-    return parsed.map((mention, index) => {
+    parsed.forEach((mention, index) => {
       const id = `${mention.type}-${mention.value}-${index}`;
+      const identityKey = `${mention.type}:${mention.value}`;
 
       if (mention.type === 'file') {
+        let nextItem: MentionPreviewItem;
         if (!mention.value) {
-          return {
+          nextItem = {
             id,
             label: '@file',
             detail: currentFile ? currentFile.path : 'No active file',
             resolved: Boolean(currentFile),
             rawToken: mention.raw,
+            type: mention.type,
+            value: mention.value,
+            count: 1,
+          };
+        } else {
+          const existsInOpenFiles = openFiles.some((file) => file.path === mention.value);
+          nextItem = {
+            id,
+            label: '@file',
+            detail: mention.value,
+            resolved: existsInOpenFiles,
+            rawToken: mention.raw,
+            type: mention.type,
+            value: mention.value,
+            count: 1,
           };
         }
 
-        const existsInOpenFiles = openFiles.some((file) => file.path === mention.value);
-        return {
-          id,
-          label: '@file',
-          detail: mention.value,
-          resolved: existsInOpenFiles,
-          rawToken: mention.raw,
-        };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
       }
 
       if (mention.type === 'folder') {
         const folderPath = mention.value || 'root';
         const resolved = mention.value ? treeContainsPrefix(fileTree, mention.value) : Boolean(fileTree);
-        return {
+        const nextItem: MentionPreviewItem = {
           id,
           label: '@folder',
           detail: folderPath,
           resolved,
           rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
         };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
       }
 
       if (mention.type === 'terminal') {
         const hasOutput = terminalOutput.trim().length > 0;
-        return {
+        const nextItem: MentionPreviewItem = {
           id,
           label: '@terminal',
           detail: hasOutput ? 'Terminal output available' : 'Terminal output empty',
           resolved: hasOutput,
           rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
         };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
       }
 
       if (mention.type === 'git') {
-        return {
+        const nextItem: MentionPreviewItem = {
           id,
           label: '@git',
           detail: gitStatus ? gitStatus.branch : 'Git status unavailable',
           resolved: Boolean(gitStatus),
           rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
         };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
       }
 
       if (mention.type === 'previous') {
-        return {
+        const nextItem: MentionPreviewItem = {
           id,
           label: '@previous',
           detail: chatMessages.length > 0 ? `${chatMessages.length} message(s)` : 'No previous messages',
           resolved: chatMessages.length > 0,
           rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
         };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
       }
 
       if (mention.type === 'codebase') {
-        return {
+        const nextItem: MentionPreviewItem = {
           id,
           label: '@codebase',
           detail: fileTree ? projectPath || 'Project loaded' : 'Project tree unavailable',
           resolved: Boolean(fileTree),
           rawToken: mention.raw,
+          type: mention.type,
+          value: mention.value,
+          count: 1,
         };
+        const existing = deduped.get(identityKey);
+        deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
+        return;
       }
 
-      return {
+      const nextItem: MentionPreviewItem = {
         id,
         label: '@web',
         detail: 'Not available in local mode',
         resolved: false,
         rawToken: mention.raw,
+        type: mention.type,
+        value: mention.value,
+        count: 1,
       };
+      const existing = deduped.get(identityKey);
+      deduped.set(identityKey, existing ? { ...existing, count: existing.count + 1 } : nextItem);
     });
+
+    return Array.from(deduped.values());
   }, [chatMessages.length, currentFile, fileTree, gitStatus, input, openFiles, projectPath, terminalOutput]);
 
   const removeMentionTokenFromInput = (source: string, rawToken: string, mode: 'first' | 'last'): string => {
@@ -334,7 +387,14 @@ export function AIChatSidebar() {
 
   const handleRemoveMentionChip = (item: MentionPreviewItem) => {
     setInput((prev) => {
-      return removeMentionTokenFromInput(prev, item.rawToken, 'first');
+      let next = prev;
+      const parsedMentions = parseMentions(prev).mentions;
+      for (const mention of parsedMentions) {
+        if (mention.type === item.type && mention.value === item.value) {
+          next = removeMentionTokenFromInput(next, mention.raw, 'first');
+        }
+      }
+      return next;
     });
     setShowMentions(false);
     inputRef.current?.focus();
@@ -544,8 +604,10 @@ export function AIChatSidebar() {
 
       if (selectionStart === selectionEnd && selectionStart === input.length && mentionPreviewItems.length > 0) {
         e.preventDefault();
-        const lastMention = mentionPreviewItems[mentionPreviewItems.length - 1];
-        setInput((prev) => removeMentionTokenFromInput(prev, lastMention.rawToken, 'last'));
+        const lastMention = parseMentions(input).mentions.slice(-1)[0];
+        if (lastMention) {
+          setInput((prev) => removeMentionTokenFromInput(prev, lastMention.raw, 'last'));
+        }
         setShowMentions(false);
         return;
       }
@@ -727,6 +789,7 @@ export function AIChatSidebar() {
               >
                 <span className="font-medium">{item.label}</span>
                 <span className="opacity-85">{item.detail}</span>
+                {item.count > 1 && <span className="opacity-75">×{item.count}</span>}
                 <button
                   type="button"
                   onClick={() => handleRemoveMentionChip(item)}
