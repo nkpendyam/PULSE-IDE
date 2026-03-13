@@ -405,6 +405,13 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
                 <div className="text-[#8b949e] truncate">{item.summary}</div>
                 <div className="mt-1 flex items-center justify-end">
                   <button
+                    onClick={() => handleCopyError(`${item.command}\n${item.status.toUpperCase()}\n${item.summary}`)}
+                    className="rounded px-1.5 py-0.5 text-[10px] text-[#8b949e] hover:bg-[#21262d] hover:text-[#c9d1d9]"
+                    title="Copy command and result summary"
+                  >
+                    Copy Summary
+                  </button>
+                  <button
                     onClick={() => handleRunFixCommand(item.command)}
                     disabled={isRunningFix || isAnalyzingRun}
                     className="rounded px-1.5 py-0.5 text-[10px] text-[#58a6ff] hover:bg-[#21262d] disabled:opacity-50"
