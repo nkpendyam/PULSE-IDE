@@ -78,6 +78,9 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [isWritingFile, setIsWritingFile] = useState(false);
   const [localExportDir, setLocalExportDir] = useState(`${projectPath || '.'}/download`);
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedRemotePaths, setSelectedRemotePaths] = useState<string[]>([]);
+  const [bulkTargetDir, setBulkTargetDir] = useState('.');
+  const [isBulkRunning, setIsBulkRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
@@ -91,6 +94,33 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   );
 
   const selectedConnectionId = connectedConnections[0]?.id ?? null;
+
+  const refreshRemoteFiles = useCallback(async (pathOverride?: string) => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Remote file listing requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    const path = pathOverride ?? remotePath;
+    setIsListingFiles(true);
+    setError(null);
+    try {
+      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
+        connectionId: selectedConnectionId,
+        path,
+      });
+      setRemoteFiles(files);
+      setSelectedRemotePaths((current) => current.filter((entryPath) => files.some((f) => f.path === entryPath)));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsListingFiles(false);
+    }
+  }, [isDesktop, remotePath, selectedConnectionId]);
 
   useEffect(() => {
     if (!isDesktop || !window.__TAURI__) {
@@ -324,48 +354,13 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   }, [isDesktop, projectPath, remoteCommand, selectedConnectionId]);
 
   const handleListRemoteFiles = useCallback(async () => {
-    if (!isDesktop || !window.__TAURI__) {
-      setError('Remote file listing requires desktop runtime.');
-      return;
-    }
-    if (!selectedConnectionId) {
-      setError('Connect to a remote target first.');
-      return;
-    }
-
-    setIsListingFiles(true);
-    setError(null);
-    try {
-      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
-        connectionId: selectedConnectionId,
-        path: remotePath,
-      });
-      setRemoteFiles(files);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setIsListingFiles(false);
-    }
-  }, [isDesktop, selectedConnectionId, remotePath]);
+    await refreshRemoteFiles();
+  }, [refreshRemoteFiles]);
 
   const handleNavigateRemoteDir = useCallback(async (path: string) => {
     setRemotePath(path);
-    if (!isDesktop || !window.__TAURI__ || !selectedConnectionId) return;
-
-    setIsListingFiles(true);
-    setError(null);
-    try {
-      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
-        connectionId: selectedConnectionId,
-        path,
-      });
-      setRemoteFiles(files);
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setIsListingFiles(false);
-    }
-  }, [isDesktop, selectedConnectionId]);
+    await refreshRemoteFiles(path);
+  }, [refreshRemoteFiles]);
 
   const handleNavigateUp = useCallback(() => {
     const trimmed = remotePath.replace(/\/+$/, '');
@@ -507,16 +502,12 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
         setSelectedRemoteFilePath(null);
         setRemoteFilePreview('');
       }
-
-      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
-        connectionId: selectedConnectionId,
-        path: remotePath,
-      });
-      setRemoteFiles(files);
+      setSelectedRemotePaths((current) => current.filter((entryPath) => entryPath !== path));
+      await refreshRemoteFiles();
     } catch (e) {
       setError(String(e));
     }
-  }, [isDesktop, remotePath, selectedConnectionId, selectedRemoteFilePath]);
+  }, [isDesktop, refreshRemoteFiles, selectedConnectionId, selectedRemoteFilePath]);
 
   const handleRenameRemotePath = useCallback(async (path: string) => {
     if (!isDesktop || !window.__TAURI__) {
@@ -550,16 +541,119 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       if (selectedRemoteFilePath === path) {
         setSelectedRemoteFilePath(newPath);
       }
-
-      const files = await window.__TAURI__.core.invoke<RemoteFileEntry[]>('remote_list_files', {
-        connectionId: selectedConnectionId,
-        path: remotePath,
-      });
-      setRemoteFiles(files);
+      setSelectedRemotePaths((current) => current.map((entryPath) => entryPath === path ? newPath : entryPath));
+      await refreshRemoteFiles();
     } catch (e) {
       setError(String(e));
     }
-  }, [isDesktop, remotePath, selectedConnectionId, selectedRemoteFilePath]);
+  }, [isDesktop, refreshRemoteFiles, selectedConnectionId, selectedRemoteFilePath]);
+
+  const toggleRemoteSelection = useCallback((path: string) => {
+    setSelectedRemotePaths((current) => (
+      current.includes(path)
+        ? current.filter((entryPath) => entryPath !== path)
+        : [...current, path]
+    ));
+  }, []);
+
+  const handleSelectAllRemoteFiles = useCallback(() => {
+    setSelectedRemotePaths(remoteFiles.map((entry) => entry.path));
+  }, [remoteFiles]);
+
+  const handleClearRemoteSelection = useCallback(() => {
+    setSelectedRemotePaths([]);
+  }, []);
+
+  const handleBulkTransferRemotePaths = useCallback(async (mode: 'copy' | 'move') => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError(`${mode === 'copy' ? 'Copy' : 'Move'} requires desktop runtime.`);
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+    if (selectedRemotePaths.length === 0) {
+      setError('Select one or more remote paths first.');
+      return;
+    }
+
+    const destinationRoot = bulkTargetDir.trim().replace(/\/+$/, '') || '.';
+    setIsBulkRunning(true);
+    setError(null);
+
+    try {
+      for (const sourcePath of selectedRemotePaths) {
+        const sourceName = sourcePath.replace(/\/+$/, '').split('/').pop() || sourcePath;
+        const destinationPath = destinationRoot === '.' ? sourceName : `${destinationRoot}/${sourceName}`;
+        if (destinationPath === sourcePath) {
+          continue;
+        }
+
+        await window.__TAURI__.core.invoke(mode === 'copy' ? 'remote_copy_path' : 'remote_move_path', {
+          connectionId: selectedConnectionId,
+          sourcePath,
+          destinationPath,
+        });
+      }
+
+      if (mode === 'move' && selectedRemoteFilePath && selectedRemotePaths.includes(selectedRemoteFilePath)) {
+        setSelectedRemoteFilePath(null);
+        setRemoteFilePreview('');
+      }
+
+      setSelectedRemotePaths([]);
+      await refreshRemoteFiles();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsBulkRunning(false);
+    }
+  }, [bulkTargetDir, isDesktop, refreshRemoteFiles, selectedConnectionId, selectedRemoteFilePath, selectedRemotePaths]);
+
+  const handleBulkDeleteRemotePaths = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Delete requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+    if (selectedRemotePaths.length === 0) {
+      setError('Select one or more remote paths first.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${selectedRemotePaths.length} selected item(s)?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setIsBulkRunning(true);
+    setError(null);
+    try {
+      for (const path of selectedRemotePaths) {
+        await window.__TAURI__.core.invoke('remote_delete_path', {
+          connectionId: selectedConnectionId,
+          path,
+          recursive: true,
+        });
+      }
+
+      if (selectedRemoteFilePath && selectedRemotePaths.includes(selectedRemoteFilePath)) {
+        setSelectedRemoteFilePath(null);
+        setRemoteFilePreview('');
+      }
+
+      setSelectedRemotePaths([]);
+      await refreshRemoteFiles();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsBulkRunning(false);
+    }
+  }, [isDesktop, refreshRemoteFiles, selectedConnectionId, selectedRemoteFilePath, selectedRemotePaths]);
 
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
@@ -743,9 +837,65 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
             </div>
 
             {remoteFiles.length > 0 && (
+              <div className="mb-1.5 rounded border border-[#30363d] bg-[#0d1117] p-1.5">
+                <div className="mb-1 flex items-center gap-1">
+                  <button
+                    onClick={handleSelectAllRemoteFiles}
+                    className="px-2 py-0.5 text-[10px] bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={handleClearRemoteSelection}
+                    className="px-2 py-0.5 text-[10px] bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded"
+                  >
+                    Clear
+                  </button>
+                  <span className="text-[10px] text-[#8b949e]">{selectedRemotePaths.length} selected</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <input
+                    value={bulkTargetDir}
+                    onChange={(e) => setBulkTargetDir(e.target.value)}
+                    placeholder="Destination dir for copy/move"
+                    className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs text-[#c9d1d9]"
+                  />
+                  <button
+                    onClick={() => void handleBulkTransferRemotePaths('copy')}
+                    disabled={isBulkRunning || selectedRemotePaths.length === 0}
+                    className="px-2 py-1 text-xs bg-[#1f6feb] hover:bg-[#388bfd] disabled:bg-[#30363d] text-white rounded"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    onClick={() => void handleBulkTransferRemotePaths('move')}
+                    disabled={isBulkRunning || selectedRemotePaths.length === 0}
+                    className="px-2 py-1 text-xs bg-[#a371f7] hover:bg-[#bc8cff] disabled:bg-[#30363d] text-white rounded"
+                  >
+                    Move
+                  </button>
+                  <button
+                    onClick={() => void handleBulkDeleteRemotePaths()}
+                    disabled={isBulkRunning || selectedRemotePaths.length === 0}
+                    className="px-2 py-1 text-xs bg-[#f85149] hover:bg-[#ff7b72] disabled:bg-[#30363d] text-white rounded"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {remoteFiles.length > 0 && (
               <div className="max-h-36 overflow-y-auto rounded border border-[#30363d] bg-[#0d1117] p-1">
                 {remoteFiles.map((entry) => (
                   <div key={entry.path} className="group flex items-center gap-1 rounded hover:bg-[#161b22]">
+                    <input
+                      type="checkbox"
+                      checked={selectedRemotePaths.includes(entry.path)}
+                      onChange={() => toggleRemoteSelection(entry.path)}
+                      className="ml-1 h-3 w-3 accent-[#58a6ff]"
+                    />
                     <button
                       onClick={() => {
                         if (entry.isDirectory) {

@@ -538,3 +538,37 @@ pub async fn remote_rename_path(
 
     Ok(true)
 }
+
+#[command]
+pub async fn remote_copy_path(
+    connection_id: String,
+    source_path: String,
+    destination_path: String,
+) -> Result<bool, String> {
+    let state = REMOTE_STATE.read().await;
+    let connection = state
+        .get(&connection_id)
+        .cloned()
+        .ok_or_else(|| "Remote connection not found".to_string())?;
+    drop(state);
+
+    let escaped_source = shell_escape(&source_path);
+    let escaped_destination = shell_escape(&destination_path);
+    let cmd = format!("cp -r \"{}\" \"{}\"", escaped_source, escaped_destination);
+    let result = run_remote_shell(&connection, &cmd, None).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!("Failed to copy remote path: {}", result.stderr));
+    }
+
+    Ok(true)
+}
+
+#[command]
+pub async fn remote_move_path(
+    connection_id: String,
+    source_path: String,
+    destination_path: String,
+) -> Result<bool, String> {
+    remote_rename_path(connection_id, source_path, destination_path).await
+}
