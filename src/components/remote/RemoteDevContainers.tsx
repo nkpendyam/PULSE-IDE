@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Monitor, Container, Plus, Trash2, Play, Square, RefreshCw, Wifi, WifiOff, Server, ChevronDown, ChevronRight, FolderOpen } from 'lucide-react';
 
 export type ConnectionType = 'ssh' | 'devcontainer' | 'wsl';
@@ -19,6 +19,29 @@ interface RemoteDevContainersProps {
   projectPath: string;
 }
 
+interface RemoteCapabilities {
+  supportsSsh: boolean;
+  supportsWsl: boolean;
+  supportsDevcontainer: boolean;
+  notes: string[];
+}
+
+interface RemoteExecResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  durationMs: number;
+}
+
+interface BackendRemoteConnection {
+  connectionId: string;
+  connectionType: ConnectionType;
+  host: string;
+  status: 'connected' | 'disconnected' | 'connecting';
+  connectedAt: string;
+  config: Record<string, string>;
+}
+
 const DEFAULT_DEVCONTAINER = {
   name: 'Kyro Dev Container',
   image: 'mcr.microsoft.com/devcontainers/typescript-node:20',
@@ -35,12 +58,52 @@ const DEFAULT_DEVCONTAINER = {
 
 export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [connections, setConnections] = useState<RemoteConnection[]>([]);
+  const [capabilities, setCapabilities] = useState<RemoteCapabilities | null>(null);
+  const [remoteCommand, setRemoteCommand] = useState('pwd');
+  const [execOutput, setExecOutput] = useState<RemoteExecResult | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
   const [expandedSection, setExpandedSection] = useState<string | null>('connections');
   const [devcontainerExists, setDevcontainerExists] = useState(false);
   const isDesktop = typeof window !== 'undefined' && !!window.__TAURI__;
+
+  const connectedConnections = useMemo(
+    () => connections.filter(c => c.status === 'connected'),
+    [connections]
+  );
+
+  const selectedConnectionId = connectedConnections[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!isDesktop || !window.__TAURI__) {
+      return;
+    }
+
+    const tauri = window.__TAURI__;
+
+    tauri.core.invoke<RemoteCapabilities>('remote_get_capabilities')
+      .then(setCapabilities)
+      .catch((e) => setError(String(e)));
+
+    tauri.core.invoke<BackendRemoteConnection[]>('list_remote_connections')
+      .then((backendConnections) => {
+        const hydrated = backendConnections.map((conn) => ({
+          id: conn.connectionId,
+          name: `${conn.connectionType.toUpperCase()} ${conn.host}`,
+          type: conn.connectionType,
+          host: conn.host,
+          status: conn.status,
+          lastConnected: Date.parse(conn.connectedAt),
+          config: conn.config,
+        }));
+        setConnections(hydrated);
+      })
+      .catch(() => {
+        // Keep local state fallback
+      });
+  }, [isDesktop]);
 
   const handleConnect = useCallback(async (id: string) => {
     if (!isDesktop) {
@@ -149,6 +212,39 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
     }
   }, [projectPath, isDesktop]);
 
+  const handleExecuteRemoteCommand = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Remote command execution requires desktop runtime.');
+      return;
+    }
+
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    if (!remoteCommand.trim()) {
+      setError('Enter a command to run.');
+      return;
+    }
+
+    setIsExecuting(true);
+    setError(null);
+
+    try {
+      const result = await window.__TAURI__.core.invoke<RemoteExecResult>('remote_execute_command', {
+        connectionId: selectedConnectionId,
+        command: remoteCommand,
+        cwd: projectPath || null,
+      });
+      setExecOutput(result);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [isDesktop, projectPath, remoteCommand, selectedConnectionId]);
+
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
       case 'connected': return <Wifi size={12} className="text-[#3fb950]" />;
@@ -176,6 +272,18 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       {error && (
         <div className="mx-2 mt-2 mb-1 rounded border border-[#f85149]/40 bg-[#f85149]/10 px-2 py-1.5 text-xs text-[#f85149]">
           {error}
+        </div>
+      )}
+
+      {capabilities && (
+        <div className="mx-2 mt-2 mb-1 rounded border border-[#30363d] bg-[#161b22] px-2 py-1.5 text-xs text-[#8b949e]">
+          <div className="mb-1 text-[#c9d1d9]">Runtime capabilities</div>
+          <div>SSH: {capabilities.supportsSsh ? 'available' : 'missing'} • WSL: {capabilities.supportsWsl ? 'available' : 'missing'} • Devcontainer: {capabilities.supportsDevcontainer ? 'available' : 'missing'}</div>
+          {capabilities.notes.length > 0 && (
+            <ul className="mt-1 list-disc pl-4 space-y-0.5">
+              {capabilities.notes.map((note, idx) => <li key={idx}>{note}</li>)}
+            </ul>
+          )}
         </div>
       )}
 
@@ -263,6 +371,31 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
               <Plus size={12} /> Add Connection
             </button>
           )}
+
+          <div className="mt-2 p-2 bg-[#161b22] rounded border border-[#30363d]">
+            <div className="text-[10px] uppercase tracking-wide text-[#8b949e] mb-1">Remote Command</div>
+            <input
+              value={remoteCommand}
+              onChange={e => setRemoteCommand(e.target.value)}
+              placeholder="e.g. ls -la"
+              className="w-full bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs mb-1.5 focus:outline-none focus:border-[#58a6ff]"
+            />
+            <button
+              onClick={handleExecuteRemoteCommand}
+              disabled={isExecuting || !selectedConnectionId}
+              className="w-full px-2 py-1.5 text-xs bg-[#238636] hover:bg-[#2ea043] disabled:bg-[#30363d] text-white rounded"
+            >
+              {isExecuting ? 'Running...' : 'Run on connected target'}
+            </button>
+
+            {execOutput && (
+              <div className="mt-2 rounded border border-[#30363d] bg-[#0d1117] p-2 text-[11px] text-[#c9d1d9]">
+                <div className="text-[#8b949e] mb-1">Exit {execOutput.exitCode} • {execOutput.durationMs} ms</div>
+                {execOutput.stdout && <pre className="whitespace-pre-wrap mb-1">{execOutput.stdout}</pre>}
+                {execOutput.stderr && <pre className="whitespace-pre-wrap text-[#f85149]">{execOutput.stderr}</pre>}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

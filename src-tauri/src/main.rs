@@ -512,6 +512,8 @@ fn main() {
             commands::remote::remote_connect,
             commands::remote::remote_disconnect,
             commands::remote::list_remote_connections,
+            commands::remote::remote_get_capabilities,
+            commands::remote::remote_execute_command,
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,
