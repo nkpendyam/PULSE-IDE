@@ -403,6 +403,16 @@ export function TerminalAI({ terminalOutput, onSendToChat }: TerminalAIProps) {
                   }`}>{item.status.toUpperCase()}</span>
                 </div>
                 <div className="text-[#8b949e] truncate">{item.summary}</div>
+                <div className="mt-1 flex items-center justify-end">
+                  <button
+                    onClick={() => handleRunFixCommand(item.command)}
+                    disabled={isRunningFix || isAnalyzingRun}
+                    className="rounded px-1.5 py-0.5 text-[10px] text-[#58a6ff] hover:bg-[#21262d] disabled:opacity-50"
+                    title="Run this command again"
+                  >
+                    Re-run
+                  </button>
+                </div>
               </div>
             ))}
           </div>
