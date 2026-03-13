@@ -126,6 +126,15 @@ export interface EditorSettings {
   inlineSuggest: boolean;
   formatOnSave: boolean;
   autoSave: 'off' | 'afterDelay' | 'onFocusChange';
+  cursorSmoothCaret: boolean;
+  smoothScrolling: boolean;
+  formatOnPaste: boolean;
+  linkedEditing: boolean;
+  renderLineHighlight: 'none' | 'gutter' | 'line' | 'all';
+  indentationGuides: boolean;
+  bracketPairGuides: boolean;
+  wordWrapColumn: number;
+  zenMode: boolean;
 }
 
 // Scope info for breadcrumbs
@@ -171,6 +180,8 @@ interface KyroState {
   
   // New state
   settings: { editorOptions: EditorSettings; theme: string; keybindings: string; };
+  aiTemperature: number;
+  aiMaxTokens: number;
   currentScope: ScopeInfo | null;
   searchResults: SearchResult[];
   isSearching: boolean;
@@ -250,6 +261,8 @@ interface KyroState {
   setEditorOptions: (options: Partial<EditorSettings>) => void;
   setTheme: (theme: string) => void;
   setKeybindings: (scheme: string) => void;
+  setAiTemperature: (temperature: number) => void;
+  setAiMaxTokens: (maxTokens: number) => void;
   setCurrentScope: (scope: ScopeInfo | null) => void;
   setSearchResults: (results: SearchResult[]) => void;
   setIsSearching: (searching: boolean) => void;
@@ -337,12 +350,23 @@ export const useKyroStore = create<KyroState>((set, get) => ({
       stickyScroll: true,
       inlineSuggest: true,
       formatOnSave: true,
-      autoSave: 'afterDelay'
+      autoSave: 'afterDelay',
+      cursorSmoothCaret: true,
+      smoothScrolling: true,
+      formatOnPaste: false,
+      linkedEditing: false,
+      renderLineHighlight: 'line',
+      indentationGuides: true,
+      bracketPairGuides: true,
+      wordWrapColumn: 80,
+      zenMode: false,
     },
     theme: 'kro-dark',
     keybindings: 'vscode'
   },
   currentScope: null,
+  aiTemperature: 0.7,
+  aiMaxTokens: 2048,
   searchResults: [],
   isSearching: false,
   breakpoints: [],
@@ -453,6 +477,8 @@ export const useKyroStore = create<KyroState>((set, get) => ({
   })),
   setTheme: (theme) => set(state => ({ settings: { ...state.settings, theme } })),
   setKeybindings: (keybindings) => set(state => ({ settings: { ...state.settings, keybindings } })),
+  setAiTemperature: (aiTemperature) => set({ aiTemperature }),
+  setAiMaxTokens: (aiMaxTokens) => set({ aiMaxTokens }),
   setCurrentScope: (scope) => set({ currentScope: scope }),
   setSearchResults: (results) => set({ searchResults: results }),
   setIsSearching: (searching) => set({ isSearching: searching }),
