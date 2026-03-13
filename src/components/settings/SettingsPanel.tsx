@@ -44,11 +44,16 @@ export function SettingsPanel() {
 
   const handleSave = async () => {
     setSaving(true);
-    try {
-      for (const [key, value] of Object.entries(settings)) {
+    const failed: string[] = [];
+    for (const [key, value] of Object.entries(settings)) {
+      try {
         await invoke('set_setting', { key, value: JSON.stringify(value) });
+      } catch {
+        failed.push(key);
       }
-    } catch {
+    }
+    if (failed.length > 0) {
+      // Backend unavailable or partial failure – persist everything to localStorage as fallback
       localStorage.setItem('kro-settings', JSON.stringify(settings));
     }
     setSaving(false);

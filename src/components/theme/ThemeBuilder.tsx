@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Palette,
   Download,
@@ -283,7 +283,7 @@ function ColorRow({
           value={value.toUpperCase()}
           onChange={(e) => {
             const v = e.target.value;
-            if (/^#[0-9A-Fa-f]{0,6}$/.test(v)) onChange(v.length === 7 ? v : value);
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) onChange(v);
           }}
           className="w-20 bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-[#c9d1d9] text-xs font-mono"
           maxLength={7}
@@ -406,11 +406,6 @@ export function ThemeBuilder() {
       return next;
     });
   }, []);
-
-  // Persist to localStorage on every color change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(customThemes));
-  }, [customThemes]);
 
   const allPresets = [...PRESET_THEMES, ...customThemes];
 
