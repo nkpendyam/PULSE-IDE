@@ -92,6 +92,17 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
   return null;
 }
 
+function parseRemoteUri(uri: string): { connectionId: string; remotePath: string } | null {
+  if (!uri.startsWith('remote://')) return null;
+  const withoutScheme = uri.slice('remote://'.length);
+  const firstSlash = withoutScheme.indexOf('/');
+  if (firstSlash <= 0) return null;
+  return {
+    connectionId: withoutScheme.slice(0, firstSlash),
+    remotePath: withoutScheme.slice(firstSlash + 1),
+  };
+}
+
 // Types for AI responses
 type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote';
 
@@ -203,10 +214,19 @@ export default function Home() {
 
     try {
       if (typeof window !== 'undefined' && window.__TAURI__) {
-        await window.__TAURI__.core.invoke('write_file', {
-          path: currentFile.path,
-          content: currentFile.content
-        });
+        const remoteMeta = parseRemoteUri(currentFile.path);
+        if (remoteMeta) {
+          await window.__TAURI__.core.invoke('remote_write_file', {
+            connectionId: remoteMeta.connectionId,
+            path: remoteMeta.remotePath,
+            content: currentFile.content,
+          });
+        } else {
+          await window.__TAURI__.core.invoke('write_file', {
+            path: currentFile.path,
+            content: currentFile.content
+          });
+        }
       }
       // Mark file as clean after successful save
       const { openFiles: files } = useKyroStore.getState();
@@ -225,7 +245,16 @@ export default function Home() {
       const state = useKyroStore.getState();
       const file = state.activeFileIndex >= 0 ? state.openFiles[state.activeFileIndex] : null;
       if (file?.isDirty && typeof window !== 'undefined' && window.__TAURI__) {
-        window.__TAURI__.core.invoke('write_file', { path: file.path, content: file.content })
+        const remoteMeta = parseRemoteUri(file.path);
+        const savePromise = remoteMeta
+          ? window.__TAURI__.core.invoke('remote_write_file', {
+              connectionId: remoteMeta.connectionId,
+              path: remoteMeta.remotePath,
+              content: file.content,
+            })
+          : window.__TAURI__.core.invoke('write_file', { path: file.path, content: file.content });
+
+        savePromise
           .then(() => {
             const { openFiles: files } = useKyroStore.getState();
             const newFiles = files.map(f => f.path === file.path ? { ...f, isDirty: false } : f);
@@ -277,6 +306,45 @@ export default function Home() {
     window.addEventListener('kyro:navigate', handleNavigate);
     return () => window.removeEventListener('kyro:navigate', handleNavigate);
   }, []);
+
+  React.useEffect(() => {
+    const languageFromPath = (path: string) => {
+      const ext = path.split('.').pop()?.toLowerCase() || 'txt';
+      const languageMap: Record<string, string> = {
+        ts: 'typescript',
+        tsx: 'typescript',
+        js: 'javascript',
+        jsx: 'javascript',
+        json: 'json',
+        md: 'markdown',
+        rs: 'rust',
+        py: 'python',
+        yml: 'yaml',
+        yaml: 'yaml',
+        toml: 'toml',
+      };
+      return languageMap[ext] || 'plaintext';
+    };
+
+    const handleOpenRemoteFile = (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        path?: string;
+        content?: string;
+      };
+      if (!detail?.path) return;
+
+      const file: OpenFile = {
+        path: detail.path,
+        content: detail.content || '',
+        language: languageFromPath(detail.path),
+        isDirty: false,
+      };
+      openFile(file);
+    };
+
+    window.addEventListener('kyro:openRemoteFile', handleOpenRemoteFile);
+    return () => window.removeEventListener('kyro:openRemoteFile', handleOpenRemoteFile);
+  }, [openFile]);
 
   const refreshFileTree = useCallback(async () => {
     setFileTreeKey(prev => prev + 1);

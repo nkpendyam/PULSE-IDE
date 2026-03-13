@@ -440,3 +440,31 @@ pub async fn remote_read_file(
 
     Ok(result.stdout)
 }
+
+#[command]
+pub async fn remote_write_file(
+    connection_id: String,
+    path: String,
+    content: String,
+) -> Result<bool, String> {
+    let state = REMOTE_STATE.read().await;
+    let connection = state
+        .get(&connection_id)
+        .cloned()
+        .ok_or_else(|| "Remote connection not found".to_string())?;
+    drop(state);
+
+    let escaped_path = shell_escape(&path);
+    let marker = format!("__KYRO_EOF_{}__", chrono::Utc::now().timestamp_millis());
+    let cmd = format!(
+        "cat > \"{}\" <<'{}'\n{}\n{}",
+        escaped_path, marker, content, marker
+    );
+
+    let result = run_remote_shell(&connection, &cmd, None).await?;
+    if result.exit_code != 0 {
+        return Err(format!("Failed to write remote file: {}", result.stderr));
+    }
+
+    Ok(true)
+}

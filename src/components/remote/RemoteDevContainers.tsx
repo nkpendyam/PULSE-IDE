@@ -75,6 +75,7 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [selectedRemoteFilePath, setSelectedRemoteFilePath] = useState<string | null>(null);
   const [remoteFilePreview, setRemoteFilePreview] = useState<string>('');
   const [isReadingFile, setIsReadingFile] = useState(false);
+  const [isWritingFile, setIsWritingFile] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
@@ -372,6 +373,48 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
     }
   }, [isDesktop, selectedConnectionId]);
 
+  const handleSaveRemotePreview = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Remote file save requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId || !selectedRemoteFilePath) {
+      setError('Select a remote file first.');
+      return;
+    }
+
+    setIsWritingFile(true);
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_write_file', {
+        connectionId: selectedConnectionId,
+        path: selectedRemoteFilePath,
+        content: remoteFilePreview,
+      });
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsWritingFile(false);
+    }
+  }, [isDesktop, remoteFilePreview, selectedConnectionId, selectedRemoteFilePath]);
+
+  const handleOpenInEditor = useCallback(() => {
+    if (!selectedConnectionId || !selectedRemoteFilePath) {
+      setError('Select a remote file first.');
+      return;
+    }
+
+    const remoteUri = `remote://${selectedConnectionId}/${selectedRemoteFilePath}`;
+    window.dispatchEvent(new CustomEvent('kyro:openRemoteFile', {
+      detail: {
+        path: remoteUri,
+        content: remoteFilePreview,
+        remoteConnectionId: selectedConnectionId,
+        remotePath: selectedRemoteFilePath,
+      },
+    }));
+  }, [remoteFilePreview, selectedConnectionId, selectedRemoteFilePath]);
+
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
       case 'connected': return <Wifi size={12} className="text-[#3fb950]" />;
@@ -567,7 +610,28 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
                 {isReadingFile ? (
                   <div className="text-[#8b949e]">Loading...</div>
                 ) : (
-                  <pre className="whitespace-pre-wrap text-[#c9d1d9] max-h-40 overflow-y-auto">{remoteFilePreview}</pre>
+                  <>
+                    <textarea
+                      value={remoteFilePreview}
+                      onChange={(e) => setRemoteFilePreview(e.target.value)}
+                      className="w-full min-h-32 max-h-40 bg-[#0d1117] text-[#c9d1d9] border border-[#30363d] rounded p-2 font-mono"
+                    />
+                    <div className="mt-2 flex gap-1">
+                      <button
+                        onClick={handleSaveRemotePreview}
+                        disabled={isWritingFile}
+                        className="px-2 py-1 text-xs bg-[#238636] hover:bg-[#2ea043] disabled:bg-[#30363d] text-white rounded"
+                      >
+                        {isWritingFile ? 'Saving...' : 'Save to Remote'}
+                      </button>
+                      <button
+                        onClick={handleOpenInEditor}
+                        className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded"
+                      >
+                        Open in Editor
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             )}
