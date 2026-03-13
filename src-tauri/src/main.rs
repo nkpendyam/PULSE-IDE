@@ -540,6 +540,7 @@ fn main() {
             commands::vscode_compat::install_extension_unified,
             commands::vscode_compat::get_openvsx_popular,
             commands::vscode_compat::get_extension_readme,
+            commands::vscode_compat::get_extension_compatibility,
             // ============ MCP/Agent Operations ============
             commands::mcp::list_agents,
             commands::mcp::create_agent,

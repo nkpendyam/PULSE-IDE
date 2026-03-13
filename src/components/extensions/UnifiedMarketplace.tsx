@@ -66,6 +66,14 @@ interface BackendSearchResult {
   extensions: BackendExtension[];
 }
 
+interface ExtensionCompatibility {
+  extensionId: string;
+  installable: boolean;
+  level: 'full' | 'partial' | 'incompatible';
+  reasons: string[];
+  warnings: string[];
+}
+
 const CATEGORIES = [
   'All',
   'Programming Languages',
@@ -126,6 +134,18 @@ export function ExtensionMarketplace() {
   const [selectedExtension, setSelectedExtension] = useState<Extension | null>(null);
   const [installProgress, setInstallProgress] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [compatibilityById, setCompatibilityById] = useState<Record<string, ExtensionCompatibility>>({});
+
+  const getCompatibility = useCallback(async (extensionId: string) => {
+    const cached = compatibilityById[extensionId];
+    if (cached) return cached;
+
+    const compatibility = await invoke<ExtensionCompatibility>('get_extension_compatibility', {
+      extensionId,
+    });
+    setCompatibilityById(prev => ({ ...prev, [extensionId]: compatibility }));
+    return compatibility;
+  }, [compatibilityById]);
 
   // Load installed extensions
   useEffect(() => {
@@ -238,6 +258,16 @@ export function ExtensionMarketplace() {
 
     setInstallProgress(extension.id);
     try {
+      const compatibility = await getCompatibility(extension.id);
+      if (!compatibility.installable) {
+        setNotice(`Install blocked: ${compatibility.reasons.join(' ')}`);
+        return;
+      }
+
+      if (compatibility.level === 'partial' && compatibility.warnings.length > 0) {
+        setNotice(`Partial compatibility: ${compatibility.warnings.join(' ')}`);
+      }
+
       await invoke('install_extension_unified', {
         extensionId: extension.id,
       });
@@ -248,6 +278,7 @@ export function ExtensionMarketplace() {
       ));
       setInstalledExtensions(prev => [...prev, { ...extension, installed: true }]);
     } catch (error) {
+      setNotice(String(error));
       console.error('Install failed:', error);
     } finally {
       setInstallProgress(null);
@@ -439,11 +470,15 @@ export function ExtensionMarketplace() {
               <ExtensionCard
                 key={ext.id}
                 extension={ext}
+                compatibility={compatibilityById[ext.id]}
                 onInstall={installExtension}
                 onUninstall={uninstallExtension}
                 onToggle={toggleExtension}
                 isInstalling={installProgress === ext.id}
-                onSelect={() => setSelectedExtension(ext)}
+                onSelect={() => {
+                  void getCompatibility(ext.id);
+                  setSelectedExtension(ext);
+                }}
               />
             ))}
           </div>
@@ -453,11 +488,15 @@ export function ExtensionMarketplace() {
               <ExtensionListItem
                 key={ext.id}
                 extension={ext}
+                compatibility={compatibilityById[ext.id]}
                 onInstall={installExtension}
                 onUninstall={uninstallExtension}
                 onToggle={toggleExtension}
                 isInstalling={installProgress === ext.id}
-                onSelect={() => setSelectedExtension(ext)}
+                onSelect={() => {
+                  void getCompatibility(ext.id);
+                  setSelectedExtension(ext);
+                }}
               />
             ))}
           </div>
@@ -468,6 +507,7 @@ export function ExtensionMarketplace() {
       {selectedExtension && (
         <ExtensionDetailModal
           extension={selectedExtension}
+          compatibility={compatibilityById[selectedExtension.id]}
           onClose={() => setSelectedExtension(null)}
           onInstall={installExtension}
           onUninstall={uninstallExtension}
@@ -479,9 +519,11 @@ export function ExtensionMarketplace() {
   );
 }
 
+
 // Extension Card Component
 function ExtensionCard({
   extension,
+  compatibility,
   onInstall,
   onUninstall,
   onToggle,
@@ -489,6 +531,7 @@ function ExtensionCard({
   onSelect,
 }: {
   extension: Extension;
+  compatibility?: ExtensionCompatibility;
   onInstall: (ext: Extension) => void;
   onUninstall: (ext: Extension) => void;
   onToggle: (ext: Extension) => void;
@@ -516,6 +559,12 @@ function ExtensionCard({
             <h3 className="font-medium text-[#c9d1d9] truncate">{extension.displayName}</h3>
             {extension.source === 'openvsx' && (
               <span className="text-xs px-1 bg-[#238636] text-white rounded">Open VSX</span>
+            )}
+            {compatibility?.level === 'partial' && (
+              <span className="text-xs px-1 bg-[#d29922] text-black rounded">Partial</span>
+            )}
+            {compatibility?.level === 'incompatible' && (
+              <span className="text-xs px-1 bg-[#f85149] text-white rounded">Blocked</span>
             )}
           </div>
           <p className="text-xs text-[#8b949e] truncate">{extension.publisher}</p>
@@ -582,6 +631,7 @@ function ExtensionCard({
 // Extension List Item Component
 function ExtensionListItem({
   extension,
+  compatibility,
   onInstall,
   onUninstall,
   onToggle,
@@ -589,6 +639,7 @@ function ExtensionListItem({
   onSelect,
 }: {
   extension: Extension;
+  compatibility?: ExtensionCompatibility;
   onInstall: (ext: Extension) => void;
   onUninstall: (ext: Extension) => void;
   onToggle: (ext: Extension) => void;
@@ -616,6 +667,12 @@ function ExtensionListItem({
           <span className="text-xs text-[#8b949e]">{extension.version}</span>
           {extension.source === 'openvsx' && (
             <span className="text-xs px-1 bg-[#238636] text-white rounded">Open VSX</span>
+          )}
+          {compatibility?.level === 'partial' && (
+            <span className="text-xs px-1 bg-[#d29922] text-black rounded">Partial</span>
+          )}
+          {compatibility?.level === 'incompatible' && (
+            <span className="text-xs px-1 bg-[#f85149] text-white rounded">Blocked</span>
           )}
         </div>
         <p className="text-xs text-[#8b949e] truncate">{extension.description}</p>
@@ -676,6 +733,7 @@ function ExtensionListItem({
 // Extension Detail Modal
 function ExtensionDetailModal({
   extension,
+  compatibility,
   onClose,
   onInstall,
   onUninstall,
@@ -683,6 +741,7 @@ function ExtensionDetailModal({
   isInstalling,
 }: {
   extension: Extension;
+  compatibility?: ExtensionCompatibility;
   onClose: () => void;
   onInstall: (ext: Extension) => void;
   onUninstall: (ext: Extension) => void;
@@ -766,6 +825,18 @@ function ExtensionDetailModal({
 
         {/* Actions */}
         <div className="px-4 py-2 border-b border-[#30363d] flex items-center gap-2">
+          {compatibility && (
+            <div className={`mr-2 rounded px-2 py-1 text-xs ${
+              compatibility.level === 'full'
+                ? 'bg-[#238636] text-white'
+                : compatibility.level === 'partial'
+                  ? 'bg-[#d29922] text-black'
+                  : 'bg-[#f85149] text-white'
+            }`}>
+              Compatibility: {compatibility.level}
+            </div>
+          )}
+
           {extension.installed ? (
             <>
               <button
@@ -822,6 +893,17 @@ function ExtensionDetailModal({
               <span key={tag} className="px-2 py-1 bg-[#21262d] text-[#8b949e] rounded text-xs">
                 #{tag}
               </span>
+            ))}
+          </div>
+        )}
+
+        {compatibility && (compatibility.reasons.length > 0 || compatibility.warnings.length > 0) && (
+          <div className="px-4 py-2 border-b border-[#30363d] text-xs space-y-1">
+            {compatibility.reasons.map((reason, index) => (
+              <div key={`reason-${index}`} className="text-[#f85149]">{reason}</div>
+            ))}
+            {compatibility.warnings.map((warning, index) => (
+              <div key={`warning-${index}`} className="text-[#d29922]">{warning}</div>
             ))}
           </div>
         )}
