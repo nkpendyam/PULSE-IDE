@@ -1,12 +1,17 @@
 # KYRO IDE - Project Status
 
+> ⚠️ **Legacy snapshot notice (superseded):** This file contains historical status assertions and is not the execution source of truth.
+> For current audited status and active backlog, use:
+> - `docs/status/PROJECT_AUDIT_2026-03-13.md`
+> - `docs/status/BACKLOG_SOURCE_OF_TRUTH.md`
+
 **Last Updated**: 2025-02-27
 **Version**: v1.0.0
 **Repository**: https://github.com/nkpendyam/Kyro_IDE
 
 ---
 
-## Implementation Status - ALL PHASES COMPLETE ✅ 100%
+## Implementation Status - Legacy Snapshot (Historical)
 
 ### Phase 1: Foundation ✅ 100%
 
