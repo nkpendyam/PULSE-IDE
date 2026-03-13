@@ -297,13 +297,44 @@ export function AIChatSidebar() {
     });
   }, [chatMessages.length, currentFile, fileTree, gitStatus, input, openFiles, projectPath, terminalOutput]);
 
-  const handleRemoveMentionChip = (item: MentionPreviewItem) => {
-    const escaped = item.rawToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const tokenPattern = new RegExp(`(^|\\s)${escaped}(?=\\s|$)`);
+  const removeMentionTokenFromInput = (source: string, rawToken: string, mode: 'first' | 'last'): string => {
+    if (!rawToken || !source) {
+      return source;
+    }
 
+    const findCandidate = (startFromLast: boolean) => {
+      let index = startFromLast ? source.lastIndexOf(rawToken) : source.indexOf(rawToken);
+
+      while (index !== -1) {
+        const leftOk = index === 0 || /\s/.test(source[index - 1]);
+        const rightIndex = index + rawToken.length;
+        const rightOk = rightIndex === source.length || /\s/.test(source[rightIndex]);
+
+        if (leftOk && rightOk) {
+          return index;
+        }
+
+        index = startFromLast
+          ? source.lastIndexOf(rawToken, index - 1)
+          : source.indexOf(rawToken, index + 1);
+      }
+
+      return -1;
+    };
+
+    const tokenIndex = mode === 'last' ? findCandidate(true) : findCandidate(false);
+    if (tokenIndex === -1) {
+      return source;
+    }
+
+    const before = source.slice(0, tokenIndex).trimEnd();
+    const after = source.slice(tokenIndex + rawToken.length).trimStart();
+    return [before, after].filter(Boolean).join(' ');
+  };
+
+  const handleRemoveMentionChip = (item: MentionPreviewItem) => {
     setInput((prev) => {
-      const next = prev.replace(tokenPattern, (full, prefix) => prefix || ' ');
-      return next.replace(/\s{2,}/g, ' ').trim();
+      return removeMentionTokenFromInput(prev, item.rawToken, 'first');
     });
     setShowMentions(false);
     inputRef.current?.focus();
@@ -506,6 +537,20 @@ export function AIChatSidebar() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace') {
+      const textarea = inputRef.current;
+      const selectionStart = textarea?.selectionStart ?? cursorPos;
+      const selectionEnd = textarea?.selectionEnd ?? cursorPos;
+
+      if (selectionStart === selectionEnd && selectionStart === input.length && mentionPreviewItems.length > 0) {
+        e.preventDefault();
+        const lastMention = mentionPreviewItems[mentionPreviewItems.length - 1];
+        setInput((prev) => removeMentionTokenFromInput(prev, lastMention.rawToken, 'last'));
+        setShowMentions(false);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
