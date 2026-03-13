@@ -25,10 +25,10 @@ pub struct ChatAgentResponse {
 }
 
 #[command]
-pub async fn chat_agent_detect_backends() -> Result<Vec<crate::commands::ai::BackendStatus>, String>
-{
+pub async fn chat_agent_detect_backends() -> Result<Vec<crate::commands::ai::BackendStatus>, String> {
     crate::commands::ai::detect_ai_backends().await
 }
+
 
 #[command]
 pub async fn chat_agent_smart_completion(
