@@ -33,7 +33,7 @@ jobs:
             artifact_glob: src-tauri/target/release/bundle/appimage/*.AppImage
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-22.04'
@@ -54,7 +54,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -80,7 +80,7 @@ jobs:
           args: --target ${{ matrix.target }}
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_glob }}
