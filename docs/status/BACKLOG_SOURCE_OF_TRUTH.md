@@ -219,7 +219,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 - **Owner:** QA Automation
 - **ETA:** 2026-04-24
 - **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/69
-- **Acceptance Criteria:
+- **Acceptance Criteria:**
   - Add journey tests for mentions, terminal explain/fix, and inline diff approval.
   - Run in CI on PR with artifact outputs.
   - Failures include reproducible diagnostics.

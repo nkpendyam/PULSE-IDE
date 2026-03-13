@@ -16,7 +16,7 @@ Validation Summary:
 - Verified backlog now includes per-task tracker URLs.
 
 Commits:
-- (pending in this update)
+- 8cadad5
 
 ---
 Task ID: Phase C Stream (2026-03-13)
