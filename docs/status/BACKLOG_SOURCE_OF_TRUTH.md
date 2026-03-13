@@ -128,6 +128,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-01 Autopilot Approval Levels
 - **Owner:** AI Platform
 - **ETA:** 2026-03-27
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/60
 - **Acceptance Criteria:**
   - Implement `ask`, `safe-auto`, `full-auto` policy levels.
   - Gate file edits, terminal commands, and installs per selected policy.
@@ -137,6 +138,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-02 Checkpoint Revert UX Completion
 - **Owner:** Editor UX
 - **ETA:** 2026-03-24
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/61
 - **Acceptance Criteria:**
   - Restore checkpoint applies file snapshots deterministically.
   - Failed restore reports actionable error and partial-apply summary.
@@ -146,6 +148,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-03 Conversation Forking UX
 - **Owner:** Chat UX
 - **ETA:** 2026-04-03
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/62
 - **Acceptance Criteria:**
   - Fork from any historical message.
   - Fork maintains independent message timeline and checkpoint lineage.
@@ -155,6 +158,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-04 Inline Diff Panel Parity (`Ctrl+K`)
 - **Owner:** AI Editing
 - **ETA:** 2026-04-10
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/63
 - **Acceptance Criteria:**
   - Show inline proposed edits as diff blocks.
   - Accept/reject at hunk and full-change granularity.
@@ -164,6 +168,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-05 Edit Prediction Provider Hardening
 - **Owner:** Editor Intelligence
 - **ETA:** 2026-04-10
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/64
 - **Acceptance Criteria:**
   - Support pluggable prediction provider interface.
   - Fallback heuristic remains available offline.
@@ -173,6 +178,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-06 Terminal AI Explain/Fix Parity Finalization
 - **Owner:** Terminal UX
 - **ETA:** 2026-03-21
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/65
 - **Acceptance Criteria:**
   - Terminal AI detects errors from live output.
   - `Run Fix` uses risk guardrails and post-run analysis.
@@ -182,6 +188,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-07 Terminal Fix Guardrail Expansion
 - **Owner:** Security + Terminal UX
 - **ETA:** 2026-03-28
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/66
 - **Acceptance Criteria:**
   - Add configurable denylist/allowlist policy for terminal fix commands.
   - High-risk execution requires explicit double confirmation.
@@ -191,6 +198,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-08 VS Code API Fallback Coverage (Tier 1)
 - **Owner:** Extension Runtime
 - **ETA:** 2026-04-17
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/67
 - **Acceptance Criteria:**
   - Document unsupported API surface and fallback behavior.
   - Add compatibility stubs for top failing extension APIs.
@@ -200,6 +208,7 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-09 Mention Resolver `@web` Real Backend
 - **Owner:** Chat Context
 - **ETA:** 2026-04-03
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/68
 - **Acceptance Criteria:**
   - Replace local-mode fallback with optional web context retrieval path.
   - Add feature flag and offline fallback to existing behavior.
@@ -209,7 +218,8 @@ Each task includes owner, ETA target, acceptance criteria, and evidence expectat
 ### C-10 Phase C E2E Journey Test Pack
 - **Owner:** QA Automation
 - **ETA:** 2026-04-24
-- **Acceptance Criteria:**
+- **Tracker:** https://github.com/nkpendyam/Kyro_IDE/issues/69
+- **Acceptance Criteria:
   - Add journey tests for mentions, terminal explain/fix, and inline diff approval.
   - Run in CI on PR with artifact outputs.
   - Failures include reproducible diagnostics.

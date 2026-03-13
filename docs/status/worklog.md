@@ -1,6 +1,24 @@
 # Kyro IDE Development Worklog
 
 ---
+Task ID: Phase C Trackerization (2026-03-13)
+Agent: GitHub Copilot (GPT-5.3-Codex)
+Task: Convert Phase C top-10 seeds into live GitHub issues and back-link evidence
+
+Work Log:
+- Created 10 GitHub issues from source-of-truth Phase C seed tasks with acceptance criteria and evidence fields.
+- Applied consistent labels (`enhancement`, `roadmap`, `planned`) for tracking and planning filters.
+- Mapped task IDs C-01..C-10 to issue IDs #60..#69.
+- Updated `docs/status/BACKLOG_SOURCE_OF_TRUTH.md` to include tracker links for each task.
+
+Validation Summary:
+- Verified issue creation via GitHub API issue listing.
+- Verified backlog now includes per-task tracker URLs.
+
+Commits:
+- (pending in this update)
+
+---
 Task ID: Phase C Stream (2026-03-13)
 Agent: GitHub Copilot (GPT-5.3-Codex)
 Task: Deliver mention context UX and terminal AI explain/fix flow
