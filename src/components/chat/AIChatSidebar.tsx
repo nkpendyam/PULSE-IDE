@@ -892,39 +892,46 @@ export function AIChatSidebar() {
         </div>
 
         {mentionPreviewItems.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {mentionPreviewItems.map((item, index) => (
-              <div
-                key={item.id}
-                className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] ${
-                  item.resolved
-                    ? 'border-[#2ea043] bg-[#1a2a1a] text-[#8ddb8c]'
-                    : 'border-[#f0883e] bg-[#2a1f14] text-[#f2b37b]'
-                }`}
-                title={`${item.tooltip}${item.count > 1 ? ` | repeated ${item.count}x` : ''}`}
-              >
-                <span className="font-medium">{item.label}</span>
-                <span className="opacity-85">{item.detail}</span>
-                {item.count > 1 && <span className="opacity-75">×{item.count}</span>}
-                <button
-                  ref={(element) => {
-                    mentionChipButtonRefs.current[index] = element;
-                  }}
-                  type="button"
-                  onClick={() => handleRemoveMentionChip(item)}
-                  onFocus={() => setFocusedChipIndex(index)}
-                  onBlur={() => setFocusedChipIndex((current) => (current === index ? null : current))}
-                  onKeyDown={(event) => handleChipKeyDown(event, index, item)}
-                  className={`ml-0.5 rounded p-0.5 hover:bg-[#30363d] focus:outline-none focus:ring-1 focus:ring-[#58a6ff] ${
-                    focusedChipIndex === index ? 'bg-[#30363d]' : ''
+          <div className="mt-2">
+            <div className="flex flex-wrap gap-1.5">
+              {mentionPreviewItems.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] ${
+                    item.resolved
+                      ? 'border-[#2ea043] bg-[#1a2a1a] text-[#8ddb8c]'
+                      : 'border-[#f0883e] bg-[#2a1f14] text-[#f2b37b]'
                   }`}
-                  aria-label={`Remove ${item.label} mention`}
-                  title="Remove mention"
+                  title={`${item.tooltip}${item.count > 1 ? ` | repeated ${item.count}x` : ''}`}
                 >
-                  <X size={10} />
-                </button>
+                  <span className="font-medium">{item.label}</span>
+                  <span className="opacity-85">{item.detail}</span>
+                  {item.count > 1 && <span className="opacity-75">×{item.count}</span>}
+                  <button
+                    ref={(element) => {
+                      mentionChipButtonRefs.current[index] = element;
+                    }}
+                    type="button"
+                    onClick={() => handleRemoveMentionChip(item)}
+                    onFocus={() => setFocusedChipIndex(index)}
+                    onBlur={() => setFocusedChipIndex((current) => (current === index ? null : current))}
+                    onKeyDown={(event) => handleChipKeyDown(event, index, item)}
+                    className={`ml-0.5 rounded p-0.5 hover:bg-[#30363d] focus:outline-none focus:ring-1 focus:ring-[#58a6ff] ${
+                      focusedChipIndex === index ? 'bg-[#30363d]' : ''
+                    }`}
+                    aria-label={`Remove ${item.label} mention`}
+                    title="Remove mention"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {focusedChipIndex !== null && (
+              <div className="mt-1 text-[10px] text-[#8b949e]">
+                Chip keyboard: ←/→ move, Home/End jump, Backspace/Delete remove, Esc return to input
               </div>
-            ))}
+            )}
           </div>
         )}
         

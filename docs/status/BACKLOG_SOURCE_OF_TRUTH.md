@@ -70,7 +70,9 @@ Derived from `IDE_GAP_ANALYSIS_2026.md` and capability audit.
 - [ ] Edit prediction improvements with pluggable providers.
 
 ### Context/Mentions
-- [ ] `@file`, `@folder`, `@codebase`, `@terminal`, `@git`, `@web` mention resolver.
+- [x] `@file`, `@folder`, `@codebase`, `@terminal`, `@git`, `@web` mention resolver.
+  - Implemented in chat with mention parsing, context enrichment, inline preview chips, keyboard navigation/removal.
+  - `@web` currently resolves to explicit local-mode fallback notice (no remote web fetch execution yet).
 
 ### Terminal AI
 - [ ] Explain/fix terminal error actions and command suggestion flow.
