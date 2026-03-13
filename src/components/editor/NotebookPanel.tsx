@@ -45,6 +45,8 @@ const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'bash', label: 'Bash' },
 ];
 
+const INDENT = '  '; // two spaces — matches the textarea tabSize style
+
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -105,7 +107,12 @@ async function runJavaScript(code: string): Promise<CellOutput> {
 }
 
 async function runShellCommand(language: Language, code: string): Promise<CellOutput> {
-  const command = language === 'python' ? `python3 -c "${code.replace(/"/g, '\\"')}"` : code;
+  // For Python, use a heredoc-style stdin pipe to avoid shell-quoting issues with
+  // arbitrary user code. The Bash cell code is executed as-is via 'bash -s'.
+  const command =
+    language === 'python'
+      ? `python3 - <<'__KYRO_EOF__'\n${code}\n__KYRO_EOF__`
+      : `bash -s <<'__KYRO_EOF__'\n${code}\n__KYRO_EOF__`;
 
   if (!tauriInvoke) {
     return {
@@ -265,10 +272,10 @@ function CellCard({
         const el = e.currentTarget;
         const start = el.selectionStart;
         const end = el.selectionEnd;
-        const newCode = cell.code.slice(0, start) + '  ' + cell.code.slice(end);
+        const newCode = cell.code.slice(0, start) + INDENT + cell.code.slice(end);
         onCodeChange(cell.id, newCode);
         requestAnimationFrame(() => {
-          el.selectionStart = el.selectionEnd = start + 2;
+          el.selectionStart = el.selectionEnd = start + INDENT.length;
         });
       }
     },

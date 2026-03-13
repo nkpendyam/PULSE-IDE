@@ -21,6 +21,9 @@ if (typeof window !== 'undefined' && '__TAURI__' in window) {
 
 const FALLBACK_MODELS = ['llama3', 'codellama', 'mistral', 'phi3', 'qwen2.5-coder'];
 
+// Delay before probing Tauri for models — gives the API time to fully initialise
+const TAURI_INIT_DELAY_MS = 300;
+
 const VOTE_STORAGE_KEY = 'kyro-arena-votes';
 
 interface Message {
@@ -228,13 +231,13 @@ export function ArenaMode() {
         if (Array.isArray(models) && models.length > 0) {
           setAvailableModels(models);
           setModelA(models[0]);
-          setModelB(models[Math.min(1, models.length - 1)]);
+          setModelB(models[models.length > 1 ? 1 : 0]);
         }
       } catch {}
     };
 
     // Wait briefly for Tauri to initialise then load models
-    const timer = setTimeout(tryLoadModels, 300);
+    const timer = setTimeout(tryLoadModels, TAURI_INIT_DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
 
