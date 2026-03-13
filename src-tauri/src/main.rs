@@ -528,6 +528,12 @@ fn main() {
             commands::remote::remote_create_directory,
             commands::remote::remote_create_file,
             commands::remote::remote_upload_local_file,
+            commands::remote::remote_read_file_chunk_base64,
+            commands::remote::remote_write_file_chunk_base64,
+            commands::remote::remote_start_download_to_local,
+            commands::remote::remote_start_upload_from_local,
+            commands::remote::remote_get_transfer_status,
+            commands::remote::remote_cancel_transfer,
             // ============ E2E Encryption Operations ============
             commands::e2ee::generate_key_pair,
             commands::e2ee::get_public_key,

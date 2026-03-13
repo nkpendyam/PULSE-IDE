@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Monitor, Container, Plus, Trash2, Play, Square, RefreshCw, Wifi, WifiOff, Server, ChevronDown, ChevronRight, FolderOpen } from 'lucide-react';
+import { filterAndSortRemoteFiles, parseRemoteErrorClass, type RemoteSortDirection, type RemoteSortField } from './remoteFileListUtils';
 
 export type ConnectionType = 'ssh' | 'devcontainer' | 'wsl';
 
@@ -38,6 +39,20 @@ interface RemoteFileEntry {
   path: string;
   isDirectory: boolean;
   size?: number;
+}
+
+interface RemoteTransferStatus {
+  transferId: string;
+  direction: string;
+  sourcePath: string;
+  destinationPath: string;
+  status: string;
+  totalBytes: number;
+  transferredBytes: number;
+  startedAt: string;
+  updatedAt: string;
+  errorClass?: string | null;
+  errorMessage?: string | null;
 }
 
 interface BackendRemoteConnection {
@@ -81,6 +96,14 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   const [selectedRemotePaths, setSelectedRemotePaths] = useState<string[]>([]);
   const [bulkTargetDir, setBulkTargetDir] = useState('.');
   const [isBulkRunning, setIsBulkRunning] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<RemoteSortField>('name');
+  const [sortDirection, setSortDirection] = useState<RemoteSortDirection>('asc');
+  const [transferOverwrite, setTransferOverwrite] = useState(true);
+  const [transferResume, setTransferResume] = useState(false);
+  const [localUploadPath, setLocalUploadPath] = useState('');
+  const [activeTransferId, setActiveTransferId] = useState<string | null>(null);
+  const [activeTransferStatus, setActiveTransferStatus] = useState<RemoteTransferStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newConn, setNewConn] = useState({ name: '', type: 'ssh' as ConnectionType, host: '' });
@@ -94,6 +117,12 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
   );
 
   const selectedConnectionId = connectedConnections[0]?.id ?? null;
+  const errorClass = useMemo(() => (error ? parseRemoteErrorClass(error) : null), [error]);
+
+  const displayedRemoteFiles = useMemo(
+    () => filterAndSortRemoteFiles(remoteFiles, searchQuery, sortField, sortDirection),
+    [remoteFiles, searchQuery, sortDirection, sortField]
+  );
 
   const refreshRemoteFiles = useCallback(async (pathOverride?: string) => {
     if (!isDesktop || !window.__TAURI__) {
@@ -121,6 +150,44 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       setIsListingFiles(false);
     }
   }, [isDesktop, remotePath, selectedConnectionId]);
+
+  useEffect(() => {
+    if (!isDesktop || !window.__TAURI__ || !activeTransferId) {
+      return;
+    }
+
+    const tauri = window.__TAURI__;
+
+    const interval = window.setInterval(async () => {
+      try {
+        const status = await tauri.core.invoke<RemoteTransferStatus | null>('remote_get_transfer_status', {
+          transferId: activeTransferId,
+        });
+
+        if (!status) {
+          return;
+        }
+
+        setActiveTransferStatus(status);
+        if (['completed', 'failed', 'cancelled'].includes(status.status)) {
+          window.clearInterval(interval);
+          setActiveTransferId(null);
+          if (status.status === 'completed') {
+            await refreshRemoteFiles();
+          }
+          if (status.errorMessage) {
+            setError(status.errorMessage);
+          }
+        }
+      } catch (e) {
+        setError(String(e));
+        window.clearInterval(interval);
+        setActiveTransferId(null);
+      }
+    }, 700);
+
+    return () => window.clearInterval(interval);
+  }, [activeTransferId, isDesktop, refreshRemoteFiles]);
 
   useEffect(() => {
     if (!isDesktop || !window.__TAURI__) {
@@ -467,13 +534,14 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
         connectionId: selectedConnectionId,
         remotePath: selectedRemoteFilePath,
         localPath,
+        overwrite: transferOverwrite,
       });
     } catch (e) {
       setError(String(e));
     } finally {
       setIsExporting(false);
     }
-  }, [isDesktop, localExportDir, selectedConnectionId, selectedRemoteFilePath]);
+  }, [isDesktop, localExportDir, selectedConnectionId, selectedRemoteFilePath, transferOverwrite]);
 
   const handleDeleteRemotePath = useCallback(async (path: string, isDirectory: boolean) => {
     if (!isDesktop || !window.__TAURI__) {
@@ -748,12 +816,119 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
         connectionId: selectedConnectionId,
         localPath,
         remotePath: remoteTarget,
+        overwrite: transferOverwrite,
       });
       await refreshRemoteFiles();
     } catch (e) {
       setError(String(e));
     }
-  }, [isDesktop, joinRemotePath, refreshRemoteFiles, remotePath, selectedConnectionId]);
+  }, [isDesktop, joinRemotePath, refreshRemoteFiles, remotePath, selectedConnectionId, transferOverwrite]);
+
+  const handleStartBinaryDownload = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Binary download requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId || !selectedRemoteFilePath) {
+      setError('Select a remote file first.');
+      return;
+    }
+
+    const fileName = selectedRemoteFilePath.split('/').pop() || 'download.bin';
+    const defaultLocal = `${localExportDir.replace(/\\/g, '/')}/${fileName}`;
+    const localPath = window.prompt('Local destination file path', defaultLocal)?.trim();
+    if (!localPath) {
+      return;
+    }
+
+    const transferId = `download-${Date.now()}`;
+    setActiveTransferId(transferId);
+    setActiveTransferStatus({
+      transferId,
+      direction: 'download',
+      sourcePath: selectedRemoteFilePath,
+      destinationPath: localPath,
+      status: 'running',
+      totalBytes: 0,
+      transferredBytes: 0,
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    setError(null);
+
+    window.__TAURI__.core.invoke('remote_start_download_to_local', {
+      connectionId: selectedConnectionId,
+      remotePath: selectedRemoteFilePath,
+      localPath,
+      overwrite: transferOverwrite,
+      resume: transferResume,
+      transferId,
+    }).catch((e) => {
+      setError(String(e));
+      setActiveTransferId(null);
+    });
+  }, [isDesktop, localExportDir, selectedConnectionId, selectedRemoteFilePath, transferOverwrite, transferResume]);
+
+  const handleStartBinaryUpload = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Binary upload requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+    if (!localUploadPath.trim()) {
+      setError('Set local upload path first.');
+      return;
+    }
+
+    const localName = localUploadPath.split(/[\\/]/).pop() || 'uploaded.bin';
+    const suggested = joinRemotePath(remotePath, localName);
+    const remoteTarget = window.prompt('Remote destination path', suggested)?.trim();
+    if (!remoteTarget) {
+      return;
+    }
+
+    const transferId = `upload-${Date.now()}`;
+    setActiveTransferId(transferId);
+    setActiveTransferStatus({
+      transferId,
+      direction: 'upload',
+      sourcePath: localUploadPath,
+      destinationPath: remoteTarget,
+      status: 'running',
+      totalBytes: 0,
+      transferredBytes: 0,
+      startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    setError(null);
+
+    window.__TAURI__.core.invoke('remote_start_upload_from_local', {
+      connectionId: selectedConnectionId,
+      localPath: localUploadPath,
+      remotePath: remoteTarget,
+      overwrite: transferOverwrite,
+      resume: transferResume,
+      transferId,
+    }).catch((e) => {
+      setError(String(e));
+      setActiveTransferId(null);
+    });
+  }, [isDesktop, joinRemotePath, localUploadPath, remotePath, selectedConnectionId, transferOverwrite, transferResume]);
+
+  const handleCancelTransfer = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__ || !activeTransferId) {
+      return;
+    }
+
+    try {
+      await window.__TAURI__.core.invoke('remote_cancel_transfer', { transferId: activeTransferId });
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [activeTransferId, isDesktop]);
 
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
@@ -782,6 +957,7 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
       {error && (
         <div className="mx-2 mt-2 mb-1 rounded border border-[#f85149]/40 bg-[#f85149]/10 px-2 py-1.5 text-xs text-[#f85149]">
           {error}
+          {errorClass && <span className="ml-1 text-[#ffa198]">({errorClass})</span>}
         </div>
       )}
 
@@ -936,6 +1112,32 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
               </button>
             </div>
 
+            <div className="mb-1.5 flex gap-1">
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search files"
+                className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs"
+              />
+              <select
+                value={sortField}
+                onChange={(e) => setSortField(e.target.value as RemoteSortField)}
+                className="bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs"
+              >
+                <option value="name">Name</option>
+                <option value="size">Size</option>
+                <option value="type">Type</option>
+              </select>
+              <select
+                value={sortDirection}
+                onChange={(e) => setSortDirection(e.target.value as RemoteSortDirection)}
+                className="bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs"
+              >
+                <option value="asc">Asc</option>
+                <option value="desc">Desc</option>
+              </select>
+            </div>
+
             <div className="mb-1.5 flex items-center gap-1">
               <button
                 onClick={() => void handleCreateRemoteFile()}
@@ -960,7 +1162,81 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
               </button>
             </div>
 
-            {remoteFiles.length > 0 && (
+            <div className="mb-1.5 rounded border border-[#30363d] bg-[#0d1117] p-1.5">
+              <div className="mb-1 flex items-center gap-2 text-[10px] text-[#8b949e]">
+                <label className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={transferOverwrite}
+                    onChange={(e) => setTransferOverwrite(e.target.checked)}
+                    className="h-3 w-3 accent-[#58a6ff]"
+                  />
+                  Overwrite
+                </label>
+                <label className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={transferResume}
+                    onChange={(e) => setTransferResume(e.target.checked)}
+                    className="h-3 w-3 accent-[#58a6ff]"
+                  />
+                  Resume
+                </label>
+              </div>
+
+              <div className="mb-1 flex gap-1">
+                <input
+                  value={localUploadPath}
+                  onChange={(e) => setLocalUploadPath(e.target.value)}
+                  placeholder="Local file path for binary upload"
+                  className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-xs text-[#c9d1d9]"
+                />
+                <button
+                  onClick={() => void handleStartBinaryUpload()}
+                  disabled={!selectedConnectionId || !!activeTransferId}
+                  className="px-2 py-1 text-xs bg-[#a371f7] hover:bg-[#bc8cff] disabled:bg-[#30363d] text-white rounded"
+                >
+                  Upload Binary
+                </button>
+              </div>
+
+              <div className="flex gap-1">
+                <button
+                  onClick={() => void handleStartBinaryDownload()}
+                  disabled={!selectedConnectionId || !selectedRemoteFilePath || !!activeTransferId}
+                  className="px-2 py-1 text-xs bg-[#1f6feb] hover:bg-[#388bfd] disabled:bg-[#30363d] text-white rounded"
+                >
+                  Download Binary
+                </button>
+                <button
+                  onClick={() => void handleCancelTransfer()}
+                  disabled={!activeTransferId}
+                  className="px-2 py-1 text-xs bg-[#f85149] hover:bg-[#ff7b72] disabled:bg-[#30363d] text-white rounded"
+                >
+                  Cancel Transfer
+                </button>
+              </div>
+
+              {activeTransferStatus && (
+                <div className="mt-1.5">
+                  <div className="text-[10px] text-[#8b949e] mb-1">
+                    {activeTransferStatus.direction} • {activeTransferStatus.status} • {activeTransferStatus.transferredBytes}/{activeTransferStatus.totalBytes || 0} bytes
+                  </div>
+                  <div className="h-1.5 w-full rounded bg-[#21262d]">
+                    <div
+                      className="h-1.5 rounded bg-[#58a6ff]"
+                      style={{
+                        width: `${activeTransferStatus.totalBytes > 0
+                          ? Math.min(100, (activeTransferStatus.transferredBytes / activeTransferStatus.totalBytes) * 100)
+                          : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {displayedRemoteFiles.length > 0 && (
               <div className="mb-1.5 rounded border border-[#30363d] bg-[#0d1117] p-1.5">
                 <div className="mb-1 flex items-center gap-1">
                   <button
@@ -975,7 +1251,7 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
                   >
                     Clear
                   </button>
-                  <span className="text-[10px] text-[#8b949e]">{selectedRemotePaths.length} selected</span>
+                  <span className="text-[10px] text-[#8b949e]">{selectedRemotePaths.length} selected • {displayedRemoteFiles.length} shown</span>
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -1010,9 +1286,9 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
               </div>
             )}
 
-            {remoteFiles.length > 0 && (
+            {displayedRemoteFiles.length > 0 && (
               <div className="max-h-36 overflow-y-auto rounded border border-[#30363d] bg-[#0d1117] p-1">
-                {remoteFiles.map((entry) => (
+                {displayedRemoteFiles.map((entry) => (
                   <div key={entry.path} className="group flex items-center gap-1 rounded hover:bg-[#161b22]">
                     <input
                       type="checkbox"
