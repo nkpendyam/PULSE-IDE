@@ -572,3 +572,62 @@ pub async fn remote_move_path(
 ) -> Result<bool, String> {
     remote_rename_path(connection_id, source_path, destination_path).await
 }
+
+#[command]
+pub async fn remote_create_directory(connection_id: String, path: String) -> Result<bool, String> {
+    let state = REMOTE_STATE.read().await;
+    let connection = state
+        .get(&connection_id)
+        .cloned()
+        .ok_or_else(|| "Remote connection not found".to_string())?;
+    drop(state);
+
+    let escaped_path = shell_escape(&path);
+    let cmd = format!("mkdir -p \"{}\"", escaped_path);
+    let result = run_remote_shell(&connection, &cmd, None).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!(
+            "Failed to create remote directory: {}",
+            result.stderr
+        ));
+    }
+
+    Ok(true)
+}
+
+#[command]
+pub async fn remote_create_file(connection_id: String, path: String) -> Result<bool, String> {
+    let state = REMOTE_STATE.read().await;
+    let connection = state
+        .get(&connection_id)
+        .cloned()
+        .ok_or_else(|| "Remote connection not found".to_string())?;
+    drop(state);
+
+    let escaped_path = shell_escape(&path);
+    let cmd = format!("touch \"{}\"", escaped_path);
+    let result = run_remote_shell(&connection, &cmd, None).await?;
+
+    if result.exit_code != 0 {
+        return Err(format!("Failed to create remote file: {}", result.stderr));
+    }
+
+    Ok(true)
+}
+
+#[command]
+pub async fn remote_upload_local_file(
+    connection_id: String,
+    local_path: String,
+    remote_path: String,
+) -> Result<bool, String> {
+    let bytes = std::fs::read(&local_path)
+        .map_err(|e| format!("Failed to read local file for upload: {}", e))?;
+
+    let content = String::from_utf8(bytes).map_err(|_| {
+        "Local file is not valid UTF-8 text. Binary upload is not supported yet.".to_string()
+    })?;
+
+    remote_write_file(connection_id, remote_path, content).await
+}

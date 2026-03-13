@@ -655,6 +655,106 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
     }
   }, [isDesktop, refreshRemoteFiles, selectedConnectionId, selectedRemoteFilePath, selectedRemotePaths]);
 
+  const joinRemotePath = useCallback((base: string, leaf: string) => {
+    const trimmedBase = base.replace(/\/+$/, '');
+    const trimmedLeaf = leaf.replace(/^\/+/, '');
+    if (!trimmedBase || trimmedBase === '.') {
+      return trimmedLeaf;
+    }
+    return `${trimmedBase}/${trimmedLeaf}`;
+  }, []);
+
+  const handleCreateRemoteFile = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Create file requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    const name = window.prompt('New file name (or relative path)')?.trim();
+    if (!name) {
+      return;
+    }
+
+    const targetPath = name.includes('/') ? name : joinRemotePath(remotePath, name);
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_create_file', {
+        connectionId: selectedConnectionId,
+        path: targetPath,
+      });
+      await refreshRemoteFiles();
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [isDesktop, joinRemotePath, refreshRemoteFiles, remotePath, selectedConnectionId]);
+
+  const handleCreateRemoteDirectory = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Create folder requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    const name = window.prompt('New folder name (or relative path)')?.trim();
+    if (!name) {
+      return;
+    }
+
+    const targetPath = name.includes('/') ? name : joinRemotePath(remotePath, name);
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_create_directory', {
+        connectionId: selectedConnectionId,
+        path: targetPath,
+      });
+      await refreshRemoteFiles();
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [isDesktop, joinRemotePath, refreshRemoteFiles, remotePath, selectedConnectionId]);
+
+  const handleUploadLocalFileToRemote = useCallback(async () => {
+    if (!isDesktop || !window.__TAURI__) {
+      setError('Upload requires desktop runtime.');
+      return;
+    }
+    if (!selectedConnectionId) {
+      setError('Connect to a remote target first.');
+      return;
+    }
+
+    const localPath = window.prompt('Local file path to upload')?.trim();
+    if (!localPath) {
+      return;
+    }
+
+    const localName = localPath.split(/[\\/]/).pop() || 'uploaded.txt';
+    const suggested = joinRemotePath(remotePath, localName);
+    const remoteTarget = window.prompt('Remote destination path', suggested)?.trim();
+    if (!remoteTarget) {
+      return;
+    }
+
+    setError(null);
+    try {
+      await window.__TAURI__.core.invoke('remote_upload_local_file', {
+        connectionId: selectedConnectionId,
+        localPath,
+        remotePath: remoteTarget,
+      });
+      await refreshRemoteFiles();
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [isDesktop, joinRemotePath, refreshRemoteFiles, remotePath, selectedConnectionId]);
+
   const statusIcon = (status: RemoteConnection['status']) => {
     switch (status) {
       case 'connected': return <Wifi size={12} className="text-[#3fb950]" />;
@@ -833,6 +933,30 @@ export function RemoteDevContainers({ projectPath }: RemoteDevContainersProps) {
                 className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] disabled:bg-[#21262d]/50 text-[#c9d1d9] rounded"
               >
                 {isListingFiles ? 'Listing...' : 'List'}
+              </button>
+            </div>
+
+            <div className="mb-1.5 flex items-center gap-1">
+              <button
+                onClick={() => void handleCreateRemoteFile()}
+                disabled={!selectedConnectionId}
+                className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] disabled:bg-[#21262d]/50 text-[#c9d1d9] rounded"
+              >
+                New File
+              </button>
+              <button
+                onClick={() => void handleCreateRemoteDirectory()}
+                disabled={!selectedConnectionId}
+                className="px-2 py-1 text-xs bg-[#21262d] hover:bg-[#30363d] disabled:bg-[#21262d]/50 text-[#c9d1d9] rounded"
+              >
+                New Folder
+              </button>
+              <button
+                onClick={() => void handleUploadLocalFileToRemote()}
+                disabled={!selectedConnectionId}
+                className="px-2 py-1 text-xs bg-[#1f6feb] hover:bg-[#388bfd] disabled:bg-[#30363d] text-white rounded"
+              >
+                Upload Local
               </button>
             </div>
 
