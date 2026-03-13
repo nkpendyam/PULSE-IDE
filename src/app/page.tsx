@@ -140,6 +140,8 @@ export default function Home() {
   const [diffFile, setDiffFile] = useState<string>('');
   const editorRef = useRef<unknown>(null);
   const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
+  const [predictionEditor, setPredictionEditor] = useState<import('monaco-editor').editor.IStandaloneCodeEditor | null>(null);
+  const [predictionMonaco, setPredictionMonaco] = useState<typeof import('monaco-editor') | null>(null);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
 
   const {
@@ -431,6 +433,8 @@ export default function Home() {
     const monacoModule = monaco as typeof import('monaco-editor');
     monacoRef.current = monacoModule;
     const monacoEditor = editor as import('monaco-editor').editor.IStandaloneCodeEditor;
+    setPredictionEditor(monacoEditor);
+    setPredictionMonaco(monacoModule);
 
     // Track cursor position
     monacoEditor.onDidChangeCursorPosition((e) => {
@@ -509,8 +513,8 @@ export default function Home() {
 
   // Edit Prediction hook — predicts next edit location and provides Tab-to-accept
   const { acceptPrediction } = useEditPrediction(
-    editorRef.current as import('monaco-editor').editor.IStandaloneCodeEditor | null,
-    monacoRef.current,
+    predictionEditor,
+    predictionMonaco,
     currentFile?.path || '',
     true
   );
