@@ -191,8 +191,10 @@ export function AIChatSidebar() {
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const mentionChipButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [showMentions, setShowMentions] = useState(false);
   const [cursorPos, setCursorPos] = useState(0);
+  const [focusedChipIndex, setFocusedChipIndex] = useState<number | null>(null);
   
   const { 
     chatMessages, 
@@ -417,6 +419,17 @@ export function AIChatSidebar() {
     return [before, after].filter(Boolean).join(' ');
   };
 
+  const focusChipButton = (index: number) => {
+    const boundedIndex = Math.max(0, Math.min(index, mentionPreviewItems.length - 1));
+    const button = mentionChipButtonRefs.current[boundedIndex];
+    if (!button) {
+      return;
+    }
+
+    button.focus();
+    setFocusedChipIndex(boundedIndex);
+  };
+
   const handleRemoveMentionChip = (item: MentionPreviewItem) => {
     setInput((prev) => {
       let next = prev;
@@ -431,6 +444,65 @@ export function AIChatSidebar() {
     setShowMentions(false);
     inputRef.current?.focus();
   };
+
+  const handleChipKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number,
+    item: MentionPreviewItem
+  ) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (index > 0) {
+        focusChipButton(index - 1);
+      } else {
+        inputRef.current?.focus();
+        setFocusedChipIndex(null);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (index < mentionPreviewItems.length - 1) {
+        focusChipButton(index + 1);
+      } else {
+        inputRef.current?.focus();
+        setFocusedChipIndex(null);
+      }
+      return;
+    }
+
+    if (e.key === 'Home') {
+      e.preventDefault();
+      focusChipButton(0);
+      return;
+    }
+
+    if (e.key === 'End') {
+      e.preventDefault();
+      focusChipButton(mentionPreviewItems.length - 1);
+      return;
+    }
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      handleRemoveMentionChip(item);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      inputRef.current?.focus();
+      setFocusedChipIndex(null);
+    }
+  };
+
+  useEffect(() => {
+    mentionChipButtonRefs.current = mentionChipButtonRefs.current.slice(0, mentionPreviewItems.length);
+    if (focusedChipIndex !== null && focusedChipIndex >= mentionPreviewItems.length) {
+      setFocusedChipIndex(mentionPreviewItems.length > 0 ? mentionPreviewItems.length - 1 : null);
+    }
+  }, [focusedChipIndex, mentionPreviewItems.length]);
 
   // Initialize session
   useEffect(() => {
@@ -629,6 +701,17 @@ export function AIChatSidebar() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      const textarea = inputRef.current;
+      const selectionStart = textarea?.selectionStart ?? cursorPos;
+      const selectionEnd = textarea?.selectionEnd ?? cursorPos;
+      if (selectionStart === selectionEnd && selectionStart === input.length && mentionPreviewItems.length > 0) {
+        e.preventDefault();
+        focusChipButton(mentionPreviewItems.length - 1);
+        return;
+      }
+    }
+
     if (e.key === 'Backspace') {
       const textarea = inputRef.current;
       const selectionStart = textarea?.selectionStart ?? cursorPos;
@@ -641,6 +724,7 @@ export function AIChatSidebar() {
           setInput((prev) => removeMentionTokenFromInput(prev, lastMention.raw, 'last'));
         }
         setShowMentions(false);
+        setFocusedChipIndex(null);
         return;
       }
     }
@@ -809,7 +893,7 @@ export function AIChatSidebar() {
 
         {mentionPreviewItems.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {mentionPreviewItems.map((item) => (
+            {mentionPreviewItems.map((item, index) => (
               <div
                 key={item.id}
                 className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] ${
@@ -823,9 +907,17 @@ export function AIChatSidebar() {
                 <span className="opacity-85">{item.detail}</span>
                 {item.count > 1 && <span className="opacity-75">×{item.count}</span>}
                 <button
+                  ref={(element) => {
+                    mentionChipButtonRefs.current[index] = element;
+                  }}
                   type="button"
                   onClick={() => handleRemoveMentionChip(item)}
-                  className="ml-0.5 rounded p-0.5 hover:bg-[#30363d]"
+                  onFocus={() => setFocusedChipIndex(index)}
+                  onBlur={() => setFocusedChipIndex((current) => (current === index ? null : current))}
+                  onKeyDown={(event) => handleChipKeyDown(event, index, item)}
+                  className={`ml-0.5 rounded p-0.5 hover:bg-[#30363d] focus:outline-none focus:ring-1 focus:ring-[#58a6ff] ${
+                    focusedChipIndex === index ? 'bg-[#30363d]' : ''
+                  }`}
                   aria-label={`Remove ${item.label} mention`}
                   title="Remove mention"
                 >
