@@ -944,3 +944,29 @@ pub async fn agent_reject(approval_id: String) -> Result<(), String> {
     log::info!("Agent edit rejected: {}", approval_id);
     Ok(())
 }
+
+/// Arena-mode chat completion - wraps chat_completion with timing and token count
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ArenaChatResponse {
+    pub content: String,
+    pub tokens: u32,
+    pub time_ms: u64,
+}
+
+#[command]
+pub async fn chat_complete(
+    model: String,
+    messages: Vec<ChatMessage>,
+    stream: Option<bool>,
+) -> Result<ArenaChatResponse, String> {
+    let start = std::time::Instant::now();
+    let content = chat_completion(model, messages).await?;
+    let elapsed_ms = start.elapsed().as_millis() as u64;
+    // Rough token estimate: ~4 chars per token
+    let tokens = (content.len() as u32 / 4).max(1);
+    Ok(ArenaChatResponse {
+        content,
+        tokens,
+        time_ms: elapsed_ms,
+    })
+}

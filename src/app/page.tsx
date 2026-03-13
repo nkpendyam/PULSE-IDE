@@ -38,6 +38,11 @@ import { useEditPrediction } from '@/components/editor/EditPredictionProvider';
 import { AgentAutopilotPanel } from '@/components/agents/AgentAutopilotPanel';
 import { ConversationCheckpoints, Checkpoint } from '@/components/chat/ConversationCheckpoints';
 import { RemoteDevContainers } from '@/components/remote/RemoteDevContainers';
+import { VoiceInput } from '@/components/voice/VoiceInput';
+import { DeployPanel } from '@/components/deploy/DeployPanel';
+import { ArenaMode } from '@/components/llm/ArenaMode';
+import { NotebookPanel } from '@/components/editor/NotebookPanel';
+import { ThemeBuilder } from '@/components/theme/ThemeBuilder';
 import { KeybindingManager } from '@/lib/keybindings';
 import { registerLspProviders, setupFileWatcher } from '@/lib/lspBridge';
 import {
@@ -66,6 +71,10 @@ import {
   BookOpen,
   Shield,
   Monitor,
+  Rocket as DeployIcon,
+  Swords,
+  BookMarked,
+  Palette,
 } from 'lucide-react';
 
 // Tauri invoke for AI commands
@@ -93,7 +102,7 @@ async function invokeTauri<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 // Types for AI responses
-type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote';
+type SidebarPanel = 'explorer' | 'search' | 'git' | 'debug' | 'mission' | 'settings' | 'extensions' | 'collaboration' | 'plugins' | 'rag' | 'lsp' | 'llm' | 'update' | 'symbols' | 'agent-stream' | 'testing' | 'browser' | 'rules' | 'autopilot' | 'remote' | 'deploy' | 'arena' | 'notebook' | 'theme-builder';
 
 // Fallback file tree (used when Tauri is not available)
 const fallbackFileTree: FileNode = {
@@ -574,6 +583,10 @@ export default function Home() {
               { id: 'rules' as SidebarPanel, icon: BookOpen, label: 'Project Rules' },
               { id: 'autopilot' as SidebarPanel, icon: Shield, label: 'Agent Autopilot' },
               { id: 'remote' as SidebarPanel, icon: Monitor, label: 'Remote / Containers' },
+              { id: 'deploy' as SidebarPanel, icon: DeployIcon, label: 'Deploy' },
+              { id: 'arena' as SidebarPanel, icon: Swords, label: 'Arena Mode (Model Comparison)' },
+              { id: 'notebook' as SidebarPanel, icon: BookMarked, label: 'Notebook / REPL' },
+              { id: 'theme-builder' as SidebarPanel, icon: Palette, label: 'Theme Builder' },
               { id: 'mission' as SidebarPanel, icon: Rocket, label: 'Mission Control' },
             ].map((item) => {
               const Icon = item.icon;
@@ -628,6 +641,10 @@ export default function Home() {
                 {activePanel === 'rules' && 'Project Rules'}
                 {activePanel === 'autopilot' && 'Agent Autopilot'}
                 {activePanel === 'remote' && 'Remote / Containers'}
+                {activePanel === 'deploy' && 'Deploy'}
+                {activePanel === 'arena' && 'Arena Mode'}
+                {activePanel === 'notebook' && 'Notebook / REPL'}
+                {activePanel === 'theme-builder' && 'Theme Builder'}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -707,6 +724,18 @@ export default function Home() {
               )}
               {activePanel === 'remote' && (
                 <RemoteDevContainers projectPath={projectPath || '.'} />
+              )}
+              {activePanel === 'deploy' && (
+                <DeployPanel />
+              )}
+              {activePanel === 'arena' && (
+                <ArenaMode />
+              )}
+              {activePanel === 'notebook' && (
+                <NotebookPanel />
+              )}
+              {activePanel === 'theme-builder' && (
+                <ThemeBuilder />
               )}
             </div>
           </div>
