@@ -57,6 +57,14 @@ Production build:
 bun run tauri:build
 ```
 
+Windows installer build (recommended):
+
+```powershell
+.\scripts\build-windows.ps1
+```
+
+This generates a standard setup `.exe` at `src-tauri/target/release/bundle/nsis/` with desktop/start menu shortcuts and `kyro` terminal launcher support.
+
 See [docs/status/ROADMAP.md](docs/status/ROADMAP.md) for version goals and [docs/KYRO_IDE_2026_ENGINEERING_PLAN.md](docs/KYRO_IDE_2026_ENGINEERING_PLAN.md) for the full 2026 engineering plan (VS Code/Antigravity comparison, stages, and open-source stack).
 
 For production-ready local setup and platform dependencies, see [docs/INSTALLATION.md](docs/INSTALLATION.md).

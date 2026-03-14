@@ -21,11 +21,11 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "tauri:dev": "bunx tauri dev",
+    "tauri:dev": "bun x tauri dev",
     "pretauri:dev": "bun install",
-    "tauri:build": "bunx tauri build",
+    "tauri:build": "bun x tauri build",
     "pretauri:build": "bun install && bun run build",
-    "tauri:build:debug": "bunx tauri build --debug",
+    "tauri:build:debug": "bun x tauri build --debug",
     "pretauri:build:debug": "bun install && bun run build"
   },
   "dependencies": {

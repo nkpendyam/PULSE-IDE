@@ -105,9 +105,40 @@ The enforced order is:
 
 Output artifacts are generated under `src-tauri/target/release/bundle/`.
 
+## 5.1) Windows Installer Experience (EXE-first)
+
+Kyro now ships with a standard NSIS Windows setup executable.
+
+Build it:
+
+```powershell
+.\scripts\build-windows.ps1
+```
+
+Primary installer artifact:
+
+- `src-tauri/target/release/bundle/nsis/*.exe` (recommended installer)
+- `src-tauri/target/release/bundle/msi/*.msi` (enterprise/MSI environments)
+
+Installer behavior for Windows users:
+
+- Setup wizard (`.exe`) with normal IDE-style installation flow.
+- Start Menu entry under `Kyro IDE`.
+- Desktop shortcut creation.
+- Explorer context menu entries:
+  - `Open with Kyro IDE` for files
+  - `Open with Kyro IDE` for folders/background
+- Terminal launcher command: `kyro`.
+
+After install, from PowerShell/CMD:
+
+```powershell
+kyro .
+```
+
 ## 6) Platform Build Notes
 
-- Windows bundles: MSI/NSIS
+- Windows bundles: NSIS `.exe` (recommended) and MSI
 - macOS bundles: DMG/App bundle
 - Linux bundles: AppImage/DEB (depending on target + host tools)
 

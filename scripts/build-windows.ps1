@@ -45,5 +45,21 @@ cargo build --release
 Write-Host ">>> Building Tauri application..." -ForegroundColor Yellow
 cargo tauri build --bundles msi,nsis
 
+$bundleRoot = Join-Path (Get-Location) "target\release\bundle"
+$nsisBundle = Get-ChildItem -Path (Join-Path $bundleRoot "nsis") -Filter "*.exe" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$msiBundle = Get-ChildItem -Path (Join-Path $bundleRoot "msi") -Filter "*.msi" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
 Write-Host "=== Build Complete ===" -ForegroundColor Green
 Write-Host "Output: src-tauri\target\release\bundle\" -ForegroundColor Cyan
+
+if ($nsisBundle) {
+    Write-Host "Installer (.exe): $($nsisBundle.FullName)" -ForegroundColor Cyan
+} else {
+    Write-Host "Installer (.exe): not found" -ForegroundColor Yellow
+}
+
+if ($msiBundle) {
+    Write-Host "Installer (.msi): $($msiBundle.FullName)" -ForegroundColor Cyan
+} else {
+    Write-Host "Installer (.msi): not found" -ForegroundColor Yellow
+}

@@ -45,6 +45,20 @@
       }
     },
     "windows": {
+      "allowDowngrades": false,
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "both",
+        "displayLanguageSelector": true,
+        "languages": [
+          "English"
+        ],
+        "startMenuFolder": "Kyro IDE",
+        "installerHooks": "windows/installer-hooks.nsh"
+      },
       "wix": {
         "language": "en-US"
       }
